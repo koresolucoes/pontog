@@ -100,16 +100,19 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
   if (!profile) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg mx-auto animate-fade-in-up flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="p-6 border-b border-gray-700 flex justify-between items-center">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50" onClick={onClose}>
+      <div 
+        className="bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-lg mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-[95vh] sm:h-auto sm:max-h-[90vh]" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
           <h2 className="text-xl font-bold text-white">Editar Perfil</h2>
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-white">
             <XIcon className="w-6 h-6" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-8">
+        
+        <form id="edit-profile-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-8">
             {/* Seção Sobre Mim */}
             <section>
               <h3 className="text-lg font-semibold text-pink-400 mb-4 border-b border-gray-700 pb-2">Sobre Mim</h3>
@@ -182,18 +185,19 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
                     </div>
                 </div>
             </section>
-          </div>
-          <div className="bg-gray-700/50 px-6 py-4 rounded-b-2xl flex justify-end items-center space-x-4 sticky bottom-0">
-              {message && <p className={`text-sm ${message.includes('sucesso') ? 'text-green-400' : 'text-red-400'}`}>{message}</p>}
+        </form>
+        
+        <div className="bg-gray-700/50 px-6 py-4 flex-shrink-0 rounded-b-none sm:rounded-b-2xl flex justify-end items-center space-x-4">
+            {message && <p className={`text-sm flex-1 truncate pr-4 ${message.includes('sucesso') ? 'text-green-400' : 'text-red-400'}`}>{message}</p>}
             <button
               type="submit"
+              form="edit-profile-form"
               disabled={loading}
               className="bg-pink-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
             >
               {loading ? 'Salvando...' : 'Salvar Alterações'}
             </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -30,24 +30,26 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
       setTimeout(() => setWinkStatus(null), 3000);
   };
 
-  const nextPhoto = () => {
+  const nextPhoto = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setCurrentPhotoIndex((prev) => (prev + 1) % photos.length);
   };
 
-  const prevPhoto = () => {
+  const prevPhoto = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setCurrentPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
   };
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50"
       onClick={onClose}
     >
       <div 
-        className="bg-gray-800 rounded-2xl shadow-xl w-full max-w-md mx-auto overflow-hidden animate-fade-in-up"
+        className="bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md mx-auto animate-slide-in-up sm:animate-fade-in-up overflow-y-auto max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative w-full aspect-[4/3] bg-gray-900">
+        <div className="relative w-full aspect-[4/3] bg-gray-900 flex-shrink-0">
           {photos.length > 0 ? (
             <>
               <img src={photos[currentPhotoIndex]} alt={user.username} className="w-full h-full object-cover" />

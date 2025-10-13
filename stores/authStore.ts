@@ -13,6 +13,7 @@ interface AuthState {
   fetchProfile: () => Promise<void>;
   updateProfile: (updates: Partial<Omit<Profile, 'tribes'>> & { tribe_ids: number[] }) => Promise<boolean>;
   updateAvatar: (avatarPath: string) => Promise<boolean>;
+  updatePublicPhotos: (photoPaths: string[]) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -34,7 +35,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const user = get().user;
     if (!user) return;
     try {
-      // Fetch profile and tribes in one go
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -49,11 +49,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
 
       if (data) {
-        // Transform the tribe data into a simple array of names
         const transformedData = {
           ...data,
           tribes: data.profile_tribes.map((pt: any) => pt.tribes.name),
-          avatar_url: getPublicImageUrl(data.avatar_url)
+          avatar_url: getPublicImageUrl(data.avatar_url),
+          public_photos: (data.public_photos || []).map(getPublicImageUrl),
         };
         delete transformedData.profile_tribes;
         set({ profile: transformedData as Profile });
@@ -82,7 +82,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return false;
     }
     
-    await get().fetchProfile(); // Refresh profile data
+    await get().fetchProfile();
     return true;
   },
 
@@ -102,6 +102,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       await get().fetchProfile();
       return true;
+  },
+
+  updatePublicPhotos: async (photoPaths: string[]) => {
+    const user = get().user;
+    if (!user) return false;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ public_photos: photoPaths })
+      .eq('id', user.id);
+
+    if (error) {
+      console.error("Error updating public photos:", error);
+      return false;
+    }
+
+    await get().fetchProfile();
+    return true;
   },
 
   signOut: async () => {

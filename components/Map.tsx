@@ -43,6 +43,12 @@ export const Map: React.FC = () => {
       }).addTo(map);
 
       mapInstanceRef.current = map;
+
+      // FIX: Força o mapa a recalcular seu tamanho após ser renderizado no DOM.
+      // Isso corrige o bug onde os 'tiles' não aparecem na primeira carga.
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 100); 
     }
   }, []);
 

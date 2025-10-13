@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAlbumStore } from '../stores/albumStore';
 import { PrivateAlbum } from '../types';
 import { XIcon, PlusCircleIcon, UploadCloudIcon, TrashIcon, ChevronLeftIcon } from './icons';
-import { getPublicImageUrl } from '../lib/supabase';
 
 interface MyAlbumsModalProps {
   onClose: () => void;
@@ -65,12 +64,10 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
                 <div className="absolute inset-0 bg-gray-700 rounded-lg flex items-center justify-center text-center p-2">
                   <span className="font-bold text-white">{album.name}</span>
                 </div>
-                {/* Fix: Use 'private_album_photos' to match the type and API response */}
                 {album.private_album_photos && album.private_album_photos.length > 0 && (
-                   <img src={getPublicImageUrl(album.private_album_photos[0].photo_path)} className="w-full h-full object-cover rounded-lg"/>
+                   <img src={album.private_album_photos[0].photo_path} className="w-full h-full object-cover rounded-lg"/>
                 )}
                  <div className="absolute inset-0 bg-black/30 rounded-lg"></div>
-                 {/* Fix: Use 'private_album_photos' to match the type and API response */}
                  <div className="absolute bottom-2 left-2 text-white text-xs font-semibold">{album.private_album_photos?.length || 0} fotos</div>
               </div>
             ))}
@@ -94,10 +91,9 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
        <div className="flex-1 overflow-y-auto p-6">
            <input type="file" accept="image/*" onChange={handleFileSelect} ref={fileInputRef} className="hidden" disabled={isUploading} />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {/* Fix: Use 'private_album_photos' to match the type and API response */}
                 {selectedAlbum.private_album_photos?.map(photo => (
                     <div key={photo.id} className="relative group aspect-square">
-                        <img src={getPublicImageUrl(photo.photo_path)} alt="foto do álbum" className="w-full h-full object-cover rounded-lg" />
+                        <img src={photo.photo_path} alt="foto do álbum" className="w-full h-full object-cover rounded-lg" />
                         <button type="button" onClick={() => deletePhotoFromAlbum(photo.id)} className="absolute top-1 right-1 bg-red-600/70 p-1 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
                             <TrashIcon className="w-4 h-4" />
                         </button>

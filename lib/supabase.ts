@@ -13,7 +13,14 @@ const BUCKET_NAME = 'user_uploads';
  * @returns A URL pública completa para a imagem.
  */
 export const getPublicImageUrl = (path: string | null | undefined): string => {
-    if (!path) return ''; // Retorna uma string vazia ou uma imagem placeholder
+    // Retorna um placeholder elegante se não houver caminho
+    if (!path) return 'https://placehold.co/400x400/1f2937/d1d5db/png?text=G'; 
+    
+    // Se já for uma URL completa, retorna ela mesma para evitar erros.
+    if (path.startsWith('http')) {
+        return path;
+    }
+    
     const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
     return data.publicUrl;
 };

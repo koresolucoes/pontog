@@ -61,3 +61,19 @@ export interface PrivateAlbum {
     // Isso vem da query com join no albumStore, e Supabase usa o nome da tabela
     private_album_photos: PrivateAlbumPhoto[];
 }
+
+// Novo tipo para a lista de conversas na caixa de entrada
+export interface ConversationPreview {
+    conversation_id: number;
+    other_participant_id: string;
+    other_participant_username: string;
+    other_participant_avatar_url: string;
+    last_message_content: string;
+    last_message_created_at: string;
+    last_message_sender_id: string;
+}
+
+// Novo tipo para os winks na caixa de entrada (basicamente um User)
+export interface WinkWithProfile extends User {
+    wink_created_at: string;
+}

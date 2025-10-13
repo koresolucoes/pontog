@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from './authStore';
 import { useUiStore } from './uiStore';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { getPublicImageUrl } from '../lib/supabase';
 
 // Função para calcular a idade a partir da data de nascimento
 const calculateAge = (dob: string | null): number => {
@@ -107,8 +108,13 @@ export const useMapStore = create<MapState>((set, get) => ({
         console.error("Error fetching nearby users:", error);
         set({ users: [], loading: false, error: "Erro ao buscar usuários." });
     } else {
-        const usersWithAge = data.map((u: any) => ({...u, age: calculateAge(u.date_of_birth)} as User));
-        set({ users: usersWithAge, loading: false });
+        const usersWithAgeAndUrls = data.map((u: any) => ({
+            ...u, 
+            age: calculateAge(u.date_of_birth),
+            avatar_url: getPublicImageUrl(u.avatar_url),
+            public_photos: (u.public_photos || []).map(getPublicImageUrl),
+        } as User));
+        set({ users: usersWithAgeAndUrls, loading: false });
     }
   },
 
@@ -155,13 +161,18 @@ export const useMapStore = create<MapState>((set, get) => ({
       
       profilesChannel
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
-            // FIX: The 'Profile' type is now correctly imported and can be used here.
             const updatedProfile = payload.new as Profile;
+            const updatedUserWithUrls = {
+                ...updatedProfile,
+                age: calculateAge(updatedProfile.date_of_birth),
+                avatar_url: getPublicImageUrl(updatedProfile.avatar_url),
+                public_photos: (updatedProfile.public_photos || []).map(getPublicImageUrl),
+            };
             
             set(state => ({
                 users: state.users.map(user => 
-                    user.id === updatedProfile.id 
-                    ? { ...user, ...updatedProfile, age: calculateAge(updatedProfile.date_of_birth) } 
+                    user.id === updatedUserWithUrls.id 
+                    ? { ...user, ...updatedUserWithUrls } 
                     : user
                 )
             }));

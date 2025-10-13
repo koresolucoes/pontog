@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
+import { supabase, getPublicImageUrl } from '../lib/supabase';
 import { useAuthStore } from './authStore';
 import { PrivateAlbum, PrivateAlbumPhoto } from '../types';
 
@@ -39,7 +39,17 @@ export const useAlbumStore = create<AlbumState>((set, get) => ({
             set({ isLoading: false });
             return;
         }
-        set({ myAlbums: data, isLoading: false });
+
+        // Processa os caminhos das fotos para URLs públicas
+        const albumsWithUrls = data.map(album => ({
+            ...album,
+            private_album_photos: (album.private_album_photos || []).map(photo => ({
+                ...photo,
+                photo_path: getPublicImageUrl(photo.photo_path)
+            }))
+        }));
+
+        set({ myAlbums: albumsWithUrls, isLoading: false });
     },
 
     uploadPhoto: async (file: File) => {
@@ -80,8 +90,11 @@ export const useAlbumStore = create<AlbumState>((set, get) => ({
             return null;
         }
         
-        set(state => ({ myAlbums: [data, ...state.myAlbums] }));
-        return data;
+        // Retorna o álbum com a lista de fotos vazia
+        const newAlbum = { ...data, private_album_photos: [] };
+
+        set(state => ({ myAlbums: [newAlbum, ...state.myAlbums] }));
+        return newAlbum;
     },
 
     deleteAlbum: async (albumId: number) => {
@@ -109,7 +122,7 @@ export const useAlbumStore = create<AlbumState>((set, get) => ({
             return null;
         }
 
-        get().fetchMyAlbums(); // Re-fetch to update photo lists
+        get().fetchMyAlbums(); // Re-fetch to update photo lists with correct URLs
         return data;
     },
     

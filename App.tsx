@@ -6,11 +6,12 @@ import { useDataStore } from './stores/dataStore';
 import { Auth } from './components/Auth';
 import { Map } from './components/Map';
 import { UserGrid } from './components/UserGrid';
+import { Inbox } from './components/Inbox';
 import { ProfileModal } from './components/ProfileModal';
 import { EditProfileModal } from './components/EditProfileModal';
 import { ChatWindow } from './components/ChatWindow';
 import { MyAlbumsModal } from './components/MyAlbumsModal';
-import { MapPinIcon, UsersIcon, MessageCircleIcon } from './components/icons';
+import { MapPinIcon, UsersIcon, InboxIcon } from './components/icons';
 import { User } from './types';
 import { Toaster } from 'react-hot-toast';
 
@@ -48,6 +49,15 @@ function App() {
     signOut();
   }
 
+  const renderActiveView = () => {
+    switch(activeView) {
+      case 'map': return <Map />;
+      case 'grid': return <UserGrid />;
+      case 'inbox': return <Inbox />;
+      default: return <UserGrid />;
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -79,13 +89,17 @@ function App() {
         </div>
         
         <div className="bg-gray-800 rounded-lg p-1 flex space-x-1 mb-4">
+          <button onClick={() => setActiveView('grid')} className={`w-full flex items-center justify-center space-x-2 py-2 rounded-md text-sm font-semibold transition-colors ${activeView === 'grid' ? 'bg-pink-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+            <UsersIcon className="w-5 h-5" />
+            <span>Grid</span>
+          </button>
           <button onClick={() => setActiveView('map')} className={`w-full flex items-center justify-center space-x-2 py-2 rounded-md text-sm font-semibold transition-colors ${activeView === 'map' ? 'bg-pink-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
             <MapPinIcon className="w-5 h-5" />
             <span>Mapa</span>
           </button>
-          <button onClick={() => setActiveView('grid')} className={`w-full flex items-center justify-center space-x-2 py-2 rounded-md text-sm font-semibold transition-colors ${activeView === 'grid' ? 'bg-pink-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
-            <UsersIcon className="w-5 h-5" />
-            <span>Grid</span>
+          <button onClick={() => setActiveView('inbox')} className={`w-full flex items-center justify-center space-x-2 py-2 rounded-md text-sm font-semibold transition-colors ${activeView === 'inbox' ? 'bg-pink-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+            <InboxIcon className="w-5 h-5" />
+            <span>Caixa</span>
           </button>
         </div>
         
@@ -94,14 +108,14 @@ function App() {
 
         <div className="mt-auto">
             <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer" onClick={() => setEditProfileOpen(true)}>
-                <img src={profile?.avatar_url || `https://picsum.photos/seed/${profile?.id}/40`} alt="Seu perfil" className="w-10 h-10 rounded-full object-cover" />
+                <img src={profile?.avatar_url || `https://placehold.co/40x40/1f2937/d1d5db/png?text=G`} alt="Seu perfil" className="w-10 h-10 rounded-full object-cover" />
                 <div className="flex-1">
                     <p className="font-semibold text-white truncate">{profile?.username}</p>
                     <p className="text-xs text-gray-400">Editar Perfil</p>
                 </div>
             </div>
             <div onClick={() => setMyAlbumsOpen(true)} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer text-gray-400">
-                <MessageCircleIcon className="w-5 h-5 ml-2.5" />
+                <UsersIcon className="w-5 h-5 ml-2.5" />
                 <div className="flex-1">
                     <p className="font-semibold text-gray-300 truncate">Meus Álbuns</p>
                 </div>
@@ -116,23 +130,27 @@ function App() {
                 <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-xl">G</div>
             </div>
             <div className="flex items-center space-x-3">
-                <img src={profile?.avatar_url || `https://picsum.photos/seed/${profile?.id}/40`} alt="Seu perfil" className="w-8 h-8 rounded-full object-cover" onClick={() => setEditProfileOpen(true)} />
+                <img src={profile?.avatar_url || `https://placehold.co/40x40/1f2937/d1d5db/png?text=G`} alt="Seu perfil" className="w-8 h-8 rounded-full object-cover" onClick={() => setEditProfileOpen(true)} />
                 <button onClick={handleSignOut} className="text-sm font-semibold text-gray-400 hover:text-pink-400">Sair</button>
             </div>
         </header>
 
         <main className="flex-1 relative bg-gray-800 z-10">
-            {activeView === 'map' ? <Map /> : <UserGrid />}
+            {renderActiveView()}
         </main>
         
-        <nav className="md:hidden bg-gray-900 border-t border-gray-800 grid grid-cols-2">
+        <nav className="md:hidden bg-gray-900 border-t border-gray-800 grid grid-cols-3">
+             <button onClick={() => setActiveView('grid')} className={`flex flex-col items-center justify-center space-y-1 py-3 text-sm font-semibold transition-colors ${activeView === 'grid' ? 'text-pink-500' : 'text-gray-400 hover:bg-gray-800'}`}>
+                <UsersIcon className="w-6 h-6" />
+                <span>Grid</span>
+            </button>
              <button onClick={() => setActiveView('map')} className={`flex flex-col items-center justify-center space-y-1 py-3 text-sm font-semibold transition-colors ${activeView === 'map' ? 'text-pink-500' : 'text-gray-400 hover:bg-gray-800'}`}>
                 <MapPinIcon className="w-6 h-6" />
                 <span>Mapa</span>
             </button>
-            <button onClick={() => setActiveView('grid')} className={`flex flex-col items-center justify-center space-y-1 py-3 text-sm font-semibold transition-colors ${activeView === 'grid' ? 'text-pink-500' : 'text-gray-400 hover:bg-gray-800'}`}>
-                <UsersIcon className="w-6 h-6" />
-                <span>Grid</span>
+            <button onClick={() => setActiveView('inbox')} className={`flex flex-col items-center justify-center space-y-1 py-3 text-sm font-semibold transition-colors ${activeView === 'inbox' ? 'text-pink-500' : 'text-gray-400 hover:bg-gray-800'}`}>
+                <InboxIcon className="w-6 h-6" />
+                <span>Caixa</span>
             </button>
         </nav>
       </div>

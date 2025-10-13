@@ -81,3 +81,14 @@ export interface ConversationPreview {
 export interface WinkWithProfile extends User {
     wink_created_at: string;
 }
+
+// Novos tipos para acesso a álbuns privados
+export type AlbumAccessStatus = 'pending' | 'granted' | 'denied' | null;
+
+export interface AlbumAccessRequest {
+    id: number;
+    requester_id: string;
+    created_at: string;
+    username: string;
+    avatar_url: string;
+}

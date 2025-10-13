@@ -1,24 +1,39 @@
 import { create } from 'zustand';
 import { supabase, getPublicImageUrl } from '../lib/supabase';
 import { useAuthStore } from './authStore';
-import { PrivateAlbum, PrivateAlbumPhoto } from '../types';
+import { PrivateAlbum, PrivateAlbumPhoto, AlbumAccessStatus } from '../types';
 
 interface AlbumState {
     myAlbums: PrivateAlbum[];
     isUploading: boolean;
     isLoading: boolean;
+    
+    // State for viewing other user's albums
+    viewedUserAlbums: PrivateAlbum[];
+    viewedUserAccessStatus: AlbumAccessStatus;
+    isFetchingViewedUserAlbums: boolean;
+
     fetchMyAlbums: () => Promise<void>;
     uploadPhoto: (file: File) => Promise<string | null>;
     createAlbum: (name: string) => Promise<PrivateAlbum | null>;
     deleteAlbum: (albumId: number) => Promise<boolean>;
     addPhotoToAlbum: (albumId: number, photoPath: string) => Promise<PrivateAlbumPhoto | null>;
     deletePhotoFromAlbum: (photoId: number) => Promise<boolean>;
+
+    // Functions for access control and viewing other's albums
+    fetchAlbumsAndAccessStatusForUser: (userId: string) => Promise<void>;
+    requestAccess: (ownerId: string) => Promise<void>;
+    clearViewedUserData: () => void;
 }
 
 export const useAlbumStore = create<AlbumState>((set, get) => ({
     myAlbums: [],
     isUploading: false,
     isLoading: false,
+
+    viewedUserAlbums: [],
+    viewedUserAccessStatus: null,
+    isFetchingViewedUserAlbums: false,
 
     fetchMyAlbums: async () => {
         set({ isLoading: true });
@@ -30,7 +45,7 @@ export const useAlbumStore = create<AlbumState>((set, get) => ({
 
         const { data, error } = await supabase
             .from('private_albums')
-            .select('*, private_album_photos(*)')
+            .select('*, private_album_photos(*, user_id)')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
 
@@ -90,9 +105,7 @@ export const useAlbumStore = create<AlbumState>((set, get) => ({
             return null;
         }
         
-        // Retorna o álbum com a lista de fotos vazia
         const newAlbum = { ...data, private_album_photos: [] };
-
         set(state => ({ myAlbums: [newAlbum, ...state.myAlbums] }));
         return newAlbum;
     },
@@ -122,7 +135,7 @@ export const useAlbumStore = create<AlbumState>((set, get) => ({
             return null;
         }
 
-        get().fetchMyAlbums(); // Re-fetch to update photo lists with correct URLs
+        get().fetchMyAlbums(); 
         return data;
     },
     
@@ -132,7 +145,75 @@ export const useAlbumStore = create<AlbumState>((set, get) => ({
             console.error('Error deleting photo:', error);
             return false;
         }
-        get().fetchMyAlbums(); // Re-fetch to update
+        get().fetchMyAlbums();
         return true;
-    }
+    },
+
+    fetchAlbumsAndAccessStatusForUser: async (userId: string) => {
+        set({ isFetchingViewedUserAlbums: true, viewedUserAlbums: [], viewedUserAccessStatus: null });
+        const currentUser = useAuthStore.getState().user;
+        if (!currentUser || currentUser.id === userId) {
+            set({ isFetchingViewedUserAlbums: false });
+            return;
+        }
+        
+        // 1. Check access status
+        const { data: accessData, error: accessError } = await supabase
+            .from('private_album_access')
+            .select('status')
+            .eq('owner_id', userId)
+            .eq('requester_id', currentUser.id)
+            .single();
+        
+        const status = accessData?.status as AlbumAccessStatus || null;
+        set({ viewedUserAccessStatus: status });
+
+        // 2. If access is granted, fetch albums
+        if (status === 'granted') {
+            const { data, error } = await supabase
+                .from('private_albums')
+                .select('*, private_album_photos(*, user_id)')
+                .eq('user_id', userId);
+            
+            if (data && !error) {
+                const albumsWithUrls = data.map(album => ({
+                    ...album,
+                    private_album_photos: (album.private_album_photos || []).map(photo => ({
+                        ...photo,
+                        photo_path: getPublicImageUrl(photo.photo_path)
+                    }))
+                }));
+                set({ viewedUserAlbums: albumsWithUrls });
+            }
+        }
+        set({ isFetchingViewedUserAlbums: false });
+    },
+
+    requestAccess: async (ownerId: string) => {
+        const currentUser = useAuthStore.getState().user;
+        if (!currentUser) throw new Error("User not logged in");
+        
+        const { error } = await supabase
+            .from('private_album_access')
+            .insert({
+                owner_id: ownerId,
+                requester_id: currentUser.id,
+                status: 'pending'
+            });
+
+        if (error) {
+            console.error('Error requesting access:', error);
+            throw error;
+        }
+
+        set({ viewedUserAccessStatus: 'pending' });
+    },
+
+    clearViewedUserData: () => {
+        set({
+            viewedUserAlbums: [],
+            viewedUserAccessStatus: null,
+            isFetchingViewedUserAlbums: false
+        });
+    },
 }));

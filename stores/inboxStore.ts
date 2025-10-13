@@ -1,8 +1,9 @@
 // stores/inboxStore.ts
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import { ConversationPreview, WinkWithProfile, User } from '../types';
+import { ConversationPreview, WinkWithProfile, User, AlbumAccessRequest } from '../types';
 import { getPublicImageUrl } from '../lib/supabase';
+import toast from 'react-hot-toast';
 
 const calculateAge = (dob: string | null): number => {
     if (!dob) return 0;
@@ -19,17 +20,23 @@ const calculateAge = (dob: string | null): number => {
 interface InboxState {
   conversations: ConversationPreview[];
   winks: WinkWithProfile[];
+  accessRequests: AlbumAccessRequest[];
   loadingConversations: boolean;
   loadingWinks: boolean;
+  loadingRequests: boolean;
   fetchConversations: () => Promise<void>;
   fetchWinks: () => Promise<void>;
+  fetchAccessRequests: () => Promise<void>;
+  respondToRequest: (requestId: number, status: 'granted' | 'denied') => Promise<void>;
 }
 
-export const useInboxStore = create<InboxState>((set) => ({
+export const useInboxStore = create<InboxState>((set, get) => ({
   conversations: [],
   winks: [],
+  accessRequests: [],
   loadingConversations: false,
   loadingWinks: false,
+  loadingRequests: false,
 
   fetchConversations: async () => {
     set({ loadingConversations: true });
@@ -70,5 +77,41 @@ export const useInboxStore = create<InboxState>((set) => ({
     }));
 
     set({ winks: winksWithAgeAndUrls, loadingWinks: false });
+  },
+
+  fetchAccessRequests: async () => {
+    set({ loadingRequests: true });
+    const { data, error } = await supabase.rpc('get_my_album_access_requests');
+
+    if (error) {
+      console.error('Error fetching access requests:', error);
+      set({ loadingRequests: false });
+      return;
+    }
+
+    const processedRequests = data.map((req: any) => ({
+        ...req,
+        avatar_url: getPublicImageUrl(req.avatar_url)
+    }));
+
+    set({ accessRequests: processedRequests, loadingRequests: false });
+  },
+  
+  respondToRequest: async (requestId: number, status: 'granted' | 'denied') => {
+      const { error } = await supabase
+        .from('private_album_access')
+        .update({ status: status, updated_at: new Date().toISOString() })
+        .eq('id', requestId);
+    
+    if (error) {
+        toast.error('Erro ao responder à solicitação.');
+        console.error('Error responding to request:', error);
+    } else {
+        toast.success(`Solicitação ${status === 'granted' ? 'aceita' : 'recusada'}.`);
+        // Remove from list optimistically
+        set(state => ({
+            accessRequests: state.accessRequests.filter(req => req.id !== requestId)
+        }));
+    }
   },
 }));

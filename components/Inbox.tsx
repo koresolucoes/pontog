@@ -3,27 +3,38 @@ import { useInboxStore } from '../stores/inboxStore';
 import { useUiStore } from '../stores/uiStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
-import { ConversationPreview, User, WinkWithProfile } from '../types';
+import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { formatLastSeen } from '../lib/utils';
+import { CheckIcon, XIcon } from './icons';
 
-type ActiveTab = 'messages' | 'winks';
+type ActiveTab = 'messages' | 'winks' | 'requests';
 
 export const Inbox: React.FC = () => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('messages');
-    const { conversations, winks, loadingConversations, loadingWinks, fetchConversations, fetchWinks } = useInboxStore();
+    const { 
+        conversations, winks, accessRequests,
+        loadingConversations, loadingWinks, loadingRequests,
+        fetchConversations, fetchWinks, fetchAccessRequests,
+        respondToRequest
+    } = useInboxStore();
     const { setChatUser } = useUiStore();
     const { setSelectedUser } = useMapStore();
     const { profile } = useAuthStore();
 
     useEffect(() => {
-        if (activeTab === 'messages') {
-            fetchConversations();
-        } else {
-            fetchWinks();
+        switch (activeTab) {
+            case 'messages':
+                fetchConversations();
+                break;
+            case 'winks':
+                fetchWinks();
+                break;
+            case 'requests':
+                fetchAccessRequests();
+                break;
         }
-    }, [activeTab, fetchConversations, fetchWinks]);
+    }, [activeTab, fetchConversations, fetchWinks, fetchAccessRequests]);
     
     const handleConversationClick = (convo: ConversationPreview) => {
         // Precisamos criar um objeto User parcial para o ChatWindow
@@ -48,18 +59,24 @@ export const Inbox: React.FC = () => {
         <div className="flex flex-col h-full bg-gray-800 text-white">
             <header className="p-4 border-b border-gray-700">
                 <h1 className="text-2xl font-bold">Caixa de Entrada</h1>
-                <div className="mt-4 flex border border-gray-700 rounded-lg p-1">
+                <div className="mt-4 grid grid-cols-3 border border-gray-700 rounded-lg p-1">
                     <button 
                         onClick={() => setActiveTab('messages')}
-                        className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-colors ${activeTab === 'messages' ? 'bg-pink-600' : 'hover:bg-gray-700'}`}
+                        className={`py-2 text-sm font-semibold rounded-md transition-colors ${activeTab === 'messages' ? 'bg-pink-600' : 'hover:bg-gray-700'}`}
                     >
                         Mensagens
                     </button>
                     <button
                         onClick={() => setActiveTab('winks')}
-                        className={`w-1/2 py-2 text-sm font-semibold rounded-md transition-colors ${activeTab === 'winks' ? 'bg-pink-600' : 'hover:bg-gray-700'}`}
+                        className={`py-2 text-sm font-semibold rounded-md transition-colors ${activeTab === 'winks' ? 'bg-pink-600' : 'hover:bg-gray-700'}`}
                     >
                         Chamados
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('requests')}
+                        className={`py-2 text-sm font-semibold rounded-md transition-colors ${activeTab === 'requests' ? 'bg-pink-600' : 'hover:bg-gray-700'}`}
+                    >
+                        Solicitações
                     </button>
                 </div>
             </header>
@@ -80,6 +97,13 @@ export const Inbox: React.FC = () => {
                         onWinkClick={handleWinkClick}
                     />
                 )}
+                {activeTab === 'requests' && (
+                    <RequestList
+                        requests={accessRequests}
+                        loading={loadingRequests}
+                        onRespond={respondToRequest}
+                    />
+                )}
             </div>
         </div>
     );
@@ -93,7 +117,6 @@ interface ConversationListProps {
     currentUserId?: string;
 }
 const ConversationList: React.FC<ConversationListProps> = ({ conversations, loading, onConversationClick, currentUserId }) => {
-    // Busca a lista de usuários online em tempo real para um status preciso
     const onlineUsers = useMapStore((state) => state.onlineUsers);
 
     if (loading) return <p className="text-center p-8 text-gray-400">Carregando conversas...</p>;
@@ -159,3 +182,34 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, onWinkClick }) => {
         </div>
     );
 }
+
+// Sub-componente para a lista de Solicitações
+interface RequestListProps {
+    requests: AlbumAccessRequest[];
+    loading: boolean;
+    onRespond: (requestId: number, status: 'granted' | 'denied') => void;
+}
+const RequestList: React.FC<RequestListProps> = ({ requests, loading, onRespond }) => {
+    if (loading) return <p className="text-center p-8 text-gray-400">Carregando solicitações...</p>;
+    if (requests.length === 0) return <p className="text-center p-8 text-gray-400">Nenhuma solicitação pendente.</p>;
+
+    return (
+        <div className="divide-y divide-gray-700">
+            {requests.map(req => (
+                <div key={req.id} className="p-4 flex items-center space-x-4">
+                    <img src={req.avatar_url} alt={req.username} className="w-14 h-14 rounded-full object-cover" />
+                    <div className="flex-1 overflow-hidden">
+                        <p className="text-sm">
+                            <span className="font-bold">{req.username}</span> solicitou acesso aos seus álbuns privados.
+                        </p>
+                        <span className="text-xs text-gray-400">{formatDistanceToNow(new Date(req.created_at), { addSuffix: true, locale: ptBR })}</span>
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={() => onRespond(req.id, 'denied')} className="p-2 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500/40"><XIcon className="w-5 h-5"/></button>
+                        <button onClick={() => onRespond(req.id, 'granted')} className="p-2 bg-green-500/20 text-green-400 rounded-full hover:bg-green-500/40"><CheckIcon className="w-5 h-5"/></button>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};

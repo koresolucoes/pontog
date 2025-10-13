@@ -160,7 +160,9 @@ export const useMapStore = create<MapState>((set, get) => ({
     presenceChannel
         .on('presence', { event: 'sync' }, () => {
             const newState = presenceChannel.presenceState();
-            const userIds = Object.keys(newState).map(key => newState[key][0].user_id);
+            // FIX: Cast presence state item to 'any' to access 'user_id'.
+            // This resolves a TypeScript type inference issue with Supabase presence state.
+            const userIds = Object.keys(newState).map(key => (newState[key][0] as any).user_id);
             set({ onlineUsers: userIds });
         })
         .subscribe(async (status) => {

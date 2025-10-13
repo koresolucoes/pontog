@@ -12,9 +12,25 @@ import { ProfileModal } from './components/ProfileModal';
 import { EditProfileModal } from './components/EditProfileModal';
 import { ChatWindow } from './components/ChatWindow';
 import { MyAlbumsModal } from './components/MyAlbumsModal';
-import { MapPinIcon, UsersIcon, InboxIcon } from './components/icons';
+import { MapPinIcon, UsersIcon, InboxIcon, BellIcon } from './components/icons';
 import { User } from './types';
-import { Toaster } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
+
+// Helper function to convert VAPID key
+function urlBase64ToUint8Array(base64String: string) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/\-/g, '+')
+        .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
 
 function App() {
   const { session, loading, profile, signOut } = useAuthStore();
@@ -25,14 +41,15 @@ function App() {
   
   const [isEditProfileOpen, setEditProfileOpen] = useState(false);
   const [isMyAlbumsOpen, setMyAlbumsOpen] = useState(false);
+  const [isPushSubscribed, setIsPushSubscribed] = useState(false);
+  const [isPushLoading, setIsPushLoading] = useState(true);
 
+  // Core App Logic Effect
   useEffect(() => {
-    // Garante que tanto a sessão quanto o perfil estejam carregados antes de iniciar
-    // a geolocalização e o realtime, evitando race conditions.
     if (session && profile) {
       requestLocationPermission();
-      fetchTribes(); // Busca as tribos quando o usuário está logado
-    } else if (!session) { // Apenas executa a limpeza no logout
+      fetchTribes();
+    } else if (!session) {
       stopLocationWatch();
       cleanupRealtime();
     }
@@ -42,9 +59,97 @@ function App() {
         cleanupRealtime();
     };
   }, [session, profile, requestLocationPermission, stopLocationWatch, cleanupRealtime, fetchTribes]);
+  
+  // PWA and Notifications Effect
+  useEffect(() => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      // Register service worker
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(swReg => {
+          console.log('Service Worker is registered', swReg);
+          setIsPushLoading(false);
+          // Check for existing subscription
+          swReg.pushManager.getSubscription()
+            .then(subscription => {
+              setIsPushSubscribed(!!subscription);
+            });
+        })
+        .catch(error => {
+          console.error('Service Worker Error', error);
+          setIsPushLoading(false);
+        });
+    } else {
+        setIsPushLoading(false);
+    }
+  }, []);
+
+  const handleNotificationSubscription = async () => {
+    if (isPushLoading || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      toast.error("Seu navegador não suporta notificações.");
+      return;
+    }
+
+    if (isPushSubscribed) {
+      toast('Você já está inscrito para notificações!', { icon: '🔔' });
+      return;
+    }
+    
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      toast.error("Permissão para notificações foi negada.");
+      return;
+    }
+
+    const swRegistration = await navigator.serviceWorker.ready;
+    
+    // A chave PÚBLICA VAPID deve ser uma variável de ambiente do frontend
+    // FIX: Cast import.meta to any to resolve TypeScript error in environments where `vite/client` types are not loaded.
+    const vapidPublicKey = (import.meta as any).env.VITE_VAPID_PUBLIC_KEY;
+    if (!vapidPublicKey) {
+        console.error("VAPID public key not found in environment variables.");
+        toast.error("Configuração de notificação incompleta.");
+        return;
+    }
+    const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+    
+    try {
+      const subscription = await swRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey
+      });
+      
+      console.log('User is subscribed:', subscription);
+      
+      // Pega a sessão atual para obter o token de acesso JWT
+      const currentSession = useAuthStore.getState().session;
+      if (!currentSession) {
+          throw new Error("Usuário não autenticado.");
+      }
+
+      // Envia o objeto de inscrição para a Vercel Serverless Function
+      const response = await fetch('/api/store-push-subscription', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${currentSession.access_token}`,
+          },
+          body: JSON.stringify({ subscription_object: subscription }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Falha ao salvar a inscrição no servidor.');
+      }
+      
+      toast.success('Inscrito para notificações com sucesso!');
+      setIsPushSubscribed(true);
+    } catch (error) {
+      console.error('Failed to subscribe the user or store subscription: ', error);
+      toast.error('Falha ao se inscrever para notificações.');
+    }
+  };
 
   const handleStartChat = (user: User) => {
-    // A propriedade `last_seen` já deve estar no objeto `User` vindo do grid/mapa
     setChatUser(user);
   }
   
@@ -56,7 +161,6 @@ function App() {
 
   const handleCloseChat = () => {
       setChatUser(null);
-      // Atualiza a caixa de entrada para refletir as mensagens lidas
       fetchConversations();
   }
 
@@ -129,6 +233,12 @@ function App() {
                 <UsersIcon className="w-5 h-5 ml-2.5" />
                 <div className="flex-1">
                     <p className="font-semibold text-gray-300 truncate">Meus Álbuns</p>
+                </div>
+            </div>
+            <div onClick={handleNotificationSubscription} className={`flex items-center space-x-3 p-2 rounded-lg transition-colors cursor-pointer ${isPushSubscribed ? 'text-green-400 hover:bg-gray-800' : 'text-gray-400 hover:bg-gray-800'}`}>
+                <BellIcon className="w-5 h-5 ml-2.5" />
+                <div className="flex-1">
+                    <p className="font-semibold truncate">{isPushSubscribed ? 'Inscrito' : 'Ativar Notificações'}</p>
                 </div>
             </div>
              <button onClick={handleSignOut} className="w-full mt-2 text-sm text-center font-semibold text-gray-400 hover:text-pink-400 transition-colors py-2">Sair</button>

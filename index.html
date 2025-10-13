@@ -1,100 +1,126 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ponto G</title>
   
-  <meta name="theme-color" content="#111827" />
-  <link rel="manifest" href="manifest.json">
-
-  <!-- Leaflet CSS for Map -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-     crossorigin=""/>
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json" />
   
-  <!-- Tailwind CSS from CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Theme Color for PWA -->
+  <meta name="theme-color" content="#db2777" />
   
-  <!-- Custom Tailwind Config -->
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-          },
-          animation: {
-            'fade-in-up': 'fadeInUp 0.3s ease-out forwards',
-            'slide-in-up': 'slideInUp 0.3s ease-out forwards',
-          },
-          keyframes: {
-            fadeInUp: {
-              '0%': { opacity: '0', transform: 'translateY(20px) scale(0.95)' },
-              '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
-            },
-            slideInUp: {
-              '0%': { transform: 'translateY(100%)' },
-              '100%': { transform: 'translateY(0)' },
-            },
-          }
-        }
-      }
-    }
-  </script>
+  <!-- Basic SEO and App Info -->
+  <meta name="description" content="Um aplicativo de encontros para a comunidade gay, focado em geolocalização para encontrar conexões rápidas e diretas ao seu redor." />
   
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
-  
-  <!-- Import Map -->
+  <!-- Import Map for dependencies -->
   <script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.24.0",
-    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.75.0",
-    "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
-    "leaflet": "https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.esm.js",
-    "react-hot-toast": "https://aistudiocdn.com/react-hot-toast@^2.6.0",
-    "date-fns/": "https://aistudiocdn.com/date-fns@^4.1.0/",
-    "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
-    "@vercel/node": "https://aistudiocdn.com/@vercel/node@^5.3.26"
+  {
+    "imports": {
+      "@vercel/node": "https://aistudiocdn.com/@vercel/node@^5.3.26",
+      "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+      "react/": "https://aistudiocdn.com/react@^19.2.0/",
+      "react": "https://aistudiocdn.com/react@^19.2.0",
+      "@google/genai": "https://aistudiocdn.com/@google/genai@^1.24.0",
+      "leaflet": "https://aistudiocdn.com/leaflet@^1.9.4",
+      "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
+      "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.75.0",
+      "date-fns/": "https://aistudiocdn.com/date-fns@^4.1.0/",
+      "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
+      "react-hot-toast": "https://aistudiocdn.com/react-hot-toast@^2.6.0"
+    }
   }
-}
-</script>
-  
+  </script>
+
+  <!-- Leaflet CSS for map styling -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+   integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+   crossorigin=""/>
+
+  <!-- Custom Styles -->
   <style>
+    /* Basic reset and body styling */
     body {
-      font-family: 'Inter', sans-serif;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      background-color: #111827; /* bg-gray-900 */
+      color: #f9fafb; /* text-gray-50 */
     }
-    /* Leaflet popup customization */
+
+    /* Leaflet popup customization to match app theme */
     .leaflet-popup-content-wrapper {
-        background-color: #1f2937; /* bg-gray-800 */
-        color: #d1d5db; /* text-gray-300 */
-        border-radius: 0.75rem; /* rounded-xl */
-        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        background: #1f2937; /* bg-gray-800 */
+        color: #f9fafb; /* text-gray-50 */
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
     }
     .leaflet-popup-content {
-        margin: 1rem;
+        margin: 12px;
+        line-height: 1.5;
     }
-    .leaflet-popup-tip {
-        background-color: #1f2937;
+    .leaflet-popup-tip-container {
+        display: none; /* Hiding the default tip for a cleaner look */
     }
-    .leaflet-container a.leaflet-popup-close-button {
-        color: #9ca3af; /* text-gray-400 */
+    
+    /* Animation classes used in React components */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+    
+    @keyframes slideInUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+    .animate-slide-in-up {
+        animation: slideInUp 0.3s ease-out forwards;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .animate-fade-in-up {
+        animation: fadeInUp 0.3s ease-out forwards;
+    }
+    
+    /* Scrollbar styling for a modern look */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #1f2937; /* bg-gray-800 */
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #4b5563; /* bg-gray-600 */
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #6b7280; /* bg-gray-500 */
     }
   </style>
+
 </head>
-<body class="bg-gray-900">
+<body>
+  <noscript>Você precisa habilitar o JavaScript para rodar este aplicativo.</noscript>
   <div id="root"></div>
-  <script type="module" src="index.tsx"></script>
+  
+  <!-- Main application script -->
+  <script type="module" src="/index.tsx"></script>
 </body>
 </html>

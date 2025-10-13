@@ -9,15 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.2.0",
+    "@vercel/node": "^5.3.26",
     "react-dom": "^19.2.0",
+    "react": "^19.2.0",
     "@google/genai": "^1.24.0",
-    "@supabase/supabase-js": "^2.75.0",
+    "leaflet": "^1.9.4",
     "zustand": "^5.0.8",
-    "leaflet": "1.9.4",
-    "react-hot-toast": "^2.6.0",
+    "@supabase/supabase-js": "^2.75.0",
     "date-fns": "^4.1.0",
-    "@vercel/node": "^5.3.26"
+    "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

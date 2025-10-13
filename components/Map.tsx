@@ -24,11 +24,10 @@ const MyLocationMarkerIcon = (avatarUrl: string) => new L.Icon({
 });
 
 export const Map: React.FC = () => {
-  const { users, myLocation, onlineUsers, loading, error, setSelectedUser, startChatWithUser } = useMapStore();
+  const { users, myLocation, onlineUsers, loading, error, setSelectedUser } = useMapStore();
   const { profile } = useAuthStore();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  // Fix: Used globalThis.Map to resolve name collision with the Map component.
   const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
 
@@ -99,42 +98,17 @@ export const Map: React.FC = () => {
                 icon: createUserIcon(user.avatar_url, isOnline)
             });
 
+            // FIX: Attach a direct click handler to open the modal, avoiding popup complexities.
             marker.on('click', () => {
-              const popupNode = document.createElement('div');
-              popupNode.className = 'w-48';
-              
-              popupNode.innerHTML = `
-                  <div class="text-center">
-                      <img src="${user.avatar_url}" alt="${user.username}" class="w-20 h-20 rounded-full object-cover mx-auto border-2 border-gray-600 mb-2"/>
-                      <p class="font-bold text-lg">${user.username}, ${user.age}</p>
-                      <p class="text-xs italic text-gray-400 mb-3">"${user.status_text || 'Olá!'}"</p>
-                      <button id="profile-btn-${user.id}" class="w-full text-sm bg-gray-700 text-white font-semibold py-1.5 px-3 rounded-lg hover:bg-gray-600 transition-colors">Ver Perfil</button>
-                      <button id="chat-btn-${user.id}" class="w-full text-sm mt-2 bg-pink-600 text-white font-semibold py-1.5 px-3 rounded-lg hover:bg-pink-700 transition-colors">Mensagem</button>
-                  </div>
-              `;
-
-              marker.bindPopup(popupNode).openPopup();
-
-              // Adiciona listeners após o popup ser criado
-              setTimeout(() => {
-                const profileBtn = document.getElementById(`profile-btn-${user.id}`);
-                const chatBtn = document.getElementById(`chat-btn-${user.id}`);
-                profileBtn?.addEventListener('click', () => {
-                  setSelectedUser(user);
-                  map.closePopup();
-                });
-                chatBtn?.addEventListener('click', () => {
-                  startChatWithUser(user);
-                  map.closePopup();
-                });
-              }, 0);
+              setSelectedUser(user);
             });
+            
             marker.addTo(map);
             markers.set(user.id, marker);
         }
     });
 
-  }, [users, onlineUsers, setSelectedUser, startChatWithUser]);
+  }, [users, onlineUsers, setSelectedUser]);
 
 
   if (loading && !myLocation) {

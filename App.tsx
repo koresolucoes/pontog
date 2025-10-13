@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuthStore } from './stores/authStore';
 import { useMapStore } from './stores/mapStore';
 import { useUiStore } from './stores/uiStore';
+import { useDataStore } from './stores/dataStore';
 import { Auth } from './components/Auth';
 import { Map } from './components/Map';
 import { UserGrid } from './components/UserGrid';
@@ -17,6 +18,7 @@ function App() {
   const { session, loading, profile, signOut } = useAuthStore();
   const { selectedUser, setSelectedUser, requestLocationPermission, stopLocationWatch, cleanupRealtime } = useMapStore();
   const { activeView, setActiveView, chatUser, setChatUser } = useUiStore();
+  const { fetchTribes } = useDataStore();
   
   const [isEditProfileOpen, setEditProfileOpen] = useState(false);
   const [isMyAlbumsOpen, setMyAlbumsOpen] = useState(false);
@@ -24,6 +26,7 @@ function App() {
   useEffect(() => {
     if (session) {
       requestLocationPermission();
+      fetchTribes(); // Busca as tribos quando o usuário está logado
     } else {
       stopLocationWatch();
       cleanupRealtime();
@@ -33,7 +36,7 @@ function App() {
         stopLocationWatch();
         cleanupRealtime();
     };
-  }, [session, requestLocationPermission, stopLocationWatch, cleanupRealtime]);
+  }, [session, requestLocationPermission, stopLocationWatch, cleanupRealtime, fetchTribes]);
 
   const handleStartChat = (user: User) => {
     setChatUser(user);
@@ -59,7 +62,6 @@ function App() {
 
   return (
     <div className="h-screen w-screen bg-gray-900 text-white flex flex-col md:flex-row font-sans overflow-hidden">
-      {/* Fix: Add Toaster for notifications */}
       <Toaster 
         position="top-center"
         reverseOrder={false}

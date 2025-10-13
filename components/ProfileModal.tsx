@@ -49,10 +49,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
         </div>
         
         <div className="p-6 flex-1 overflow-y-auto">
+          {user.tribes && user.tribes.length > 0 && (
+            <div className="mb-4">
+                <h3 className="text-sm font-semibold text-gray-400 mb-2">Tribos</h3>
+                <div className="flex flex-wrap gap-2">
+                    {user.tribes.map(tribe => (
+                        <span key={tribe} className="bg-gray-700 text-pink-300 text-xs font-semibold px-3 py-1 rounded-full">{tribe}</span>
+                    ))}
+                </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4 text-sm">
-            {user.height && <div className="flex items-center space-x-2 bg-gray-700 p-3 rounded-lg"><RulerIcon className="w-5 h-5 text-pink-400"/><p>{user.height} cm</p></div>}
-            {user.weight && <div className="flex items-center space-x-2 bg-gray-700 p-3 rounded-lg"><ScaleIcon className="w-5 h-5 text-pink-400"/><p>{user.weight} kg</p></div>}
-            {user.tribe && <div className="flex items-center space-x-2 bg-gray-700 p-3 rounded-lg"><UsersIcon className="w-5 h-5 text-pink-400"/><p>{user.tribe}</p></div>}
+            {user.height_cm && <div className="flex items-center space-x-2 bg-gray-700 p-3 rounded-lg"><RulerIcon className="w-5 h-5 text-pink-400"/><p>{user.height_cm} cm</p></div>}
+            {user.weight_kg && <div className="flex items-center space-x-2 bg-gray-700 p-3 rounded-lg"><ScaleIcon className="w-5 h-5 text-pink-400"/><p>{user.weight_kg} kg</p></div>}
             {user.position && <div className="flex items-center space-x-2 bg-gray-700 p-3 rounded-lg"><HeartIcon className="w-5 h-5 text-pink-400"/><p>{user.position}</p></div>}
           </div>
           {user.hiv_status && (

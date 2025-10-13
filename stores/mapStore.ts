@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { User, Coordinates } from '../types';
+import { User, Coordinates, Profile } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from './authStore';
 import { useUiStore } from './uiStore';
@@ -77,7 +77,14 @@ export const useMapStore = create<MapState>((set, get) => ({
       },
       (error) => {
         console.error("Geolocation error:", error);
-        set({ error: "Permissão de localização negada. Por favor, habilite-a para usar o mapa.", loading: false });
+        const saoPauloLocation = { lat: -23.5505, lng: -46.6333 };
+        set({ 
+            error: "Permissão de localização negada. Usando uma localização padrão em São Paulo. Habilite a permissão para uma experiência completa.", 
+            loading: false,
+            myLocation: saoPauloLocation,
+        });
+        get().fetchNearbyUsers(50000); 
+        get().initializeRealtime();
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -100,7 +107,7 @@ export const useMapStore = create<MapState>((set, get) => ({
         console.error("Error fetching nearby users:", error);
         set({ users: [], loading: false, error: "Erro ao buscar usuários." });
     } else {
-        const usersWithAge = data.map(u => ({...u, age: calculateAge(u.date_of_birth)}));
+        const usersWithAge = data.map((u: any) => ({...u, age: calculateAge(u.date_of_birth)} as User));
         set({ users: usersWithAge, loading: false });
     }
   },
@@ -120,7 +127,7 @@ export const useMapStore = create<MapState>((set, get) => ({
       });
       
       if (error) {
-          if (error.code === '23505') { // unique_violation
+          if (error.code === '23505') { 
             return { success: false, message: 'Você já chamou essa pessoa!' };
           }
           console.error("Error sending wink:", error);
@@ -148,12 +155,14 @@ export const useMapStore = create<MapState>((set, get) => ({
       
       profilesChannel
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
-            const updatedUser = payload.new as User;
-            updatedUser.age = calculateAge(updatedUser.date_of_birth);
+            // FIX: The 'Profile' type is now correctly imported and can be used here.
+            const updatedProfile = payload.new as Profile;
             
             set(state => ({
                 users: state.users.map(user => 
-                    user.id === updatedUser.id ? { ...user, ...updatedUser } : user
+                    user.id === updatedProfile.id 
+                    ? { ...user, ...updatedProfile, age: calculateAge(updatedProfile.date_of_birth) } 
+                    : user
                 )
             }));
         })

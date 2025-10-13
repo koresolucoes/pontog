@@ -11,7 +11,8 @@ interface AuthState {
   setSession: (session: Session | null) => void;
   setProfile: (profile: Profile | null) => void;
   fetchProfile: () => Promise<void>;
-  updateProfile: (updates: Partial<Profile>) => Promise<boolean>;
+  updateProfile: (updates: Partial<Omit<Profile, 'tribes'>> & { tribe_ids: number[] }) => Promise<boolean>;
+  updateAvatar: (avatarPath: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -33,39 +34,76 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const user = get().user;
     if (!user) return;
     try {
+      // Fetch profile and tribes in one go
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          profile_tribes(
+            tribes(name)
+          )
+        `)
         .eq('id', user.id)
         .single();
+
       if (error) throw error;
-      // Fix: Construct full public URL for the avatar.
+
       if (data) {
-        data.avatar_url = getPublicImageUrl(data.avatar_url);
+        // Transform the tribe data into a simple array of names
+        const transformedData = {
+          ...data,
+          tribes: data.profile_tribes.map((pt: any) => pt.tribes.name),
+          avatar_url: getPublicImageUrl(data.avatar_url)
+        };
+        delete transformedData.profile_tribes;
+        set({ profile: transformedData as Profile });
       }
-      set({ profile: data });
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
   },
-  updateProfile: async (updates: Partial<Profile>) => {
-    const user = get().user;
-    if (!user) return false;
+  
+  updateProfile: async (updates) => {
+    const { tribe_ids, ...profileUpdates } = updates;
     
-    // Do not update the lat/lng from the profile edit form.
-    const { lat, lng, ...restUpdates } = updates;
+    const { error } = await supabase.rpc('update_profile_with_tribes', {
+        p_username: profileUpdates.username,
+        p_status_text: profileUpdates.status_text,
+        p_date_of_birth: profileUpdates.date_of_birth,
+        p_height_cm: profileUpdates.height_cm,
+        p_weight_kg: profileUpdates.weight_kg,
+        p_position: profileUpdates.position,
+        p_hiv_status: profileUpdates.hiv_status,
+        p_tribe_ids: tribe_ids
+    });
 
-    const { error } = await supabase.from('profiles').update(restUpdates).eq('id', user.id);
-    
     if (error) {
-      console.error('Error updating profile:', error);
-      return false;
+        console.error('Error updating profile via RPC:', error);
+        return false;
     }
     
-    // Refresh local profile data
-    await get().fetchProfile();
+    await get().fetchProfile(); // Refresh profile data
     return true;
   },
+
+  updateAvatar: async (avatarPath: string) => {
+      const user = get().user;
+      if (!user) return false;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarPath })
+        .eq('id', user.id);
+      
+      if (error) {
+        console.error("Error updating avatar path", error);
+        return false;
+      }
+
+      await get().fetchProfile();
+      return true;
+  },
+
   signOut: async () => {
     await supabase.auth.signOut();
     set({ session: null, user: null, profile: null });

@@ -1,40 +1,75 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { useDataStore } from '../stores/dataStore';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { XIcon, UploadCloudIcon } from './icons';
-import { TRIBES, POSITIONS, HIV_STATUSES } from '../lib/constants';
+import { POSITIONS, HIV_STATUSES } from '../lib/constants';
 import { toast } from 'react-hot-toast';
 
 interface EditProfileModalProps {
   onClose: () => void;
 }
 
+// Omitindo 'tribes' pois vamos gerenciá-lo como um array de IDs separado
+type ProfileFormData = Partial<Omit<Profile, 'tribes'>>;
+
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) => {
-  const { profile, updateProfile } = useAuthStore();
-  const [formData, setFormData] = useState<Partial<Profile>>({});
+  const { profile, updateProfile, updateAvatar } = useAuthStore();
+  const { tribes, fetchTribes } = useDataStore();
+  const [formData, setFormData] = useState<ProfileFormData>({});
+  const [selectedTribeIds, setSelectedTribeIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    if (profile) {
+    if (tribes.length === 0) {
+      fetchTribes();
+    }
+  }, [tribes, fetchTribes]);
+
+  useEffect(() => {
+    if (profile && tribes.length > 0) {
       setFormData({
         username: profile.username || '',
         status_text: profile.status_text || '',
         date_of_birth: profile.date_of_birth || '',
-        height: profile.height || undefined,
-        weight: profile.weight || undefined,
-        tribe: profile.tribe || '',
+        height_cm: profile.height_cm || undefined,
+        weight_kg: profile.weight_kg || undefined,
         position: profile.position || '',
         hiv_status: profile.hiv_status || '',
       });
+
+      // Mapeia os nomes das tribos do perfil para seus IDs correspondentes
+      const initialTribeIds = new Set<number>();
+      if (profile.tribes) {
+        profile.tribes.forEach(tribeName => {
+          const tribe = tribes.find(t => t.name === tribeName);
+          if (tribe) {
+            initialTribeIds.add(tribe.id);
+          }
+        });
+      }
+      setSelectedTribeIds(initialTribeIds);
     }
-  }, [profile]);
+  }, [profile, tribes]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value === '' ? null : value }));
   };
+  
+  const handleTribeChange = (tribeId: number) => {
+    setSelectedTribeIds(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(tribeId)) {
+            newSet.delete(tribeId);
+        } else {
+            newSet.add(tribeId);
+        }
+        return newSet;
+    });
+  }
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -59,7 +94,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
       toast.error('Erro ao enviar avatar.');
       console.error(error);
     } else {
-      const updated = await updateProfile({ avatar_url: filePath });
+      const updated = await updateAvatar(filePath);
       if (updated) {
         toast.success('Avatar atualizado!');
       }
@@ -70,7 +105,10 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const success = await updateProfile(formData);
+    const success = await updateProfile({
+        ...formData,
+        tribe_ids: Array.from(selectedTribeIds)
+    });
     if (success) {
       toast.success('Perfil atualizado com sucesso!');
       onClose();
@@ -93,7 +131,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-white"><XIcon className="w-6 h-6" /></button>
         </div>
         
-        <form id="edit-profile-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+        <form id="edit-profile-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="flex items-center space-x-4">
             <div className="relative">
               <img src={profile.avatar_url || `https://picsum.photos/seed/${profile.id}/80`} alt="Avatar" className="w-20 h-20 rounded-full object-cover"/>
@@ -119,19 +157,12 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
               <input type="date" name="date_of_birth" id="date_of_birth" value={formData.date_of_birth || ''} onChange={handleChange} className="mt-1 w-full bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" />
             </div>
              <div>
-              <label htmlFor="height" className="block text-sm font-medium text-gray-400">Altura (cm)</label>
-              <input type="number" name="height" id="height" value={formData.height || ''} onChange={handleNumberChange} className="mt-1 w-full bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" />
+              <label htmlFor="height_cm" className="block text-sm font-medium text-gray-400">Altura (cm)</label>
+              <input type="number" name="height_cm" id="height_cm" value={formData.height_cm || ''} onChange={handleNumberChange} className="mt-1 w-full bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" />
             </div>
             <div>
-              <label htmlFor="weight" className="block text-sm font-medium text-gray-400">Peso (kg)</label>
-              <input type="number" name="weight" id="weight" value={formData.weight || ''} onChange={handleNumberChange} className="mt-1 w-full bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" />
-            </div>
-            <div>
-              <label htmlFor="tribe" className="block text-sm font-medium text-gray-400">Tribo</label>
-              <select name="tribe" id="tribe" value={formData.tribe || ''} onChange={handleChange} className="mt-1 w-full bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500">
-                <option value="">Selecione...</option>
-                {TRIBES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+              <label htmlFor="weight_kg" className="block text-sm font-medium text-gray-400">Peso (kg)</label>
+              <input type="number" name="weight_kg" id="weight_kg" value={formData.weight_kg || ''} onChange={handleNumberChange} className="mt-1 w-full bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" />
             </div>
             <div>
               <label htmlFor="position" className="block text-sm font-medium text-gray-400">Posição</label>
@@ -147,6 +178,24 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
               </select>
             </div>
           </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-2">Tribos</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {tribes.map(tribe => (
+                    <label key={tribe.id} className="flex items-center space-x-2 bg-gray-700 p-2 rounded-md cursor-pointer hover:bg-gray-600">
+                        <input
+                            type="checkbox"
+                            checked={selectedTribeIds.has(tribe.id)}
+                            onChange={() => handleTribeChange(tribe.id)}
+                            className="h-4 w-4 rounded bg-gray-600 border-gray-500 text-pink-500 focus:ring-pink-500"
+                        />
+                        <span className="text-sm text-white">{tribe.name}</span>
+                    </label>
+                ))}
+            </div>
+          </div>
+
         </form>
         
         <div className="p-4 border-t border-gray-700 flex-shrink-0">

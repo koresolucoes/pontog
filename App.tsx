@@ -13,21 +13,33 @@ import { User } from './types';
 
 function App() {
   const { session, loading, profile, signOut } = useAuthStore();
-  const { selectedUser, setSelectedUser, requestLocationPermission } = useMapStore();
-  const { activeView, setActiveView } = useUiStore();
-
-  const [chatUser, setChatUser] = useState<User | null>(null);
+  const { selectedUser, setSelectedUser, requestLocationPermission, stopLocationWatch, cleanupRealtime } = useMapStore();
+  const { activeView, setActiveView, chatUser, setChatUser } = useUiStore();
+  
   const [isEditProfileOpen, setEditProfileOpen] = useState(false);
 
   useEffect(() => {
     if (session) {
       requestLocationPermission();
+    } else {
+      stopLocationWatch();
+      cleanupRealtime();
     }
-  }, [session, requestLocationPermission]);
+    
+    return () => {
+        stopLocationWatch();
+        cleanupRealtime();
+    };
+  }, [session, requestLocationPermission, stopLocationWatch, cleanupRealtime]);
 
   const handleStartChat = (user: User) => {
-    setSelectedUser(null);
     setChatUser(user);
+  }
+  
+  const handleSignOut = () => {
+    stopLocationWatch();
+    cleanupRealtime();
+    signOut();
   }
 
   if (loading) {
@@ -74,7 +86,7 @@ function App() {
                     <p className="text-xs text-gray-400">Ver Perfil</p>
                 </div>
             </div>
-             <button onClick={signOut} className="w-full mt-2 text-sm text-center font-semibold text-gray-400 hover:text-pink-400 transition-colors py-2">Sair</button>
+             <button onClick={handleSignOut} className="w-full mt-2 text-sm text-center font-semibold text-gray-400 hover:text-pink-400 transition-colors py-2">Sair</button>
         </div>
       </aside>
 
@@ -87,7 +99,7 @@ function App() {
             </div>
             <div className="flex items-center space-x-3">
                 <img src={profile?.avatar_url || `https://picsum.photos/seed/${profile?.id}/40`} alt="Seu perfil" className="w-8 h-8 rounded-full object-cover" onClick={() => setEditProfileOpen(true)} />
-                <button onClick={signOut} className="text-sm font-semibold text-gray-400 hover:text-pink-400">Sair</button>
+                <button onClick={handleSignOut} className="text-sm font-semibold text-gray-400 hover:text-pink-400">Sair</button>
             </div>
         </header>
 

@@ -3,7 +3,7 @@ import { User } from '../types';
 // Fix: Import useMapStore to resolve circular dependency with an ES module import.
 import { useMapStore } from './mapStore';
 
-export type View = 'map' | 'grid' | 'inbox';
+export type View = 'map' | 'grid' | 'inbox' | 'profile' | 'interest' | 'right-now';
 
 interface UiState {
   activeView: View;
@@ -13,7 +13,7 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>((set) => ({
-  activeView: 'grid', // Alterado de 'map' para 'grid'
+  activeView: 'grid',
   chatUser: null,
   setActiveView: (view) => set({ activeView: view }),
   setChatUser: (user) => {

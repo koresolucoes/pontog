@@ -145,15 +145,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const userStatus = isOnline ? 'Online' : formatLastSeen(user.last_seen);
 
   return (
-    <div className="fixed bottom-0 right-0 sm:right-4 md:right-8 w-full sm:w-96 h-full sm:h-[500px] bg-gray-800 shadow-2xl rounded-t-2xl sm:rounded-2xl z-40 flex flex-col animate-slide-in-up">
-      <header className="flex items-center justify-between p-4 bg-gray-900 rounded-t-2xl sm:rounded-t-lg">
+    <div className="fixed bottom-0 right-0 sm:right-4 md:right-8 w-full sm:w-96 h-full sm:h-[500px] bg-black shadow-2xl rounded-t-2xl sm:rounded-2xl z-40 flex flex-col animate-slide-in-up border border-zinc-800">
+      <header className="flex items-center justify-between p-3 bg-zinc-900 rounded-t-2xl sm:rounded-t-lg border-b border-zinc-800 flex-shrink-0">
         <div className="flex items-center space-x-3">
           <img src={user.imageUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
           <div>
             <h3 className="font-bold">{user.name}</h3>
             <div className="flex items-center space-x-1.5">
               {isOnline && (
-                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                  <div className="w-2 h-2 rounded-full bg-green-400"></div>
               )}
               <span className="text-xs text-gray-400">{userStatus}</span>
             </div>
@@ -170,7 +170,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
             <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUser.id ? 'items-end' : 'items-start'}`}>
               <div className={`flex items-end gap-2 max-w-xs md:max-w-sm ${msg.sender_id === currentUser.id ? 'flex-row-reverse' : 'flex-row'}`}>
                  {msg.sender_id !== currentUser.id && <img src={user.imageUrl} className="w-6 h-6 rounded-full self-start" />}
-                 <div className={`px-4 py-2 rounded-2xl ${msg.sender_id === currentUser.id ? 'bg-pink-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'}`}>
+                 <div className={`px-4 py-2 rounded-2xl ${msg.sender_id === currentUser.id ? 'bg-yellow-400 text-black rounded-br-none' : 'bg-zinc-800 text-gray-200 rounded-bl-none'}`}>
                   <p className="text-sm">{msg.content}</p>
                 </div>
               </div>
@@ -183,16 +183,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
         </div>
       </div>
       
-      <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-700">
+      <form onSubmit={handleSendMessage} className="p-2 border-t border-zinc-800">
         <div className="relative">
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Digite uma mensagem..."
-            className="w-full bg-gray-700 rounded-full py-3 pl-4 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="w-full bg-zinc-800 rounded-full py-2.5 pl-4 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400"
           />
-          <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-pink-600 text-white rounded-full p-2 hover:bg-pink-700 transition-colors">
+          <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-yellow-400 text-black rounded-full p-2 hover:bg-yellow-500 transition-colors">
             <SendIcon className="w-5 h-5" />
           </button>
         </div>

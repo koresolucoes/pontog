@@ -4,18 +4,15 @@ import { useAuthStore } from './stores/authStore';
 import { useUiStore, View } from './stores/uiStore';
 import { useMapStore } from './stores/mapStore';
 import { Auth } from './components/Auth';
-import { Map } from './components/Map';
 import { UserGrid } from './components/UserGrid';
 import { Inbox } from './components/Inbox';
+import { ProfileView } from './components/ProfileView'; // Nova tela de perfil
 import { ProfileModal } from './components/ProfileModal';
-import { EditProfileModal } from './components/EditProfileModal';
-import { MyAlbumsModal } from './components/MyAlbumsModal';
 import { ChatWindow } from './components/ChatWindow';
-import { MapPinIcon, UsersIcon, InboxIcon, CameraIcon } from './components/icons';
+import { SearchIcon, MessageCircleIcon, HeartIcon, UserIcon, FlameIcon } from './components/icons';
 
 const App: React.FC = () => {
-    // State from stores
-    const { session, user, loading, signOut } = useAuthStore();
+    const { session, user, loading } = useAuthStore();
     const { activeView, setActiveView, chatUser, setChatUser } = useUiStore();
     const { 
         selectedUser, 
@@ -25,74 +22,60 @@ const App: React.FC = () => {
         cleanupRealtime 
     } = useMapStore();
 
-    // Local state for modals
-    const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-    const [isMyAlbumsOpen, setIsMyAlbumsOpen] = useState(false);
-
-    // Effect for location and realtime setup/cleanup
     useEffect(() => {
         if (session) {
             requestLocationPermission();
         }
-
-        // Cleanup function
         return () => {
             stopLocationWatch();
             cleanupRealtime();
         };
     }, [session, requestLocationPermission, stopLocationWatch, cleanupRealtime]);
 
-    // Render loading state
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-                <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-pink-500"></div>
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-yellow-400"></div>
             </div>
         );
     }
     
-    // Render Auth screen if not logged in
     if (!session || !user) {
         return <Auth />;
     }
 
-    // Main app render
+    const renderActiveView = () => {
+        switch (activeView) {
+            case 'grid':
+                return <UserGrid />;
+            case 'inbox':
+                return <Inbox />;
+            case 'profile':
+                return <ProfileView />;
+            case 'interest': // Redireciona para a caixa de entrada por enquanto
+                return <Inbox initialTab="winks" />;
+            default:
+                return <UserGrid />;
+        }
+    };
+
     return (
-        <div className="h-screen w-screen bg-gray-900 text-white flex flex-col antialiased overflow-hidden">
+        <div className="h-screen w-screen bg-black text-white flex flex-col antialiased overflow-hidden">
             <Toaster
                 position="top-center"
                 toastOptions={{
-                    className: '',
                     style: {
-                        background: '#333',
+                        background: '#27272a', // zinc-800
                         color: '#fff',
+                        border: '1px solid #3f3f46' // zinc-700
                     },
                 }}
             />
             
-            <header className="absolute top-0 left-0 right-0 p-4 bg-gray-900/80 backdrop-blur-sm z-20 flex justify-between items-center border-b border-gray-800">
-                <div className="flex items-center gap-3">
-                    <img src={user.avatar_url} alt="Seu perfil" className="w-10 h-10 rounded-full object-cover cursor-pointer" onClick={() => setIsEditProfileOpen(true)} />
-                    <div>
-                        <p className="font-bold text-lg leading-tight">{user.username}</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-4">
-                    <button onClick={() => setIsMyAlbumsOpen(true)} className="text-gray-300 hover:text-white">
-                        <CameraIcon className="w-6 h-6"/>
-                    </button>
-                    <button onClick={signOut} className="text-sm bg-pink-600 px-3 py-1.5 rounded-lg font-semibold hover:bg-pink-700">Sair</button>
-                </div>
-            </header>
-
-            {/* Main Content */}
-            <main className="flex-1 pt-20 pb-20 overflow-y-auto">
-                {activeView === 'grid' && <UserGrid />}
-                {activeView === 'map' && <Map />}
-                {activeView === 'inbox' && <Inbox />}
+            <main className="flex-1 overflow-y-auto pb-20">
+                {renderActiveView()}
             </main>
             
-            {/* Modals and floating components */}
             {selectedUser && (
                 <ProfileModal 
                     user={selectedUser} 
@@ -112,30 +95,40 @@ const App: React.FC = () => {
                     onClose={() => setChatUser(null)}
                 />
             )}
-            
-            {isEditProfileOpen && <EditProfileModal onClose={() => setIsEditProfileOpen(false)} />}
-            {isMyAlbumsOpen && <MyAlbumsModal onClose={() => setIsMyAlbumsOpen(false)} />}
 
-            {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-sm border-t border-gray-700 z-20">
-                <div className="max-w-md mx-auto grid grid-cols-3 gap-4 p-2">
+            {/* Nova Barra de Navegação Inferior */}
+            <nav className="fixed bottom-0 left-0 right-0 bg-zinc-900/90 backdrop-blur-sm border-t border-zinc-800 z-20">
+                <div className="max-w-md mx-auto grid grid-cols-5">
                    <NavButton 
-                        icon={<UsersIcon />} 
-                        label="Grade" 
+                        icon={SearchIcon} 
+                        label="Buscar" 
                         isActive={activeView === 'grid'} 
                         onClick={() => setActiveView('grid')}
                     />
                     <NavButton 
-                        icon={<MapPinIcon />} 
-                        label="Mapa" 
-                        isActive={activeView === 'map'} 
-                        onClick={() => setActiveView('map')}
+                        icon={FlameIcon} 
+                        label="Right Now" 
+                        isActive={activeView === 'right-now'} 
+                        onClick={() => { /* Placeholder */ }}
+                        isPlaceholder
                     />
                      <NavButton 
-                        icon={<InboxIcon />} 
-                        label="Inbox" 
+                        icon={HeartIcon} 
+                        label="Interesse" 
+                        isActive={activeView === 'interest'} 
+                        onClick={() => setActiveView('interest')}
+                    />
+                    <NavButton 
+                        icon={MessageCircleIcon} 
+                        label="Entrada" 
                         isActive={activeView === 'inbox'} 
                         onClick={() => setActiveView('inbox')}
+                    />
+                    <NavButton 
+                        icon={UserIcon} 
+                        label="Perfil" 
+                        isActive={activeView === 'profile'} 
+                        onClick={() => setActiveView('profile')}
                     />
                 </div>
             </nav>
@@ -143,24 +136,25 @@ const App: React.FC = () => {
     );
 };
 
-// Sub-component for navigation buttons
 interface NavButtonProps {
-    icon: React.ReactNode;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     label: string;
     isActive: boolean;
     onClick: () => void;
+    isPlaceholder?: boolean;
 }
 
-const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick }) => {
+const NavButton: React.FC<NavButtonProps> = ({ icon: Icon, label, isActive, onClick, isPlaceholder }) => {
     return (
         <button
             onClick={onClick}
-            className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
-                isActive ? 'text-pink-400' : 'text-gray-400 hover:bg-gray-700'
-            }`}
+            className={`flex flex-col items-center justify-center pt-2 pb-1 transition-colors ${
+                isActive ? 'text-yellow-400' : 'text-gray-400 hover:text-white'
+            } ${isPlaceholder ? 'opacity-50 cursor-not-allowed' : ''}`}
+            aria-label={label}
         >
-            {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' })}
-            <span className="text-xs mt-1">{label}</span>
+            <Icon className="w-7 h-7" />
+            <span className="text-[10px] mt-0.5">{label}</span>
         </button>
     );
 };

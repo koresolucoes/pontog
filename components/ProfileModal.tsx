@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import { XIcon, MessageCircleIcon, HeartIcon, RulerIcon, ScaleIcon, UsersIcon, ShieldCheckIcon, ChevronLeftIcon, ChevronRightIcon } from './icons';
 import toast from 'react-hot-toast';
+import { formatLastSeen } from '../lib/utils';
 
 interface ProfileModalProps {
   user: User;
@@ -14,6 +15,9 @@ interface ProfileModalProps {
 export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onStartChat }) => {
   const currentUser = useAuthStore((state) => state.user);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  
+  const statusText = formatLastSeen(user.last_seen);
+  const isOnline = statusText === 'Online';
 
   const handleWink = async () => {
     if (!currentUser) return;
@@ -80,7 +84,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
 
           <div className="absolute bottom-4 left-4 right-4 text-white">
             <h2 className="text-3xl font-bold">{user.username}, {user.age}</h2>
-            {/* Distance can be added here if calculated */}
+            <div className="flex items-center space-x-2 mt-1">
+              {isOnline && <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse"></div>}
+              <p className="text-sm text-gray-300">{statusText}</p>
+            </div>
           </div>
         </div>
 

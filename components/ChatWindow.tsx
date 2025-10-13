@@ -71,19 +71,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
 
     const channel = supabase
       .channel(`chat:${conversationId}`)
-      .on<MessageType>(
+      .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
         (payload) => {
            if (payload.eventType === 'INSERT') {
-               const newMessagePayload = payload.new;
+               const newMessagePayload = payload.new as MessageType;
                setMessages((prevMessages) => [...prevMessages, newMessagePayload]);
                if (newMessagePayload.sender_id !== currentUser.id) {
                    markMessagesAsRead([newMessagePayload.id]);
                }
            } else if (payload.eventType === 'UPDATE') {
-               const updatedMessage = payload.new;
-               setMessages(prev => prev.map(m => m.id === updatedMessage.id ? updatedMessage : m));
+               const updatedMessage = payload.new as MessageType;
+               setMessages(prevMessages =>
+                 prevMessages.map(msg =>
+                   msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
+                 )
+               );
            }
         }
       )

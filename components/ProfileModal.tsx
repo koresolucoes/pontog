@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
+import { useMapStore } from '../stores/mapStore';
 import { XIcon, MessageCircleIcon, HeartIcon, RulerIcon, ScaleIcon, UsersIcon, ShieldCheckIcon, ChevronLeftIcon, ChevronRightIcon } from './icons';
 import toast from 'react-hot-toast';
 import { formatLastSeen } from '../lib/utils';
@@ -14,10 +15,12 @@ interface ProfileModalProps {
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onStartChat }) => {
   const currentUser = useAuthStore((state) => state.user);
+  const onlineUsers = useMapStore((state) => state.onlineUsers);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   
-  const statusText = formatLastSeen(user.last_seen);
-  const isOnline = statusText === 'Online';
+  // Prioriza a lista de presença em tempo real para o status "Online"
+  const isOnline = onlineUsers.includes(user.id);
+  const statusText = isOnline ? 'Online' : formatLastSeen(user.last_seen);
 
   const handleWink = async () => {
     if (!currentUser) return;

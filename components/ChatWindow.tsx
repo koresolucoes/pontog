@@ -3,6 +3,7 @@ import { User, Message as MessageType } from '../types';
 import { SendIcon, XIcon, CheckIcon, CheckCheckIcon } from './icons';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
+import { useMapStore } from '../stores/mapStore';
 import { format } from 'date-fns';
 import { formatLastSeen } from '../lib/utils';
 
@@ -24,6 +25,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const [conversationId, setConversationId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentUser = useAuthStore(state => state.user);
+  const onlineUsers = useMapStore(state => state.onlineUsers);
 
   const markMessagesAsRead = useCallback(async (messageIds: number[]) => {
       if (messageIds.length === 0) return;
@@ -139,7 +141,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
     );
   };
   
-  const userStatus = formatLastSeen(user.last_seen);
+  const isOnline = onlineUsers.includes(user.id);
+  const userStatus = isOnline ? 'Online' : formatLastSeen(user.last_seen);
 
   return (
     <div className="fixed bottom-0 right-0 sm:right-4 md:right-8 w-full sm:w-96 h-full sm:h-[500px] bg-gray-800 shadow-2xl rounded-t-2xl sm:rounded-2xl z-40 flex flex-col animate-slide-in-up">
@@ -149,8 +152,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
           <div>
             <h3 className="font-bold">{user.name}</h3>
             <div className="flex items-center space-x-1.5">
-              {userStatus === 'Online' && (
-                  <div className="w-2 h-2 rounded-full bg-green-400"></div>
+              {isOnline && (
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
               )}
               <span className="text-xs text-gray-400">{userStatus}</span>
             </div>

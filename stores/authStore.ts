@@ -1,140 +1,107 @@
 import { create } from 'zustand';
 import { supabase, getPublicImageUrl } from '../lib/supabase';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
-import { Profile } from '../types';
+import { Profile, User } from '../types';
+
+// Helper function to calculate age from date of birth
+const calculateAge = (dob: string | null): number => {
+    if (!dob) return 0;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
+};
 
 interface AuthState {
   session: Session | null;
-  user: SupabaseUser | null;
-  profile: Profile | null;
+  user: User | null; // This will be the combined user + profile object
+  profile: Profile | null; // This is the raw profile from the DB
   loading: boolean;
   setSession: (session: Session | null) => void;
-  setProfile: (profile: Profile | null) => void;
-  fetchProfile: () => Promise<void>;
-  updateProfile: (updates: Partial<Omit<Profile, 'tribes'>> & { tribe_ids: number[] }) => Promise<boolean>;
-  updateAvatar: (avatarPath: string) => Promise<boolean>;
-  updatePublicPhotos: (photoPaths: string[]) => Promise<boolean>;
+  fetchProfile: (user: SupabaseUser) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   session: null,
   user: null,
   profile: null,
   loading: true,
-  setSession: (session) => {
-    set({ session, user: session?.user ?? null });
-    if (session) {
-      get().fetchProfile();
-    } else {
-      set({ profile: null });
-    }
-  },
-  setProfile: (profile) => set({ profile }),
-  fetchProfile: async () => {
-    const user = get().user;
-    if (!user) return;
+
+  setSession: (session) => set({ session }),
+
+  fetchProfile: async (supabaseUser: SupabaseUser) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select(`
           *,
-          profile_tribes(
-            tribes(name)
+          profile_tribes (
+            tribes (
+              id,
+              name
+            )
           )
         `)
-        .eq('id', user.id)
+        .eq('id', supabaseUser.id)
         .single();
-
-      if (error) throw error;
-
+        
+      if (error && error.code !== 'PGRST116') { // PGRST116: single row not found, which is fine on first login
+        throw error;
+      }
+      
       if (data) {
-        const transformedData = {
-          ...data,
-          tribes: data.profile_tribes.map((pt: any) => pt.tribes.name),
-          avatar_url: getPublicImageUrl(data.avatar_url),
-          public_photos: (data.public_photos || []).map(getPublicImageUrl),
+        // Transform the raw profile data into the User object
+        const profileData: Profile = {
+            ...data,
+            avatar_url: getPublicImageUrl(data.avatar_url),
+            public_photos: (data.public_photos || []).map(getPublicImageUrl),
+            tribes: data.profile_tribes?.map((pt: any) => pt.tribes.name) || [],
         };
-        delete transformedData.profile_tribes;
-        set({ profile: transformedData as Profile });
+        delete (profileData as any).profile_tribes; // Clean up joined data
+        
+        const userData: User = {
+            ...profileData,
+            age: calculateAge(profileData.date_of_birth),
+        };
+
+        set({ profile: profileData, user: userData });
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+    } finally {
+      set({ loading: false });
     }
-  },
-  
-  updateProfile: async (updates) => {
-    const { tribe_ids, ...profileUpdates } = updates;
-    
-    const { error } = await supabase.rpc('update_profile_with_tribes', {
-        p_username: profileUpdates.username,
-        p_status_text: profileUpdates.status_text,
-        p_date_of_birth: profileUpdates.date_of_birth,
-        p_height_cm: profileUpdates.height_cm,
-        p_weight_kg: profileUpdates.weight_kg,
-        p_position: profileUpdates.position,
-        p_hiv_status: profileUpdates.hiv_status,
-        p_tribe_ids: tribe_ids
-    });
-
-    if (error) {
-        console.error('Error updating profile via RPC:', error);
-        return false;
-    }
-    
-    await get().fetchProfile();
-    return true;
-  },
-
-  updateAvatar: async (avatarPath: string) => {
-      const user = get().user;
-      if (!user) return false;
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({ avatar_url: avatarPath })
-        .eq('id', user.id);
-      
-      if (error) {
-        console.error("Error updating avatar path", error);
-        return false;
-      }
-
-      await get().fetchProfile();
-      return true;
-  },
-
-  updatePublicPhotos: async (photoPaths: string[]) => {
-    const user = get().user;
-    if (!user) return false;
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ public_photos: photoPaths })
-      .eq('id', user.id);
-
-    if (error) {
-      console.error("Error updating public photos:", error);
-      return false;
-    }
-
-    await get().fetchProfile();
-    return true;
   },
 
   signOut: async () => {
     await supabase.auth.signOut();
-    set({ session: null, user: null, profile: null });
+    // onAuthStateChange will handle setting state to null
   },
 }));
 
-// Initialize store with session
+// Initial check for session on app load
 supabase.auth.getSession().then(({ data: { session } }) => {
   useAuthStore.getState().setSession(session);
-  useAuthStore.setState({ loading: false });
+  if (session?.user) {
+    useAuthStore.getState().fetchProfile(session.user);
+  } else {
+    // If no session, we're done loading
+    useAuthStore.setState({ loading: false });
+  }
 });
 
+// Listen to auth state changes
 supabase.auth.onAuthStateChange((_event, session) => {
   useAuthStore.getState().setSession(session);
-  useAuthStore.setState({ loading: false });
+  if (session?.user) {
+    useAuthStore.getState().fetchProfile(session.user);
+  } else {
+    // User signed out
+    useAuthStore.setState({ session: null, user: null, profile: null });
+  }
 });

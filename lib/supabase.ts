@@ -18,9 +18,15 @@ export const getPublicImageUrl = (path: string | null | undefined): string => {
     
     // Se já for uma URL completa, retorna ela mesma para evitar erros.
     if (path.startsWith('http')) {
-        return path;
+        // Mesmo se for uma URL completa, adiciona cache busting se não tiver
+        if (path.includes('?t=')) return path;
+        return `${path}?t=${new Date().getTime()}`;
     }
     
     const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
-    return data.publicUrl;
+
+    // FIX: Adiciona um timestamp para cache-busting.
+    // Isso força o navegador a buscar a imagem novamente em vez de usar uma versão
+    // antiga e quebrada do cache, garantindo que a imagem sempre apareça.
+    return `${data.publicUrl}?t=${new Date().getTime()}`;
 };

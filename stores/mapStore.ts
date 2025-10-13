@@ -1,12 +1,9 @@
 import { create } from 'zustand';
-import { User, Coordinates, Profile } from '../types';
-import { supabase } from '../lib/supabase';
+import { supabase, getPublicImageUrl } from '../lib/supabase';
+import { User, Coordinates } from '../types';
 import { useAuthStore } from './authStore';
-import { useUiStore } from './uiStore';
-import type { RealtimeChannel } from '@supabase/supabase-js';
-import { getPublicImageUrl } from '../lib/supabase';
 
-// Função para calcular a idade a partir da data de nascimento
+// Helper function to calculate age from date of birth
 const calculateAge = (dob: string | null): number => {
     if (!dob) return 0;
     const birthDate = new Date(dob);
@@ -19,24 +16,38 @@ const calculateAge = (dob: string | null): number => {
     return age;
 };
 
+// Helper to transform raw profile data into a User object
+const transformProfileToUser = (profile: any): User => {
+  const user = {
+    ...profile,
+    age: calculateAge(profile.date_of_birth),
+    avatar_url: getPublicImageUrl(profile.avatar_url),
+    public_photos: (profile.public_photos || []).map(getPublicImageUrl),
+    tribes: profile.profile_tribes?.map((pt: any) => pt.tribes.name) || [],
+  };
+  delete user.profile_tribes; // Clean up joined data
+  return user as User;
+};
+
 
 interface MapState {
   users: User[];
   myLocation: Coordinates | null;
   onlineUsers: string[];
-  selectedUser: User | null;
   loading: boolean;
   error: string | null;
-  locationWatchId: number | null;
-  presenceChannel: RealtimeChannel | null;
-  profilesChannel: RealtimeChannel | null;
-  requestLocationPermission: () => Promise<void>;
-  stopLocationWatch: () => void;
-  fetchNearbyUsers: (radius: number) => Promise<void>;
+  selectedUser: User | null;
+  watchId: number | null;
+  realtimeChannel: any | null; // Supabase Realtime Channel
+  presenceChannel: any | null; // Supabase Presence Channel
+  setUsers: (users: User[]) => void;
+  setMyLocation: (coords: Coordinates) => void;
   setSelectedUser: (user: User | null) => void;
-  startChatWithUser: (user: User) => void;
-  sendWink: (receiverId: string) => Promise<{ success: boolean; message: string; }>;
-  initializeRealtime: () => void;
+  requestLocationPermission: () => void;
+  stopLocationWatch: () => void;
+  updateMyLocationInDb: (coords: Coordinates) => Promise<void>;
+  fetchNearbyUsers: (coords: Coordinates) => Promise<void>;
+  setupRealtime: () => void;
   cleanupRealtime: () => void;
 }
 
@@ -44,149 +55,134 @@ export const useMapStore = create<MapState>((set, get) => ({
   users: [],
   myLocation: null,
   onlineUsers: [],
-  selectedUser: null,
-  loading: false,
+  loading: true,
   error: null,
-  locationWatchId: null,
+  selectedUser: null,
+  watchId: null,
+  realtimeChannel: null,
   presenceChannel: null,
-  profilesChannel: null,
+  setUsers: (users) => set({ users }),
+  setMyLocation: (coords) => set({ myLocation: coords }),
+  setSelectedUser: (user) => set({ selectedUser: user }),
 
-  requestLocationPermission: async () => {
-    set({ loading: true, error: null });
-    if (!navigator.geolocation) {
-      set({ error: "Geolocalização não é suportada por este navegador.", loading: false });
-      return;
+  requestLocationPermission: () => {
+    if (navigator.geolocation) {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const newLocation = { lat: latitude, lng: longitude };
+          
+          const oldLocation = get().myLocation;
+          // Only fetch/update if it's the first time or location changed significantly
+          if (!oldLocation || 
+              Math.abs(oldLocation.lat - newLocation.lat) > 0.001 || 
+              Math.abs(oldLocation.lng - newLocation.lng) > 0.001) {
+                
+            set({ myLocation: newLocation, loading: false, error: null });
+            get().updateMyLocationInDb(newLocation);
+            get().fetchNearbyUsers(newLocation);
+          }
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          set({ 
+            loading: false, 
+            error: "Não foi possível obter sua localização. Verifique as permissões do seu navegador e tente novamente." 
+          });
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+      set({ watchId });
+      get().setupRealtime();
+    } else {
+      set({ loading: false, error: "Geolocalização não é suportada por este navegador." });
     }
-
-    const watchId = navigator.geolocation.watchPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        const location = { lat: latitude, lng: longitude };
-        
-        const firstTime = !get().myLocation;
-        set({ myLocation: location, loading: false, error: null });
-        
-        // Atualiza a localização no banco de dados
-        const { error: rpcError } = await supabase.rpc('update_my_location', { lat: latitude, lon: longitude });
-        if (rpcError) {
-            console.error("Error updating location:", rpcError);
-        } else if (firstTime) {
-            // Na primeira vez que obtemos a localização, buscamos os usuários próximos
-            await get().fetchNearbyUsers(10000); // Raio de 10km
-            get().initializeRealtime();
-        }
-      },
-      (error) => {
-        console.error("Geolocation error:", error);
-        const saoPauloLocation = { lat: -23.5505, lng: -46.6333 };
-        set({ 
-            error: "Permissão de localização negada. Usando uma localização padrão em São Paulo. Habilite a permissão para uma experiência completa.", 
-            loading: false,
-            myLocation: saoPauloLocation,
-        });
-        get().fetchNearbyUsers(50000); 
-        get().initializeRealtime();
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-    set({ locationWatchId: watchId });
   },
 
   stopLocationWatch: () => {
-      const watchId = get().locationWatchId;
-      if (watchId) {
-          navigator.geolocation.clearWatch(watchId);
-          set({ locationWatchId: null });
-      }
-  },
-
-  fetchNearbyUsers: async (radius: number = 10000) => {
-    set({ loading: true });
-    const { data, error } = await supabase.rpc('get_nearby_users', { radius_meters: radius });
-    
-    if (error) {
-        console.error("Error fetching nearby users:", error);
-        set({ users: [], loading: false, error: "Erro ao buscar usuários." });
-    } else {
-        const usersWithAgeAndUrls = data.map((u: any) => ({
-            ...u, 
-            age: calculateAge(u.date_of_birth),
-            avatar_url: getPublicImageUrl(u.avatar_url),
-            public_photos: (u.public_photos || []).map(getPublicImageUrl),
-        } as User));
-        set({ users: usersWithAgeAndUrls, loading: false });
+    const { watchId } = get();
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      set({ watchId: null });
     }
   },
 
-  setSelectedUser: (user) => set({ selectedUser: user }),
-  startChatWithUser: (user) => {
-      useUiStore.getState().setChatUser(user);
-  },
-  
-  sendWink: async (receiverId: string) => {
-      const authUser = useAuthStore.getState().user;
-      if (!authUser) return { success: false, message: 'Você precisa estar logado.' };
-      
-      const { error } = await supabase.from('winks').insert({
-          sender_id: authUser.id,
-          receiver_id: receiverId
-      });
-      
-      if (error) {
-          if (error.code === '23505') { 
-            return { success: false, message: 'Você já chamou essa pessoa!' };
-          }
-          console.error("Error sending wink:", error);
-          return { success: false, message: 'Não foi possível enviar o chamado.' };
-      }
-      return { success: true, message: 'Chamado enviado com sucesso!' };
+  updateMyLocationInDb: async (coords: Coordinates) => {
+    const user = useAuthStore.getState().user;
+    if (!user) return;
+    const { lat, lng } = coords;
+    await supabase.rpc('update_my_location', {
+        new_lat: lat,
+        new_lng: lng
+    });
   },
 
-  initializeRealtime: () => {
-      console.log('Initializing realtime subscriptions...');
-      const presenceChannel = supabase.channel('online-users');
-      const profilesChannel = supabase.channel('public:profiles');
+  fetchNearbyUsers: async (coords: Coordinates) => {
+    const user = useAuthStore.getState().user;
+    if (!user) return;
+    
+    const { lat, lng } = coords;
+    const { data, error } = await supabase.rpc('get_nearby_profiles', {
+        p_lat: lat,
+        p_lng: lng
+    });
 
-      presenceChannel
+    if (error) {
+        console.error("Error fetching nearby users:", error);
+        set({ error: "Erro ao buscar usuários próximos." });
+        return;
+    }
+
+    if (data) {
+        const transformedUsers = data.map(transformProfileToUser);
+        set({ users: transformedUsers });
+    }
+  },
+
+  setupRealtime: () => {
+    const profile = useAuthStore.getState().profile;
+    if (!profile) return;
+    
+    // Cleanup existing channels before creating new ones
+    get().cleanupRealtime();
+
+    // --- Presence Channel for Online Status ---
+    const presenceChannel = supabase.channel('online-users');
+    presenceChannel
         .on('presence', { event: 'sync' }, () => {
-          const newState = presenceChannel.presenceState();
-          const userIds = Object.keys(newState).map(id => id);
-          set({ onlineUsers: userIds });
+            const newState = presenceChannel.presenceState();
+            const userIds = Object.keys(newState).map(key => newState[key][0].user_id);
+            set({ onlineUsers: userIds });
         })
         .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            await presenceChannel.track({ user_id: useAuthStore.getState().user?.id });
-          }
+            if (status === 'SUBSCRIBED') {
+                await presenceChannel.track({ user_id: profile.id, online_at: new Date().toISOString() });
+            }
         });
-      
-      profilesChannel
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
-            const updatedProfile = payload.new as Profile;
-            const updatedUserWithUrls = {
-                ...updatedProfile,
-                age: calculateAge(updatedProfile.date_of_birth),
-                avatar_url: getPublicImageUrl(updatedProfile.avatar_url),
-                public_photos: (updatedProfile.public_photos || []).map(getPublicImageUrl),
-            };
-            
-            set(state => ({
-                users: state.users.map(user => 
-                    user.id === updatedUserWithUrls.id 
-                    ? { ...user, ...updatedUserWithUrls } 
-                    : user
-                )
-            }));
-        })
+
+    // --- Realtime Channel for Profile/Location Updates ---
+    const realtimeChannel = supabase
+        .channel('public:profiles')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, 
+            (payload) => {
+                // Re-fetch users when any profile changes
+                // A more optimized approach would be to update/add/remove a single user
+                // but re-fetching is simpler and safer for now.
+                const { myLocation } = get();
+                if (myLocation) {
+                    get().fetchNearbyUsers(myLocation);
+                }
+            }
+        )
         .subscribe();
-      
-      set({ presenceChannel, profilesChannel });
+
+    set({ presenceChannel, realtimeChannel });
   },
 
   cleanupRealtime: () => {
-      console.log('Cleaning up realtime subscriptions...');
-      get().presenceChannel?.unsubscribe();
-      get().profilesChannel?.unsubscribe();
-      set({ presenceChannel: null, profilesChannel: null, onlineUsers: [] });
+    const { presenceChannel, realtimeChannel } = get();
+    if (presenceChannel) supabase.removeChannel(presenceChannel);
+    if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+    set({ presenceChannel: null, realtimeChannel: null, onlineUsers: [] });
   }
-
 }));

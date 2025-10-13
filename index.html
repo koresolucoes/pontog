@@ -14,6 +14,9 @@
   <!-- Basic SEO and App Info -->
   <meta name="description" content="Um aplicativo de encontros para a comunidade gay, focado em geolocalização para encontrar conexões rápidas e diretas ao seu redor." />
   
+  <!-- CRITICAL FIX: Include Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
   <!-- Import Map for dependencies -->
   <script type="importmap">
   {
@@ -48,8 +51,7 @@
         sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      background-color: #111827; /* bg-gray-900 */
-      color: #f9fafb; /* text-gray-50 */
+      /* Background and color are now handled by Tailwind on the body/html or root div */
     }
 
     /* Leaflet popup customization to match app theme */

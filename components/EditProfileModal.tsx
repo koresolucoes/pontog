@@ -159,7 +159,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
     const toastId = toast.loading('Atualizando perfil...');
     
     // 1. Prepare profile data (exclude non-db fields)
-    const { tribes: formTribes, age, ...profileUpdates } = formData;
+    // Fix: Removed 'age' from destructuring as it does not exist on the 'Profile' type.
+    // 'age' is a calculated field on the 'User' type and is not stored in the database.
+    const { tribes: formTribes, ...profileUpdates } = formData;
 
     const { error: profileError } = await supabase
         .from('profiles')

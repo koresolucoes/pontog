@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/authStore';
 import { ConversationPreview, User, WinkWithProfile } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatLastSeen } from '../lib/utils';
 
 type ActiveTab = 'messages' | 'winks';
 
@@ -30,6 +31,7 @@ export const Inbox: React.FC = () => {
             id: convo.other_participant_id,
             username: convo.other_participant_username,
             avatar_url: convo.other_participant_avatar_url,
+            last_seen: convo.other_participant_last_seen,
             // Preenchemos com valores padrão pois não temos o perfil completo aqui
             display_name: null, public_photos: [], status_text: null, date_of_birth: null,
             height_cm: null, weight_kg: null, tribes: [], position: null, hiv_status: null,
@@ -96,21 +98,36 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
     
     return (
         <div className="divide-y divide-gray-700">
-            {conversations.map(convo => (
-                <div key={convo.conversation_id} onClick={() => onConversationClick(convo)} className="p-4 flex items-center space-x-4 cursor-pointer hover:bg-gray-700/50">
-                    <img src={convo.other_participant_avatar_url} alt={convo.other_participant_username} className="w-14 h-14 rounded-full object-cover" />
-                    <div className="flex-1">
-                        <div className="flex justify-between">
-                            <h3 className="font-bold">{convo.other_participant_username}</h3>
-                            <span className="text-xs text-gray-400">{formatDistanceToNow(new Date(convo.last_message_created_at), { addSuffix: true, locale: ptBR })}</span>
+            {conversations.map(convo => {
+                const isOnline = formatLastSeen(convo.other_participant_last_seen) === 'Online';
+                return (
+                    <div key={convo.conversation_id} onClick={() => onConversationClick(convo)} className="p-4 flex items-center space-x-4 cursor-pointer hover:bg-gray-700/50">
+                        <div className="relative">
+                            <img src={convo.other_participant_avatar_url} alt={convo.other_participant_username} className="w-14 h-14 rounded-full object-cover" />
+                            {isOnline ? (
+                                <span className="absolute bottom-0 right-0 block h-4 w-4 rounded-full bg-green-400 ring-2 ring-gray-800" />
+                            ) : (
+                                <span className="absolute bottom-0 right-0 block h-4 w-4 rounded-full bg-gray-500 ring-2 ring-gray-800" />
+                            )}
+                            {convo.unread_count > 0 && (
+                                <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-pink-500 text-white text-xs flex items-center justify-center font-bold ring-2 ring-gray-800">
+                                    {convo.unread_count > 9 ? '9+' : convo.unread_count}
+                                </span>
+                            )}
                         </div>
-                        <p className="text-sm text-gray-300 truncate">
-                            {convo.last_message_sender_id === currentUserId && "Você: "}
-                            {convo.last_message_content}
-                        </p>
+                        <div className="flex-1 overflow-hidden">
+                            <div className="flex justify-between items-center">
+                                <h3 className="font-bold truncate">{convo.other_participant_username}</h3>
+                                <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{formatDistanceToNow(new Date(convo.last_message_created_at), { addSuffix: true, locale: ptBR })}</span>
+                            </div>
+                            <p className={`text-sm truncate ${convo.unread_count > 0 ? 'text-white font-semibold' : 'text-gray-400'}`}>
+                                {convo.last_message_sender_id === currentUserId && "Você: "}
+                                {convo.last_message_content}
+                            </p>
+                        </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 }

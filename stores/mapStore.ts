@@ -40,9 +40,13 @@ interface MapState {
   watchId: number | null;
   realtimeChannel: any | null; // Supabase Realtime Channel
   presenceChannel: any | null; // Supabase Presence Channel
+  filters: {
+    onlineOnly: boolean;
+  };
   setUsers: (users: User[]) => void;
   setMyLocation: (coords: Coordinates) => void;
   setSelectedUser: (user: User | null) => void;
+  setFilters: (newFilters: Partial<{ onlineOnly: boolean }>) => void;
   requestLocationPermission: () => void;
   stopLocationWatch: () => void;
   updateMyLocationInDb: (coords: Coordinates) => Promise<void>;
@@ -61,9 +65,14 @@ export const useMapStore = create<MapState>((set, get) => ({
   watchId: null,
   realtimeChannel: null,
   presenceChannel: null,
+  filters: {
+    onlineOnly: false,
+  },
   setUsers: (users) => set({ users }),
   setMyLocation: (coords) => set({ myLocation: coords }),
   setSelectedUser: (user) => set({ selectedUser: user }),
+  setFilters: (newFilters) => set(state => ({ filters: { ...state.filters, ...newFilters } })),
+
 
   requestLocationPermission: () => {
     if (navigator.geolocation) {

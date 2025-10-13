@@ -33,6 +33,7 @@ export const useInboxStore = create<InboxState>((set) => ({
 
   fetchConversations: async () => {
     set({ loadingConversations: true });
+    // A RPC get_my_conversations foi atualizada para retornar `unread_count` e `last_seen`
     const { data, error } = await supabase.rpc('get_my_conversations');
     
     if (error) {
@@ -41,7 +42,7 @@ export const useInboxStore = create<InboxState>((set) => ({
       return;
     }
     
-    const processedConversations = data.map(convo => ({
+    const processedConversations = data.map((convo: any) => ({
         ...convo,
         other_participant_avatar_url: getPublicImageUrl(convo.other_participant_avatar_url)
     }))

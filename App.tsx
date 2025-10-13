@@ -3,6 +3,7 @@ import { useAuthStore } from './stores/authStore';
 import { useMapStore } from './stores/mapStore';
 import { useUiStore } from './stores/uiStore';
 import { useDataStore } from './stores/dataStore';
+import { useInboxStore } from './stores/inboxStore';
 import { Auth } from './components/Auth';
 import { Map } from './components/Map';
 import { UserGrid } from './components/UserGrid';
@@ -20,6 +21,7 @@ function App() {
   const { selectedUser, setSelectedUser, requestLocationPermission, stopLocationWatch, cleanupRealtime } = useMapStore();
   const { activeView, setActiveView, chatUser, setChatUser } = useUiStore();
   const { fetchTribes } = useDataStore();
+  const { fetchConversations } = useInboxStore();
   
   const [isEditProfileOpen, setEditProfileOpen] = useState(false);
   const [isMyAlbumsOpen, setMyAlbumsOpen] = useState(false);
@@ -40,6 +42,7 @@ function App() {
   }, [session, requestLocationPermission, stopLocationWatch, cleanupRealtime, fetchTribes]);
 
   const handleStartChat = (user: User) => {
+    // A propriedade `last_seen` já deve estar no objeto `User` vindo do grid/mapa
     setChatUser(user);
   }
   
@@ -47,6 +50,12 @@ function App() {
     stopLocationWatch();
     cleanupRealtime();
     signOut();
+  }
+
+  const handleCloseChat = () => {
+      setChatUser(null);
+      // Atualiza a caixa de entrada para refletir as mensagens lidas
+      fetchConversations();
   }
 
   const renderActiveView = () => {
@@ -174,8 +183,8 @@ function App() {
 
       {chatUser && (
         <ChatWindow 
-            user={{...chatUser, imageUrl: chatUser.avatar_url, name: chatUser.username}}
-            onClose={() => setChatUser(null)}
+            user={{...chatUser, imageUrl: chatUser.avatar_url, name: chatUser.username, last_seen: chatUser.last_seen }}
+            onClose={handleCloseChat}
         />
       )}
     </div>

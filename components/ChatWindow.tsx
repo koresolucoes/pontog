@@ -1,17 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { User, Message as MessageType } from '../types';
-import { SendIcon, XIcon } from './icons';
+import { SendIcon, XIcon, CheckIcon, CheckCheckIcon } from './icons';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
+import { format } from 'date-fns';
+import { formatLastSeen } from '../lib/utils';
 
-// O componente de chat espera um `User` com `imageUrl` e `name`
-// que são diferentes do nosso novo tipo `User` (usa avatar_url e username)
-// Então criamos um tipo específico para a prop
 interface ChatUser {
   id: string;
   name: string;
   imageUrl: string;
-  online?: boolean;
+  last_seen?: string | null;
 }
 
 interface ChatWindowProps {
@@ -25,6 +24,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const [conversationId, setConversationId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentUser = useAuthStore(state => state.user);
+
+  const markMessagesAsRead = useCallback(async (messageIds: number[]) => {
+      if (messageIds.length === 0) return;
+      await supabase.rpc('mark_messages_as_read', { message_ids: messageIds });
+  }, []);
 
   useEffect(() => {
     const setupConversation = async () => {
@@ -52,22 +56,35 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
           console.error("Error fetching messages:", messagesError);
       } else {
           setMessages(initialMessages || []);
+          const unreadIds = initialMessages
+            .filter(m => m.sender_id !== currentUser.id && !m.read_at)
+            .map(m => m.id);
+          markMessagesAsRead(unreadIds);
       }
     };
 
     setupConversation();
-  }, [user.id, currentUser]);
+  }, [user.id, currentUser, markMessagesAsRead]);
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !currentUser) return;
 
     const channel = supabase
       .channel(`chat:${conversationId}`)
       .on<MessageType>(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
+        { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
         (payload) => {
-          setMessages((prevMessages) => [...prevMessages, payload.new]);
+           if (payload.eventType === 'INSERT') {
+               const newMessagePayload = payload.new;
+               setMessages((prevMessages) => [...prevMessages, newMessagePayload]);
+               if (newMessagePayload.sender_id !== currentUser.id) {
+                   markMessagesAsRead([newMessagePayload.id]);
+               }
+           } else if (payload.eventType === 'UPDATE') {
+               const updatedMessage = payload.new;
+               setMessages(prev => prev.map(m => m.id === updatedMessage.id ? updatedMessage : m));
+           }
         }
       )
       .subscribe();
@@ -75,7 +92,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId]);
+  }, [conversationId, currentUser, markMessagesAsRead]);
 
 
   const scrollToBottom = () => {
@@ -102,6 +119,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   };
 
   if (!currentUser) return null;
+  
+  const MessageStatus = ({ msg }: { msg: MessageType }) => {
+    if (msg.sender_id !== currentUser.id) return null;
+    
+    return (
+      <div className="flex items-center space-x-1">
+          <span className="text-xs text-gray-400">{format(new Date(msg.created_at), 'HH:mm')}</span>
+          {msg.read_at ? (
+              <CheckCheckIcon className="w-4 h-4 text-blue-400" />
+          ) : (
+              <CheckIcon className="w-4 h-4 text-gray-400" />
+          )}
+      </div>
+    );
+  };
+  
+  const userStatus = formatLastSeen(user.last_seen);
 
   return (
     <div className="fixed bottom-0 right-0 sm:right-4 md:right-8 w-full sm:w-96 h-full sm:h-[500px] bg-gray-800 shadow-2xl rounded-t-2xl sm:rounded-2xl z-40 flex flex-col animate-slide-in-up">
@@ -111,8 +145,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
           <div>
             <h3 className="font-bold">{user.name}</h3>
             <div className="flex items-center space-x-1.5">
-              <div className={`w-2 h-2 rounded-full ${user.online ? 'bg-green-400' : 'bg-gray-500'}`}></div>
-              <span className="text-xs text-gray-400">{user.online ? 'Online' : 'Offline'}</span>
+              {userStatus === 'Online' && (
+                  <div className="w-2 h-2 rounded-full bg-green-400"></div>
+              )}
+              <span className="text-xs text-gray-400">{userStatus}</span>
             </div>
           </div>
         </div>
@@ -122,12 +158,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       </header>
 
       <div className="flex-1 p-4 overflow-y-auto">
-        <div className="flex flex-col space-y-4">
+        <div className="flex flex-col space-y-2">
           {messages.map((msg) => (
-            <div key={msg.id} className={`flex items-end gap-2 ${msg.sender_id === currentUser.id ? 'justify-end' : ''}`}>
-               {msg.sender_id !== currentUser.id && <img src={user.imageUrl} className="w-6 h-6 rounded-full" />}
-               <div className={`max-w-xs md:max-w-sm px-4 py-2 rounded-2xl ${msg.sender_id === currentUser.id ? 'bg-pink-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'}`}>
-                <p className="text-sm">{msg.content}</p>
+            <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUser.id ? 'items-end' : 'items-start'}`}>
+              <div className={`flex items-end gap-2 max-w-xs md:max-w-sm ${msg.sender_id === currentUser.id ? 'flex-row-reverse' : 'flex-row'}`}>
+                 {msg.sender_id !== currentUser.id && <img src={user.imageUrl} className="w-6 h-6 rounded-full self-start" />}
+                 <div className={`px-4 py-2 rounded-2xl ${msg.sender_id === currentUser.id ? 'bg-pink-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'}`}>
+                  <p className="text-sm">{msg.content}</p>
+                </div>
+              </div>
+              <div className={`mt-1 pr-2 ${msg.sender_id === currentUser.id ? 'self-end' : 'self-start ml-8'}`}>
+                 <MessageStatus msg={msg} />
               </div>
             </div>
           ))}

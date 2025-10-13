@@ -27,6 +27,7 @@ export interface Profile {
   updated_at: string;
   lat: number;
   lng: number;
+  last_seen: string | null; // Adicionado para status de atividade
 }
 
 // O tipo User estende Profile com campos calculados como 'idade'
@@ -43,6 +44,7 @@ export interface Message {
   is_view_once: boolean | null;
   viewed_at: string | null;
   created_at: string;
+  read_at: string | null; // Adicionado para confirmação de leitura
 }
 
 export interface PrivateAlbumPhoto {
@@ -68,9 +70,11 @@ export interface ConversationPreview {
     other_participant_id: string;
     other_participant_username: string;
     other_participant_avatar_url: string;
+    other_participant_last_seen: string | null; // Adicionado para status de atividade
     last_message_content: string;
     last_message_created_at: string;
     last_message_sender_id: string;
+    unread_count: number; // Adicionado para contagem de não lidas
 }
 
 // Novo tipo para os winks na caixa de entrada (basicamente um User)

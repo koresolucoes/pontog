@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
 import * as L from 'leaflet';
@@ -24,12 +24,19 @@ const MyLocationMarkerIcon = (avatarUrl: string) => new L.Icon({
 });
 
 export const Map: React.FC = () => {
-  const { users, myLocation, onlineUsers, loading, error, setSelectedUser } = useMapStore();
+  const { users, myLocation, onlineUsers, loading, error, filters, setSelectedUser } = useMapStore();
   const { profile } = useAuthStore();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
+
+  const filteredUsers = useMemo(() => {
+    if (!filters.onlineOnly) {
+        return users;
+    }
+    return users.filter(user => onlineUsers.includes(user.id));
+  }, [users, onlineUsers, filters.onlineOnly]);
 
   // Inicialização do mapa
   useEffect(() => {
@@ -79,9 +86,9 @@ export const Map: React.FC = () => {
     const markers = userMarkersRef.current;
     if (!map) return;
 
-    const currentUsersIds = new Set(users.map(u => u.id));
+    const currentUsersIds = new Set(filteredUsers.map(u => u.id));
 
-    // Remove marcadores de usuários que não estão mais na lista
+    // Remove marcadores de usuários que não estão mais na lista filtrada
     markers.forEach((marker, userId) => {
         if (!currentUsersIds.has(userId)) {
             marker.remove();
@@ -89,8 +96,8 @@ export const Map: React.FC = () => {
         }
     });
     
-    // Adiciona ou atualiza marcadores dos usuários
-    users.forEach(user => {
+    // Adiciona ou atualiza marcadores dos usuários filtrados
+    filteredUsers.forEach(user => {
         const isOnline = onlineUsers.includes(user.id);
         const existingMarker = markers.get(user.id);
 
@@ -114,7 +121,7 @@ export const Map: React.FC = () => {
         }
     });
 
-  }, [users, onlineUsers, setSelectedUser]);
+  }, [filteredUsers, onlineUsers, setSelectedUser]);
 
 
   if (loading && !myLocation) {

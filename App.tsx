@@ -8,7 +8,7 @@ import { UserGrid } from './components/UserGrid';
 import { ProfileModal } from './components/ProfileModal';
 import { EditProfileModal } from './components/EditProfileModal';
 import { ChatWindow } from './components/ChatWindow';
-import { MapPinIcon, UsersIcon } from './components/icons';
+import { MapPinIcon, UsersIcon, MessageCircleIcon } from './components/icons';
 import { User } from './types';
 
 function App() {
@@ -83,7 +83,13 @@ function App() {
                 <img src={profile?.avatar_url || `https://picsum.photos/seed/${profile?.id}/40`} alt="Seu perfil" className="w-10 h-10 rounded-full object-cover" />
                 <div className="flex-1">
                     <p className="font-semibold text-white truncate">{profile?.username}</p>
-                    <p className="text-xs text-gray-400">Ver Perfil</p>
+                    <p className="text-xs text-gray-400">Editar Perfil</p>
+                </div>
+            </div>
+            <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer text-gray-400">
+                <MessageCircleIcon className="w-5 h-5 ml-2.5" />
+                <div className="flex-1">
+                    <p className="font-semibold text-gray-300 truncate">Meus Álbuns</p>
                 </div>
             </div>
              <button onClick={handleSignOut} className="w-full mt-2 text-sm text-center font-semibold text-gray-400 hover:text-pink-400 transition-colors py-2">Sair</button>

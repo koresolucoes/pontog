@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User } from '../types';
 import { FlameIcon, MessageCircleIcon, XIcon, ChevronLeftIcon, ChevronRightIcon, RulerIcon, ScaleIcon, HeartIcon, ShieldCheckIcon, UsersIcon } from './icons';
 import { useMapStore } from '../stores/mapStore';
+import { getPublicImageUrl } from '../lib/supabase';
 
 interface ProfileModalProps {
   user: User;
@@ -22,7 +23,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
   const sendWink = useMapStore((state) => state.sendWink);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   
-  const photos = [user.avatar_url, ...(user.public_photos || [])].filter(Boolean);
+  const photoPaths = [user.avatar_url.includes('supabase.co') ? null : user.avatar_url, ...(user.public_photos || [])].filter(Boolean) as string[];
+  const photos = photoPaths.map(path => getPublicImageUrl(path));
+  if (!user.avatar_url.includes('supabase.co')) {
+      photos.unshift(user.avatar_url); // Keep placeholder if it's not a supabase url
+  } else {
+      photos.unshift(getPublicImageUrl(user.avatar_url))
+  }
+
 
   const handleWink = async () => {
       const result = await sendWink(user.id);
@@ -98,6 +106,16 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
                 <StatCard icon={<RulerIcon className="w-5 h-5"/>} label="Altura" value={user.height_cm ? `${user.height_cm} cm` : null} />
                 <StatCard icon={<ScaleIcon className="w-5 h-5"/>} label="Peso" value={user.weight_kg ? `${user.weight_kg} kg` : null} />
                 <StatCard icon={<ShieldCheckIcon className="w-5 h-5"/>} label="HIV" value={user.hiv_status} />
+             </div>
+          </div>
+          
+          <div className="mb-6">
+             <h3 className="text-sm font-semibold text-gray-400 mb-2">Álbuns Privados</h3>
+             <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+                <p className="text-sm text-gray-300">Este usuário pode ter álbuns privados.</p>
+                <button className="mt-3 text-sm bg-gray-600 text-white font-semibold py-1.5 px-4 rounded-lg hover:bg-gray-500 transition-colors disabled:opacity-50" disabled>
+                  Solicitar Acesso (Em breve)
+                </button>
              </div>
           </div>
 

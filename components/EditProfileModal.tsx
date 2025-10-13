@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../stores/authStore';
-import { XIcon, TrashIcon } from './icons';
+import { XIcon, TrashIcon, UploadCloudIcon } from './icons';
 import { Profile } from '../types';
 import { TRIBES, POSITIONS, HIV_STATUSES } from '../lib/constants';
+import { useAlbumStore } from '../stores/albumStore';
+import { getPublicImageUrl } from '../lib/supabase';
 
 interface EditProfileModalProps {
   onClose: () => void;
@@ -17,10 +19,11 @@ const InputField: React.FC<{ label: string; id: string; children: React.ReactNod
 
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) => {
   const { profile, updateProfile } = useAuthStore();
+  const { uploadPhoto, isUploading } = useAlbumStore();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // State for all profile fields
   const [displayName, setDisplayName] = useState('');
   const [status, setStatus] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -29,8 +32,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
   const [height, setHeight] = useState<number | ''>('');
   const [weight, setWeight] = useState<number | ''>('');
   const [hivStatus, setHivStatus] = useState('');
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [newPhotoUrl, setNewPhotoUrl] = useState('');
+  const [photoPaths, setPhotoPaths] = useState<string[]>([]);
 
   useEffect(() => {
     if (profile) {
@@ -42,7 +44,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
       setHeight(profile.height_cm || '');
       setWeight(profile.weight_kg || '');
       setHivStatus(profile.hiv_status || '');
-      setPhotos(profile.public_photos || []);
+      setPhotoPaths(profile.public_photos || []);
     }
   }, [profile]);
 
@@ -52,21 +54,21 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
     );
   };
 
-  const handleAddPhoto = () => {
-    if (newPhotoUrl.trim() && !photos.includes(newPhotoUrl.trim())) {
-      // Basic URL validation
-      try {
-        new URL(newPhotoUrl.trim());
-        setPhotos([...photos, newPhotoUrl.trim()]);
-        setNewPhotoUrl('');
-      } catch (_) {
-        alert('Por favor, insira uma URL válida.');
-      }
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const newPath = await uploadPhoto(file);
+    if (newPath) {
+        setPhotoPaths(prev => [...prev, newPath]);
+    } else {
+        alert('Falha no upload da foto.');
     }
   };
 
-  const handleRemovePhoto = (urlToRemove: string) => {
-    setPhotos(photos.filter(url => url !== urlToRemove));
+  const handleRemovePhoto = (pathToRemove: string) => {
+    // TODO: Consider deleting from storage as well
+    setPhotoPaths(photoPaths.filter(path => path !== pathToRemove));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,7 +85,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
       height_cm: height === '' ? null : Number(height),
       weight_kg: weight === '' ? null : Number(weight),
       hiv_status: hivStatus,
-      public_photos: photos,
+      public_photos: photoPaths,
       updated_at: new Date().toISOString(),
     };
 
@@ -113,11 +115,10 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
         </div>
         
         <form id="edit-profile-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-8">
-            {/* Seção Sobre Mim */}
             <section>
               <h3 className="text-lg font-semibold text-pink-400 mb-4 border-b border-gray-700 pb-2">Sobre Mim</h3>
               <div className="space-y-4">
-                <InputField label="Nome de Exibição" id="displayName">
+                 <InputField label="Nome de Exibição" id="displayName">
                     <input id="displayName" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="w-full bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" />
                 </InputField>
                  <InputField label="Status" id="status">
@@ -138,8 +139,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
                 </InputField>
               </div>
             </section>
-            
-            {/* Seção Meu Corpo & Saúde */}
+
             <section>
                 <h3 className="text-lg font-semibold text-pink-400 mb-4 border-b border-gray-700 pb-2">Meu Corpo & Saúde</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -164,24 +164,37 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
                 </div>
             </section>
             
-            {/* Seção Minhas Fotos */}
             <section>
-                <h3 className="text-lg font-semibold text-pink-400 mb-4 border-b border-gray-700 pb-2">Minhas Fotos</h3>
+                <h3 className="text-lg font-semibold text-pink-400 mb-4 border-b border-gray-700 pb-2">Minhas Fotos Públicas</h3>
                 <div className="space-y-3">
-                    <p className="text-xs text-gray-400">Adicione URLs para suas fotos públicas. A primeira foto da lista será a sua principal depois do avatar.</p>
-                    <div className="flex gap-2">
-                        <input type="url" value={newPhotoUrl} onChange={(e) => setNewPhotoUrl(e.target.value)} placeholder="https://exemplo.com/imagem.jpg" className="flex-1 bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"/>
-                        <button type="button" onClick={handleAddPhoto} className="bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-500 transition-colors">Adicionar</button>
-                    </div>
+                    <input type="file" accept="image/*" onChange={handleFileSelect} ref={fileInputRef} className="hidden" disabled={isUploading} />
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {photos.map(url => (
-                            <div key={url} className="relative group">
-                                <img src={url} alt="foto do perfil" className="w-full h-24 object-cover rounded-lg" />
-                                <button type="button" onClick={() => handleRemovePhoto(url)} className="absolute top-1 right-1 bg-red-600/70 p-1 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        {photoPaths.map(path => (
+                            <div key={path} className="relative group aspect-square">
+                                <img src={getPublicImageUrl(path)} alt="foto do perfil" className="w-full h-full object-cover rounded-lg" />
+                                <button type="button" onClick={() => handleRemovePhoto(path)} className="absolute top-1 right-1 bg-red-600/70 p-1 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
                                     <TrashIcon className="w-4 h-4" />
                                 </button>
                             </div>
                         ))}
+                        <button 
+                            type="button" 
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                            className="flex flex-col items-center justify-center w-full aspect-square bg-gray-700 rounded-lg border-2 border-dashed border-gray-500 text-gray-400 hover:bg-gray-600 hover:border-pink-500 transition-colors"
+                        >
+                            {isUploading ? (
+                                <>
+                                    <div className="w-8 h-8 border-2 border-dashed rounded-full animate-spin border-white"></div>
+                                    <span className="text-xs mt-2">Enviando...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <UploadCloudIcon className="w-8 h-8"/>
+                                    <span className="text-sm mt-2">Adicionar Foto</span>
+                                </>
+                            )}
+                        </button>
                     </div>
                 </div>
             </section>
@@ -192,7 +205,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
             <button
               type="submit"
               form="edit-profile-form"
-              disabled={loading}
+              disabled={loading || isUploading}
               className="bg-pink-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
             >
               {loading ? 'Salvando...' : 'Salvar Alterações'}

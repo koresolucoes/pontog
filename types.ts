@@ -13,29 +13,15 @@ export interface Profile {
   height_cm?: number | null;
   weight_kg?: number | null;
   hiv_status?: string | null; // e.g., 'Negativo', 'Em PrEP', 'Indetectável'
-  public_photos?: string[] | null;
+  public_photos?: string[] | null; // Armazenará os PATHS das fotos no storage
 }
 
-export interface User {
-  id: string;
-  username: string;
-  avatar_url: string;
-  status_text: string | null;
-  date_of_birth: string | null;
+export interface User extends Profile {
   lat: number;
   lng: number;
   distance_meters: number;
   age: number;
   online?: boolean;
-
-  // Novos campos detalhados para exibição
-  display_name?: string | null;
-  tribes?: string[] | null;
-  position?: string | null;
-  height_cm?: number | null;
-  weight_kg?: number | null;
-  hiv_status?: string | null;
-  public_photos?: string[] | null;
 }
 
 export interface Message {
@@ -50,3 +36,19 @@ export type Coordinates = {
   lat: number;
   lng: number;
 };
+
+export interface PrivateAlbum {
+    id: number;
+    user_id: string;
+    name: string;
+    created_at: string;
+    photos?: PrivateAlbumPhoto[]; // Opcional, para carregar fotos junto com o álbum
+}
+
+export interface PrivateAlbumPhoto {
+    id: number;
+    album_id: number;
+    user_id: string;
+    photo_path: string;
+    created_at: string;
+}

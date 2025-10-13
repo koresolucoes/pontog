@@ -11,6 +11,7 @@ import { ChatWindow } from './components/ChatWindow';
 import { MyAlbumsModal } from './components/MyAlbumsModal';
 import { MapPinIcon, UsersIcon, MessageCircleIcon } from './components/icons';
 import { User } from './types';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   const { session, loading, profile, signOut } = useAuthStore();
@@ -58,6 +59,17 @@ function App() {
 
   return (
     <div className="h-screen w-screen bg-gray-900 text-white flex flex-col md:flex-row font-sans overflow-hidden">
+      {/* Fix: Add Toaster for notifications */}
+      <Toaster 
+        position="top-center"
+        reverseOrder={false}
+        toastOptions={{
+          style: {
+            background: '#333',
+            color: '#fff',
+          },
+        }}
+      />
       <aside className="hidden md:flex flex-col w-80 bg-gray-900 border-r border-gray-800 p-4">
         <div className="flex items-center space-x-2 mb-6">
             <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-2xl">G</div>
@@ -107,7 +119,7 @@ function App() {
             </div>
         </header>
 
-        <main className="flex-1 relative bg-gray-800">
+        <main className="flex-1 relative bg-gray-800 z-10">
             {activeView === 'map' ? <Map /> : <UserGrid />}
         </main>
         

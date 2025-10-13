@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
+import { supabase, getPublicImageUrl } from '../lib/supabase';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { Profile } from '../types';
 
@@ -39,6 +39,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .eq('id', user.id)
         .single();
       if (error) throw error;
+      // Fix: Construct full public URL for the avatar.
+      if (data) {
+        data.avatar_url = getPublicImageUrl(data.avatar_url);
+      }
       set({ profile: data });
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -48,7 +52,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const user = get().user;
     if (!user) return false;
     
-    const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+    // Do not update the lat/lng from the profile edit form.
+    const { lat, lng, ...restUpdates } = updates;
+
+    const { error } = await supabase.from('profiles').update(restUpdates).eq('id', user.id);
     
     if (error) {
       console.error('Error updating profile:', error);

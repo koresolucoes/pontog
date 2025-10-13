@@ -93,13 +93,16 @@ interface ConversationListProps {
     currentUserId?: string;
 }
 const ConversationList: React.FC<ConversationListProps> = ({ conversations, loading, onConversationClick, currentUserId }) => {
+    // Busca a lista de usuários online em tempo real para um status preciso
+    const onlineUsers = useMapStore((state) => state.onlineUsers);
+
     if (loading) return <p className="text-center p-8 text-gray-400">Carregando conversas...</p>;
     if (conversations.length === 0) return <p className="text-center p-8 text-gray-400">Nenhuma conversa iniciada.</p>;
     
     return (
         <div className="divide-y divide-gray-700">
             {conversations.map(convo => {
-                const isOnline = formatLastSeen(convo.other_participant_last_seen) === 'Online';
+                const isOnline = onlineUsers.includes(convo.other_participant_id);
                 return (
                     <div key={convo.conversation_id} onClick={() => onConversationClick(convo)} className="p-4 flex items-center space-x-4 cursor-pointer hover:bg-gray-700/50">
                         <div className="relative">

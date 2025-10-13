@@ -27,10 +27,12 @@ function App() {
   const [isMyAlbumsOpen, setMyAlbumsOpen] = useState(false);
 
   useEffect(() => {
-    if (session) {
+    // Garante que tanto a sessão quanto o perfil estejam carregados antes de iniciar
+    // a geolocalização e o realtime, evitando race conditions.
+    if (session && profile) {
       requestLocationPermission();
       fetchTribes(); // Busca as tribos quando o usuário está logado
-    } else {
+    } else if (!session) { // Apenas executa a limpeza no logout
       stopLocationWatch();
       cleanupRealtime();
     }
@@ -39,7 +41,7 @@ function App() {
         stopLocationWatch();
         cleanupRealtime();
     };
-  }, [session, requestLocationPermission, stopLocationWatch, cleanupRealtime, fetchTribes]);
+  }, [session, profile, requestLocationPermission, stopLocationWatch, cleanupRealtime, fetchTribes]);
 
   const handleStartChat = (user: User) => {
     // A propriedade `last_seen` já deve estar no objeto `User` vindo do grid/mapa

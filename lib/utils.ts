@@ -54,13 +54,18 @@ export const calculateAge = (dob: string | null): number => {
  * @returns A formatted User object.
  */
 export const transformProfileToUser = (profile: any): User => {
+  // Handles tribe data from get_nearby_profiles (simple array)
+  // and get_popular_profiles (nested object array)
+  const tribesArray = profile.tribes 
+    ? profile.tribes
+    : (profile.profile_tribes?.map((pt: any) => pt.tribes.name) || []);
+
   const user = {
     ...profile,
     age: calculateAge(profile.date_of_birth),
     avatar_url: getPublicImageUrl(profile.avatar_url),
     public_photos: (profile.public_photos || []).map(getPublicImageUrl),
-    // The RPC joins tribes and returns them in a nested structure.
-    tribes: profile.profile_tribes?.map((pt: any) => pt.tribes.name) || [],
+    tribes: tribesArray,
   };
   delete user.profile_tribes; // Clean up the raw joined data to match the User type.
   return user as User;

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase, getPublicImageUrl } from '../lib/supabase';
-import { AgoraPost } from '../types';
+import { AgoraPost, AgoraComment } from '../types';
 import { useAuthStore } from './authStore';
 import toast from 'react-hot-toast';
 
@@ -24,6 +24,9 @@ interface AgoraState {
   fetchAgoraPosts: () => Promise<void>;
   activateAgoraMode: (photoFile: File, statusText: string) => Promise<void>;
   deactivateAgoraMode: () => Promise<void>;
+  toggleLikePost: (postId: number) => Promise<void>;
+  addComment: (postId: number, content: string) => Promise<void>;
+  fetchCommentsForPost: (postId: number) => Promise<AgoraComment[]>;
 }
 
 export const useAgoraStore = create<AgoraState>((set, get) => ({
@@ -34,8 +37,8 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
 
   fetchAgoraPosts: async () => {
     set({ isLoading: true });
-    // Usamos uma RPC para buscar os posts e já fazer o join com os perfis
-    const { data, error } = await supabase.rpc('get_active_agora_posts');
+    // CORREÇÃO: Usa a nova RPC que retorna todos os posts ativos com detalhes de interação
+    const { data, error } = await supabase.rpc('get_active_agora_posts_with_details');
     
     if (error) {
       console.error('Error fetching Agora posts:', error);
@@ -46,7 +49,7 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
     const formattedPosts = data.map((p: any) => ({
         ...p,
         photo_url: getPublicImageUrl(p.photo_url),
-        avatar_url: getPublicImageUrl(p.avatar_url), // o RPC retorna o avatar_url do perfil
+        avatar_url: getPublicImageUrl(p.avatar_url),
         age: calculateAge(p.date_of_birth),
     }));
 
@@ -68,7 +71,6 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
 
     const toastId = toast.loading('Ativando modo Agora...');
 
-    // 1. Upload da foto
     const fileExt = photoFile.name.split('.').pop();
     const fileName = `agora_${Date.now()}.${fileExt}`;
     const filePath = `${user.id}/${fileName}`;
@@ -83,8 +85,7 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
       return;
     }
 
-    // 2. Insere ou atualiza o post na tabela
-    const expires_at = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hora a partir de agora
+    const expires_at = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
     const { error: upsertError } = await supabase
       .from('agora_posts')
@@ -100,7 +101,7 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
       console.error(upsertError);
     } else {
       toast.success('Modo Agora ativado por 1 hora!', { id: toastId });
-      await get().fetchAgoraPosts(); // Re-fetch para atualizar a UI
+      await get().fetchAgoraPosts();
     }
     
     set({ isActivating: false });
@@ -122,6 +123,80 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
       await get().fetchAgoraPosts();
     }
   },
+
+  toggleLikePost: async (postId: number) => {
+    const user = useAuthStore.getState().user;
+    if (!user) return;
+
+    const post = get().posts.find(p => p.id === postId);
+    if (!post) return;
+
+    // Optimistic update
+    const hasLiked = post.user_has_liked;
+    set(state => ({
+      posts: state.posts.map(p => 
+        p.id === postId 
+        ? { ...p, user_has_liked: !hasLiked, likes_count: hasLiked ? p.likes_count - 1 : p.likes_count + 1 } 
+        : p
+      )
+    }));
+
+    if (hasLiked) {
+      await supabase.from('agora_post_likes').delete().match({ post_id: postId, user_id: user.id });
+    } else {
+      await supabase.from('agora_post_likes').insert({ post_id: postId, user_id: user.id });
+    }
+    // No need to refetch, optimistic update is sufficient for a good UX
+  },
+
+  addComment: async (postId: number, content: string) => {
+    const user = useAuthStore.getState().user;
+    if (!user) {
+      toast.error('Você precisa estar logado para comentar.');
+      return;
+    }
+    const { error } = await supabase.from('agora_post_comments').insert({ post_id: postId, user_id: user.id, content });
+
+    if (error) {
+        toast.error('Erro ao enviar comentário.');
+    } else {
+        // Optimistic update of comment count
+        set(state => ({
+            posts: state.posts.map(p =>
+                p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p
+            )
+        }));
+    }
+  },
+
+  fetchCommentsForPost: async (postId: number): Promise<AgoraComment[]> => {
+    const { data, error } = await supabase
+        .from('agora_post_comments')
+        .select(`
+            *,
+            profiles (
+                username,
+                avatar_url
+            )
+        `)
+        .eq('post_id', postId)
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        console.error("Error fetching comments:", error);
+        return [];
+    }
+    
+    // Process avatar URLs
+    return data.map(comment => ({
+        ...comment,
+        profiles: {
+            ...comment.profiles,
+            avatar_url: getPublicImageUrl(comment.profiles.avatar_url),
+        }
+    }));
+  },
+
 }));
 
 // Adiciona uma chamada inicial para carregar os posts

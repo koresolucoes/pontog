@@ -93,7 +93,7 @@ export interface AlbumAccessRequest {
     avatar_url: string;
 }
 
-// Novo tipo para a funcionalidade 'Agora'
+// Novo tipo para a funcionalidade 'Agora', agora com interações
 export interface AgoraPost {
     id: number;
     user_id: string;
@@ -104,4 +104,22 @@ export interface AgoraPost {
     username: string;
     avatar_url: string;
     age: number;
+    // Campos de interação
+    likes_count: number;
+    comments_count: number;
+    user_has_liked: boolean;
+}
+
+// Novo tipo para os comentários do modo 'Agora'
+export interface AgoraComment {
+    id: number;
+    post_id: number;
+    user_id: string;
+    content: string;
+    created_at: string;
+    // Campos do perfil do autor do comentário
+    profiles: {
+        username: string;
+        avatar_url: string;
+    }
 }

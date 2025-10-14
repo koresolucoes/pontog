@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useAgoraStore } from '../stores/agoraStore';
 import { AgoraPost } from '../types';
-import { FlameIcon, XIcon } from './icons';
+import { FlameIcon, HeartIcon, MessageCircleIcon, HeartIconFilled } from './icons';
 import { ActivateAgoraModal } from './ActivateAgoraModal';
+import { AgoraPostDetailModal } from './AgoraPostDetailModal'; // Importa o novo modal
 import { useMapStore } from '../stores/mapStore';
 
 export const AgoraView: React.FC = () => {
-    const { posts, isLoading, fetchAgoraPosts, agoraUserIds } = useAgoraStore();
+    const { posts, isLoading, fetchAgoraPosts, toggleLikePost } = useAgoraStore();
     const { setSelectedUser } = useMapStore();
     const { users } = useMapStore();
     const [isActivateModalOpen, setActivateModalOpen] = useState(false);
+    const [selectedPost, setSelectedPost] = useState<AgoraPost | null>(null);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -25,7 +27,6 @@ export const AgoraView: React.FC = () => {
             setSelectedUser(userProfile);
         }
     }
-
 
     return (
         <>
@@ -60,18 +61,31 @@ export const AgoraView: React.FC = () => {
                     <div className="flex-1 overflow-y-auto p-3 space-y-3">
                         {posts.map((post) => (
                             <div key={post.id} className="bg-gray-800 rounded-lg shadow-lg overflow-hidden border border-red-500/30 animate-fade-in">
-                                <img src={post.photo_url} alt={`Post de ${post.username}`} className="w-full h-64 object-cover" />
-                                <div className="p-4">
-                                    <div className="flex items-center space-x-3 cursor-pointer" onClick={() => handleProfileClick(post)}>
-                                        <img src={post.avatar_url} alt={post.username} className="w-12 h-12 rounded-full object-cover border-2 border-pink-500" />
-                                        <div>
-                                            <h3 className="font-bold text-white">{post.username}</h3>
-                                            <p className="text-sm text-gray-400">{post.age} anos</p>
-                                        </div>
+                                <div className="p-4 flex items-center space-x-3 cursor-pointer" onClick={() => handleProfileClick(post)}>
+                                    <img src={post.avatar_url} alt={post.username} className="w-10 h-10 rounded-full object-cover border-2 border-pink-500" />
+                                    <div>
+                                        <h3 className="font-bold text-white">{post.username}</h3>
+                                        <p className="text-sm text-gray-400">{post.age} anos</p>
                                     </div>
-                                    {post.status_text && (
-                                        <p className="text-gray-300 mt-3 italic">"{post.status_text}"</p>
-                                    )}
+                                </div>
+
+                                <div className="cursor-pointer" onClick={() => setSelectedPost(post)}>
+                                    <img src={post.photo_url} alt={`Post de ${post.username}`} className="w-full h-auto max-h-[70vh] object-contain bg-black" />
+                                </div>
+                                
+                                {post.status_text && (
+                                    <p className="text-gray-300 italic px-4 pt-3">"{post.status_text}"</p>
+                                )}
+
+                                <div className="p-4 flex items-center justify-start gap-6">
+                                    <button onClick={() => toggleLikePost(post.id)} className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors">
+                                        {post.user_has_liked ? <HeartIconFilled className="w-6 h-6 text-pink-500"/> : <HeartIcon className="w-6 h-6" />}
+                                        <span className="font-semibold text-sm">{post.likes_count}</span>
+                                    </button>
+                                    <button onClick={() => setSelectedPost(post)} className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors">
+                                        <MessageCircleIcon className="w-6 h-6" />
+                                        <span className="font-semibold text-sm">{post.comments_count}</span>
+                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -81,6 +95,13 @@ export const AgoraView: React.FC = () => {
 
             {isActivateModalOpen && (
                 <ActivateAgoraModal onClose={() => setActivateModalOpen(false)} />
+            )}
+            
+            {selectedPost && (
+                <AgoraPostDetailModal 
+                    post={selectedPost} 
+                    onClose={() => setSelectedPost(null)} 
+                />
             )}
         </>
     );

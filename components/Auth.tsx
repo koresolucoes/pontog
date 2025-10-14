@@ -18,38 +18,7 @@ const features = [
 
 export const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      let authResponse;
-      if (isLogin) {
-        authResponse = await supabase.auth.signInWithPassword({ email, password });
-      } else {
-        authResponse = await supabase.auth.signUp({ email, password });
-        if (!authResponse.error) {
-           setMessage('Cadastro realizado! Verifique seu e-mail para confirmação.');
-        }
-      }
-      
-      const { error } = authResponse;
-      if (error) throw error;
-
-    } catch (error: any) {
-      setError(error.error_description || error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -76,71 +45,22 @@ export const Auth: React.FC = () => {
             <p className="text-slate-300 mt-2 font-semibold">Encontros gays. Sem enrolação.</p>
         </div>
         
-        <form onSubmit={handleAuth}>
-          <div className="space-y-4">
-            <input
-              className="w-full bg-slate-800/50 rounded-lg py-3 px-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 border border-white/10"
-              type="email"
-              placeholder="Seu e-mail"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <input
-              className="w-full bg-slate-800/50 rounded-lg py-3 px-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 border border-white/10"
-              type="password"
-              placeholder="Sua senha"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <div className="mt-6">
-            <button
-              className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-pink-700 transition-all transform hover:scale-105 disabled:opacity-50"
-              disabled={loading}
-            >
-              {loading ? 'Carregando...' : (isLogin ? 'Entrar na Ação' : 'Criar Conta')}
-            </button>
-          </div>
-        </form>
-
-        {error && <p className="mt-4 text-center text-red-400">{error}</p>}
-        {message && <p className="mt-4 text-center text-green-400">{message}</p>}
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-700"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-slate-900/0 text-slate-500 backdrop-blur-sm">ou</span>
-          </div>
-        </div>
-
-        <div>
+        <div className="mt-6">
           <button
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 bg-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg hover:bg-white transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 bg-white text-slate-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-200 transition-all transform hover:scale-105 disabled:opacity-50"
           >
-            <GoogleIcon className="w-5 h-5" />
-            <span>Continuar com Google</span>
+            <GoogleIcon className="w-6 h-6" />
+            <span className="text-base">{loading ? 'Aguarde...' : 'Entrar com Google'}</span>
           </button>
         </div>
 
-        <p className="mt-6 text-center text-sm text-slate-400">
-          {isLogin ? "Novo por aqui?" : "Já tem uma conta?"}
-          <button
-            onClick={() => {
-                setIsLogin(!isLogin);
-                setError(null);
-                setMessage(null);
-            }}
-            className="font-semibold text-pink-400 hover:underline ml-1"
-          >
-            {isLogin ? 'Cadastre-se' : 'Faça login'}
-          </button>
+        {error && <p className="mt-4 text-center text-red-400">{error}</p>}
+        
+        <p className="mt-8 text-center text-xs text-slate-400">
+          Ao entrar, você concorda com nossos Termos de Serviço e Política de Privacidade.
         </p>
       </div>
 

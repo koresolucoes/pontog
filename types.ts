@@ -121,5 +121,8 @@ export interface AgoraComment {
     profiles: {
         username: string;
         avatar_url: string;
-    }
+    };
+    // Campos de interação para os comentários
+    likes_count: number;
+    user_has_liked: boolean;
 }

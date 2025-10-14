@@ -27,6 +27,7 @@ interface AgoraState {
   toggleLikePost: (postId: number) => Promise<void>;
   addComment: (postId: number, content: string) => Promise<void>;
   fetchCommentsForPost: (postId: number) => Promise<AgoraComment[]>;
+  toggleLikeComment: (commentId: number, hasLiked: boolean) => Promise<void>;
 }
 
 export const useAgoraStore = create<AgoraState>((set, get) => ({
@@ -37,7 +38,6 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
 
   fetchAgoraPosts: async () => {
     set({ isLoading: true });
-    // CORREÇÃO: Usa a nova RPC que retorna todos os posts ativos com detalhes de interação
     const { data, error } = await supabase.rpc('get_active_agora_posts_with_details');
     
     if (error) {
@@ -146,7 +146,6 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
     } else {
       await supabase.from('agora_post_likes').insert({ post_id: postId, user_id: user.id });
     }
-    // No need to refetch, optimistic update is sufficient for a good UX
   },
 
   addComment: async (postId: number, content: string) => {
@@ -160,7 +159,6 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
     if (error) {
         toast.error('Erro ao enviar comentário.');
     } else {
-        // Optimistic update of comment count
         set(state => ({
             posts: state.posts.map(p =>
                 p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p
@@ -170,25 +168,14 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
   },
 
   fetchCommentsForPost: async (postId: number): Promise<AgoraComment[]> => {
-    const { data, error } = await supabase
-        .from('agora_post_comments')
-        .select(`
-            *,
-            profiles (
-                username,
-                avatar_url
-            )
-        `)
-        .eq('post_id', postId)
-        .order('created_at', { ascending: true });
+    const { data, error } = await supabase.rpc('get_comments_for_post_with_details', { p_post_id: postId });
 
     if (error) {
         console.error("Error fetching comments:", error);
         return [];
     }
     
-    // Process avatar URLs
-    return data.map(comment => ({
+    return data.map((comment: any) => ({
         ...comment,
         profiles: {
             ...comment.profiles,
@@ -197,7 +184,20 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
     }));
   },
 
+  toggleLikeComment: async (commentId: number, hasLiked: boolean) => {
+    const user = useAuthStore.getState().user;
+    if (!user) return;
+
+    if (hasLiked) {
+      // User has liked, so we need to delete the like
+      await supabase.from('agora_comment_likes').delete().match({ comment_id: commentId, user_id: user.id });
+    } else {
+      // User has not liked, so we insert a like
+      await supabase.from('agora_comment_likes').insert({ comment_id: commentId, user_id: user.id });
+    }
+    // The component handles the optimistic update, so no need to refetch here.
+  },
+
 }));
 
-// Adiciona uma chamada inicial para carregar os posts
 useAgoraStore.getState().fetchAgoraPosts();

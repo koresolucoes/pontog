@@ -12,8 +12,7 @@ interface AgoraPostDetailModalProps {
 }
 
 export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post, onClose }) => {
-  const { addComment, fetchCommentsForPost, toggleLikePost } = useAgoraStore();
-  // Pega o post atualizado do store para refletir likes em tempo real
+  const { addComment, fetchCommentsForPost, toggleLikePost, toggleLikeComment } = useAgoraStore();
   const currentPost = useAgoraStore(state => state.posts.find(p => p.id === post.id)) || post;
   
   const currentUser = useAuthStore(state => state.user);
@@ -41,25 +40,49 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
     e.preventDefault();
     if (newComment.trim() === '' || !currentUser) return;
     
+    const tempContent = newComment.trim();
+    setNewComment('');
+
+    // Optimistic update
     const tempComment: AgoraComment = {
-        id: Date.now(), // temporary ID
+        id: Date.now(),
         post_id: post.id,
         user_id: currentUser.id,
-        content: newComment.trim(),
+        content: tempContent,
         created_at: new Date().toISOString(),
         profiles: {
             username: currentUser.username,
             avatar_url: currentUser.avatar_url
-        }
+        },
+        likes_count: 0,
+        user_has_liked: false,
     };
-    
     setComments(prev => [...prev, tempComment]);
-    setNewComment('');
 
-    await addComment(post.id, tempComment.content);
-    // Re-fetch para obter o comentário real com ID do DB e garantir consistência
+    await addComment(post.id, tempContent);
+    // Re-fetch to sync with DB
     const updatedComments = await fetchCommentsForPost(post.id);
     setComments(updatedComments);
+  };
+
+  const handleToggleCommentLike = async (commentId: number) => {
+    const comment = comments.find(c => c.id === commentId);
+    if (!comment) return;
+
+    // Optimistic update
+    const hasLiked = comment.user_has_liked;
+    setComments(prevComments =>
+      prevComments.map(c =>
+        c.id === commentId
+          ? {
+              ...c,
+              user_has_liked: !hasLiked,
+              likes_count: hasLiked ? c.likes_count - 1 : c.likes_count + 1,
+            }
+          : c
+      )
+    );
+    await toggleLikeComment(commentId, hasLiked);
   };
 
   return (
@@ -76,7 +99,7 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
           <button onClick={onClose} className="text-gray-400 hover:text-white"><XIcon className="w-6 h-6" /></button>
         </header>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto pb-4">
             <img src={currentPost.photo_url} alt={`Post de ${currentPost.username}`} className="w-full h-auto max-h-[50vh] object-contain bg-black" />
             {currentPost.status_text && <p className="p-4 text-gray-300 italic">"{currentPost.status_text}"</p>}
             
@@ -87,7 +110,6 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
                 </button>
             </div>
             
-            {/* Comments Section */}
             <div className="p-4 space-y-4">
                 <h3 className="font-bold text-gray-300">Comentários ({currentPost.comments_count})</h3>
                  {isLoadingComments ? (
@@ -96,14 +118,22 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
                     <p className="text-gray-500 text-center text-sm py-4">Seja o primeiro a comentar!</p>
                  ) : (
                     comments.map(comment => (
-                        <div key={comment.id} className="flex items-start space-x-3">
+                        <div key={comment.id} className="flex items-start space-x-3 group">
                             <img src={comment.profiles.avatar_url} alt={comment.profiles.username} className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-1"/>
-                            <div className="flex-1 bg-gray-700 rounded-lg px-3 py-2">
-                                <div className="flex items-baseline space-x-2">
-                                    <span className="font-bold text-white text-sm">{comment.profiles.username}</span>
-                                    <span className="text-xs text-gray-400">{formatDistanceToNow(new Date(comment.created_at), { locale: ptBR, addSuffix: true })}</span>
+                            <div className="flex-1">
+                                <div className="bg-gray-700 rounded-lg px-3 py-2">
+                                    <div className="flex items-baseline space-x-2">
+                                        <span className="font-bold text-white text-sm">{comment.profiles.username}</span>
+                                        <span className="text-xs text-gray-400">{formatDistanceToNow(new Date(comment.created_at), { locale: ptBR, addSuffix: true })}</span>
+                                    </div>
+                                    <p className="text-gray-300 text-sm break-words">{comment.content}</p>
                                 </div>
-                                <p className="text-gray-300 text-sm">{comment.content}</p>
+                                <div className="px-2 py-1 flex items-center">
+                                    <button onClick={() => handleToggleCommentLike(comment.id)} className="flex items-center gap-1 text-gray-500 hover:text-pink-400 transition-colors">
+                                        {comment.user_has_liked ? <HeartIconFilled className="w-3 h-3 text-pink-500"/> : <HeartIcon className="w-3 h-3"/>}
+                                        <span className={`text-xs font-semibold ${comment.user_has_liked ? 'text-pink-400' : ''}`}>{comment.likes_count > 0 ? comment.likes_count : 'Curtir'}</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))

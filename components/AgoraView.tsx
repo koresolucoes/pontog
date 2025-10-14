@@ -5,19 +5,26 @@ import { AgoraPost } from '../types';
 import { FlameIcon, HeartIcon, HeartIconFilled, MessageCircleIcon } from './icons';
 import { ActivateAgoraModal } from './ActivateAgoraModal';
 import { AgoraPostDetailModal } from './AgoraPostDetailModal';
+import { ConfirmationModal } from './ConfirmationModal'; // Importa o novo modal
 
 export const AgoraView: React.FC = () => {
     const { posts, isLoading, agoraUserIds, deactivateAgoraMode, toggleLikePost } = useAgoraStore();
     const { user } = useAuthStore();
     const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
     const [selectedPost, setSelectedPost] = useState<AgoraPost | null>(null);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Estado para o modal de confirmação
 
     const userIsAgora = user ? agoraUserIds.includes(user.id) : false;
 
-    const handleDeactivate = async () => {
-        if (window.confirm("Tem certeza que deseja desativar o modo Agora? Seu post será removido.")) {
-            await deactivateAgoraMode();
-        }
+    // Ação que abre o modal de confirmação
+    const handleDeactivateClick = () => {
+        setIsConfirmModalOpen(true);
+    };
+
+    // Ação que é executada após a confirmação
+    const handleConfirmDeactivate = async () => {
+        await deactivateAgoraMode();
+        setIsConfirmModalOpen(false);
     };
 
     const renderHeader = () => (
@@ -28,7 +35,7 @@ export const AgoraView: React.FC = () => {
                     <span>Agora</span>
                 </h1>
                 {userIsAgora ? (
-                    <button onClick={handleDeactivate} className="bg-gray-700 text-sm text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors">
+                    <button onClick={handleDeactivateClick} className="bg-gray-700 text-sm text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors">
                         Desativar
                     </button>
                 ) : (
@@ -115,6 +122,16 @@ export const AgoraView: React.FC = () => {
             </div>
             {isActivateModalOpen && <ActivateAgoraModal onClose={() => setIsActivateModalOpen(false)} />}
             {selectedPost && <AgoraPostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />}
+            {isConfirmModalOpen && (
+                <ConfirmationModal
+                    isOpen={isConfirmModalOpen}
+                    title="Desativar Modo Agora"
+                    message="Tem certeza que deseja desativar o modo Agora? Seu post será removido permanentemente."
+                    onConfirm={handleConfirmDeactivate}
+                    onCancel={() => setIsConfirmModalOpen(false)}
+                    confirmText="Desativar"
+                />
+            )}
         </>
     );
 };

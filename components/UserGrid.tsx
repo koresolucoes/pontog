@@ -84,7 +84,7 @@ export const UserGrid: React.FC = () => {
                     <p className="mt-2">Tente voltar mais tarde.</p>
                 </div>
             ) : (
-                <div className="p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 flex-1 overflow-y-auto content-start">
+                <div className="p-2 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 flex-1 overflow-y-auto content-start">
                     {filteredUsers.map((user) => {
                         const isAgora = agoraUserIds.includes(user.id);
                         const isPlus = user.subscription_tier === 'plus';

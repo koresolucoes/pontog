@@ -104,7 +104,7 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
 
         {/* --- Non-scrolling post content --- */}
         <div className="flex-shrink-0">
-            <img src={currentPost.photo_url} alt={`Post de ${currentPost.username}`} className="w-full h-auto max-h-[45vh] object-contain bg-black" />
+            <img src={currentPost.photo_url} alt={`Post de ${currentPost.username}`} className="w-full h-auto max-h-[40vh] object-contain bg-black" />
             {currentPost.status_text && <p className="p-4 text-gray-300 italic">"{currentPost.status_text}"</p>}
             
             <div className="p-4 flex items-center gap-4 border-b border-t border-gray-700">

@@ -24,8 +24,20 @@ export const SubscriptionModal: React.FC = () => {
     const handleSubscribe = async () => {
         setIsLoading(true);
         try {
+            // FIX: First, ensure the auth state is fresh by calling getUser().
+            // This forces the Supabase client to refresh the token if it's about to expire,
+            // preventing a 401 error in our serverless function.
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                throw new Error("Sessão inválida. Por favor, faça login novamente.");
+            }
+
+            // Now that the session is guaranteed to be fresh, get it.
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error("Sessão não encontrada. Por favor, faça login novamente.");
+            if (!session) {
+                throw new Error("Sessão não encontrada. Por favor, faça login novamente.");
+            }
+
 
             const res = await fetch('/api/create-mercadopago-preference', {
                 method: 'POST',
@@ -45,7 +57,7 @@ export const SubscriptionModal: React.FC = () => {
             window.location.href = init_point;
 
         } catch (error: any) {
-            toast.error(error.message);
+            toast.error(error.message || "Ocorreu um erro. Verifique sua conexão e tente novamente.");
             setIsLoading(false);
         }
     };

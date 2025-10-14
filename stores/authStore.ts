@@ -111,7 +111,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signOut: async () => {
     set({ loading: true });
-    const { error } = await supabase.auth.signOut();
+    // FIX: Use 'local' scope to prevent AuthSessionMissingError on OAuth sign-outs.
+    // This reliably clears the session from the browser without attempting a global logout.
+    const { error } = await supabase.auth.signOut({ scope: 'local' });
     if (error) {
         toast.error('Erro ao sair.');
         console.error(error);

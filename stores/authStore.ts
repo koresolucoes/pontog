@@ -158,5 +158,6 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
     (await import('./agoraStore')).useAgoraStore.setState({ posts: [], agoraUserIds: [], isLoading: false, isActivating: false });
     (await import('./homeStore')).useHomeStore.setState({ popularUsers: [], loading: true, error: null });
     (await import('./uiStore')).useUiStore.setState({ chatUser: null, activeView: 'home', isSubscriptionModalOpen: false });
+    (await import('./adminStore')).useAdminStore.getState().logout();
   }
 });

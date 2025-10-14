@@ -1,13 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useUiStore } from '../stores/uiStore';
 import { supabase } from '../lib/supabase';
-
-const plans = [
-    { id: 'monthly', name: '1 Mês', price: 29.90, perMonth: 29.90, popular: false, discount: null },
-    { id: 'quarterly', name: '3 Meses', price: 79.90, perMonth: 26.63, popular: true, discount: '11% OFF' },
-    { id: 'yearly', name: '12 Meses', price: 239.90, perMonth: 19.99, popular: false, discount: '33% OFF' },
-];
+import { usePlanStore } from '../stores/planStore';
 
 const features = [
     { icon: "favorite", text: "Chamados (Winks) ilimitados", color: "text-pink-400" },
@@ -18,26 +13,38 @@ const features = [
 
 export const SubscriptionModal: React.FC = () => {
     const { setSubscriptionModalOpen } = useUiStore();
-    const [selectedPlanId, setSelectedPlanId] = useState('quarterly');
+    const { plans, loading: loadingPlans, fetchPlans } = usePlanStore();
+    const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
+    useEffect(() => {
+        fetchPlans();
+    }, [fetchPlans]);
+
+    useEffect(() => {
+        if (plans.length > 0 && !selectedPlanId) {
+            const popularPlan = plans.find(p => p.popular) || plans[1] || plans[0];
+            setSelectedPlanId(popularPlan.id);
+        }
+    }, [plans, selectedPlanId]);
+
+
     const handleSubscribe = async () => {
+        if (!selectedPlanId) {
+            toast.error("Por favor, selecione um plano.");
+            return;
+        }
         setIsLoading(true);
         try {
-            // FIX: First, ensure the auth state is fresh by calling getUser().
-            // This forces the Supabase client to refresh the token if it's about to expire,
-            // preventing a 401 error in our serverless function.
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 throw new Error("Sessão inválida. Por favor, faça login novamente.");
             }
 
-            // Now that the session is guaranteed to be fresh, get it.
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 throw new Error("Sessão não encontrada. Por favor, faça login novamente.");
             }
-
 
             const res = await fetch('/api/create-mercadopago-preference', {
                 method: 'POST',
@@ -81,32 +88,36 @@ export const SubscriptionModal: React.FC = () => {
                 </div>
 
                 <div className="p-6 space-y-3">
-                    {plans.map(plan => (
-                        <div
-                            key={plan.id}
-                            onClick={() => setSelectedPlanId(plan.id)}
-                            className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${selectedPlanId === plan.id ? 'border-pink-500 bg-pink-500/10' : 'border-gray-700 hover:border-gray-600'}`}
-                        >
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPlanId === plan.id ? 'border-pink-500' : 'border-gray-500'}`}>
-                                        {selectedPlanId === plan.id && <div className="w-2.5 h-2.5 bg-pink-500 rounded-full"></div>}
+                    {loadingPlans ? (
+                        <div className="text-center text-gray-400">Carregando planos...</div>
+                    ) : (
+                        plans.map(plan => (
+                            <div
+                                key={plan.id}
+                                onClick={() => setSelectedPlanId(plan.id)}
+                                className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${selectedPlanId === plan.id ? 'border-pink-500 bg-pink-500/10' : 'border-gray-700 hover:border-gray-600'}`}
+                            >
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPlanId === plan.id ? 'border-pink-500' : 'border-gray-500'}`}>
+                                            {selectedPlanId === plan.id && <div className="w-2.5 h-2.5 bg-pink-500 rounded-full"></div>}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-white">{plan.name}</p>
+                                            <p className="text-sm text-gray-400">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.perMonth)}/mês
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-bold text-white">{plan.name}</p>
-                                        <p className="text-sm text-gray-400">
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.perMonth)}/mês
-                                        </p>
+                                    <div className="text-right">
+                                        <p className="font-bold text-white">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.price)}</p>
+                                        {plan.discount && <span className="text-xs font-bold bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded-md">{plan.discount}</span>}
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className="font-bold text-white">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.price)}</p>
-                                    {plan.discount && <span className="text-xs font-bold bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded-md">{plan.discount}</span>}
-                                </div>
+                                {plan.popular && <div className="text-center text-xs font-bold text-pink-400 pt-2">MAIS POPULAR</div>}
                             </div>
-                            {plan.popular && <div className="text-center text-xs font-bold text-pink-400 pt-2">MAIS POPULAR</div>}
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
                 
                 <div className="p-6 space-y-4 border-t border-gray-700">
@@ -124,7 +135,7 @@ export const SubscriptionModal: React.FC = () => {
                 <div className="p-6 border-t border-gray-700">
                      <button 
                         onClick={handleSubscribe}
-                        disabled={isLoading}
+                        disabled={isLoading || loadingPlans || !selectedPlanId}
                         className="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-wait"
                     >
                         {isLoading ? 'Aguarde...' : 'Assinar Agora'}

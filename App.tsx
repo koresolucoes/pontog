@@ -15,8 +15,14 @@ import { AgoraView } from './components/AgoraView';
 import { PwaInstallButton } from './components/PwaInstallButton';
 import { usePwaStore } from './stores/pwaStore';
 import { SubscriptionModal } from './components/SubscriptionModal';
+import { AdminPanel } from './pages/Admin/AdminPanel';
 
 const App: React.FC = () => {
+    // Roteamento simples para o painel de administração
+    if (window.location.pathname.startsWith('/admin')) {
+        return <AdminPanel />;
+    }
+
     const { session, user, loading, fetchProfile } = useAuthStore();
     const { activeView, setActiveView, chatUser, setChatUser, isSubscriptionModalOpen } = useUiStore();
     const { setInstallPromptEvent } = usePwaStore();

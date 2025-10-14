@@ -19,7 +19,8 @@
     "date-fns": "^4.1.0",
     "react-hot-toast": "^2.6.0",
     "web-push": "^3.6.7",
-    "crypto": "^1.0.1"
+    "crypto": "^1.0.1",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

@@ -1,12 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const plans: { [key: string]: { title: string; price: number, months: number } } = {
-  monthly: { title: 'Ponto G Plus - 1 Mês', price: 29.90, months: 1 },
-  quarterly: { title: 'Ponto G Plus - 3 Meses', price: 79.90, months: 3 },
-  yearly: { title: 'Ponto G Plus - 12 Meses', price: 239.90, months: 12 },
-};
-
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse,
@@ -18,9 +12,8 @@ export default async function handler(
 
   try {
     const { planId } = req.body;
-    const selectedPlan = plans[planId];
-    if (!selectedPlan) {
-      return res.status(400).json({ error: 'Plano inválido.' });
+    if (!planId) {
+      return res.status(400).json({ error: 'ID do plano é obrigatório.' });
     }
 
     const supabaseAdmin = createClient(
@@ -28,6 +21,18 @@ export default async function handler(
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false } }
     );
+    
+    // Busca o plano do banco de dados para garantir que os dados estão corretos
+    const { data: planData, error: planError } = await supabaseAdmin
+      .from('plans')
+      .select('name, price, months_duration')
+      .eq('plan_id', planId)
+      .eq('is_active', true)
+      .single();
+
+    if (planError || !planData) {
+      return res.status(404).json({ error: 'Plano não encontrado ou inativo.' });
+    }
 
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'Autorização ausente.' });
@@ -39,17 +44,17 @@ export default async function handler(
     const preference = {
       items: [{
           id: planId,
-          title: selectedPlan.title,
-          description: `Acesso ao Ponto G Plus por ${selectedPlan.months} ${selectedPlan.months > 1 ? 'meses' : 'mês'}.`,
+          title: planData.name,
+          description: `Acesso ao Ponto G Plus por ${planData.months_duration} ${planData.months_duration > 1 ? 'meses' : 'mês'}.`,
           quantity: 1,
           currency_id: 'BRL',
-          unit_price: selectedPlan.price,
+          unit_price: planData.price,
       }],
       payer: { email: user.email },
       back_urls: {
-        success: `${req.headers.origin}/?payment=success`,
-        failure: `${req.headers.origin}/?payment=failure`,
-        pending: `${req.headers.origin}/?payment=pending`,
+        success: `${process.env.NEXT_PUBLIC_SITE_URL || req.headers.origin}/?payment=success`,
+        failure: `${process.env.NEXT_PUBLIC_SITE_URL || req.headers.origin}/?payment=failure`,
+        pending: `${process.env.NEXT_PUBLIC_SITE_URL || req.headers.origin}/?payment=pending`,
       },
       auto_return: 'approved',
       external_reference: `${user.id}|${planId}`,
@@ -61,7 +66,7 @@ export default async function handler(
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN!}`,
-        'X-Idempotency-Key': `${user.id}-${Date.now()}`
+        'X-Idempotency-Key': `${user.id}-${planId}-${Date.now()}`
       },
       body: JSON.stringify(preference),
     });

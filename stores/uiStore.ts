@@ -8,16 +8,19 @@ export type View = 'home' | 'map' | 'grid' | 'inbox' | 'profile' | 'agora';
 interface UiState {
   activeView: View;
   chatUser: User | null;
-  isSubscriptionModalOpen: boolean; // Adicionado para controlar o modal premium
+  isSubscriptionModalOpen: boolean;
+  isDonationModalOpen: boolean; // Adicionado para o modal de doação
   setActiveView: (view: View) => void;
   setChatUser: (user: User | null) => void;
-  setSubscriptionModalOpen: (isOpen: boolean) => void; // Adicionado
+  setSubscriptionModalOpen: (isOpen: boolean) => void;
+  setDonationModalOpen: (isOpen: boolean) => void; // Adicionado
 }
 
 export const useUiStore = create<UiState>((set) => ({
   activeView: 'home',
   chatUser: null,
-  isSubscriptionModalOpen: false, // Estado inicial
+  isSubscriptionModalOpen: false,
+  isDonationModalOpen: false, // Estado inicial
   setActiveView: (view) => set({ activeView: view }),
   setChatUser: (user) => {
       // Se estamos abrindo um chat com um usuário, fechamos o modal de perfil se estiver aberto
@@ -27,5 +30,6 @@ export const useUiStore = create<UiState>((set) => ({
       }
       set({ chatUser: user })
   },
-  setSubscriptionModalOpen: (isOpen) => set({ isSubscriptionModalOpen: isOpen }), // Função para alterar o estado
+  setSubscriptionModalOpen: (isOpen) => set({ isSubscriptionModalOpen: isOpen }),
+  setDonationModalOpen: (isOpen) => set({ isDonationModalOpen: isOpen }), // Função para alterar o estado
 }));

@@ -90,46 +90,71 @@ export default async function handler(
     }
     
     const paymentDetails = await mpResponse.json();
-
+    const externalReference = paymentDetails.external_reference;
+    
     const supabaseAdmin = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false } }
     );
     
-    const { error: paymentLogError } = await supabaseAdmin
-      .from('payments')
-      .upsert({
-          mercadopago_id: paymentDetails.id,
-          user_id: paymentDetails.external_reference.split('|')[0],
-          plan_id: paymentDetails.external_reference.split('|')[1],
-          amount: paymentDetails.transaction_amount,
-          status: paymentDetails.status,
-          updated_at: new Date().toISOString()
-      }, { onConflict: 'mercadopago_id' });
-    
-    if (paymentLogError) throw paymentLogError;
-
+    // Processa a lógica baseada no status 'approved'
     if (paymentDetails.status === 'approved') {
-        const [userId, planId] = paymentDetails.external_reference.split('|');
-        const plan = plans[planId];
-        if (!userId || !plan) {
-            console.error('Invalid external_reference:', paymentDetails.external_reference);
-            return res.status(400).json({ error: 'Invalid external reference in payment' });
-        }
-        
-        const expiresAt = add(new Date(), { months: plan.months }).toISOString();
-        
-        const { error: profileUpdateError } = await supabaseAdmin
-            .from('profiles')
-            .update({
-                subscription_tier: 'plus',
-                subscription_expires_at: expiresAt,
-            })
-            .eq('id', userId);
+        if (externalReference.startsWith('DONATION|')) {
+            // É uma doação
+            const donationId = externalReference.split('|')[1];
+            if (donationId) {
+                const { error: donationUpdateError } = await supabaseAdmin
+                    .from('donations')
+                    .update({
+                        status: 'approved',
+                        mercadopago_id: paymentDetails.id,
+                        amount: paymentDetails.transaction_amount
+                    })
+                    .eq('id', donationId);
+                if (donationUpdateError) throw donationUpdateError;
+            }
+        } else {
+            // É uma assinatura
+            const { error: paymentLogError } = await supabaseAdmin
+                .from('payments')
+                .upsert({
+                    mercadopago_id: paymentDetails.id,
+                    user_id: externalReference.split('|')[0],
+                    plan_id: externalReference.split('|')[1],
+                    amount: paymentDetails.transaction_amount,
+                    status: paymentDetails.status,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'mercadopago_id' });
+            
+            if (paymentLogError) throw paymentLogError;
+            
+            const [userId, planId] = externalReference.split('|');
+            const { data: planData } = await supabaseAdmin
+                .from('plans')
+                .select('months_duration')
+                .eq('plan_id', planId)
+                .single();
+            
+            if (!userId || !planData) {
+                console.error('Invalid external_reference for subscription:', externalReference);
+                return res.status(400).json({ error: 'Invalid external reference in payment' });
+            }
+            
+            const expiresAt = add(new Date(), { months: planData.months_duration }).toISOString();
+            
+            const { error: profileUpdateError } = await supabaseAdmin
+                .from('profiles')
+                .update({
+                    subscription_tier: 'plus',
+                    subscription_expires_at: expiresAt,
+                })
+                .eq('id', userId);
 
-        if (profileUpdateError) throw profileUpdateError;
+            if (profileUpdateError) throw profileUpdateError;
+        }
     }
+
 
     return res.status(200).json({ success: true });
 

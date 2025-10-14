@@ -30,7 +30,7 @@ const NotificationToggle: React.FC<{
 
 export const ProfileView: React.FC = () => {
     const { user, signOut } = useAuthStore();
-    const { setSubscriptionModalOpen } = useUiStore();
+    const { setSubscriptionModalOpen, setDonationModalOpen } = useUiStore();
     const { 
         pushState, 
         checkPushSupport, 
@@ -170,7 +170,10 @@ export const ProfileView: React.FC = () => {
 
                         <div className="space-y-2">
                             <h3 className="text-xs font-bold uppercase text-gray-500 px-3 pt-4">Sistema</h3>
-                             <button className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">Configurações</button>
+                             <button onClick={() => setDonationModalOpen(true)} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold flex items-center gap-2">
+                                <span className="material-symbols-outlined text-pink-400">volunteer_activism</span>
+                                Apoie o Desenvolvedor
+                            </button>
                             <button onClick={signOut} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold text-red-400">Sair</button>
                         </div>
                     </div>

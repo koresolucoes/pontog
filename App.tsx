@@ -15,6 +15,7 @@ import { AgoraView } from './components/AgoraView';
 import { PwaInstallButton } from './components/PwaInstallButton';
 import { usePwaStore } from './stores/pwaStore';
 import { SubscriptionModal } from './components/SubscriptionModal';
+import { DonationModal } from './components/DonationModal';
 import { AdminPanel } from './pages/Admin/AdminPanel';
 
 const App: React.FC = () => {
@@ -24,7 +25,7 @@ const App: React.FC = () => {
     }
 
     const { session, user, loading, fetchProfile } = useAuthStore();
-    const { activeView, setActiveView, chatUser, setChatUser, isSubscriptionModalOpen } = useUiStore();
+    const { activeView, setActiveView, chatUser, setChatUser, isSubscriptionModalOpen, isDonationModalOpen } = useUiStore();
     const { setInstallPromptEvent } = usePwaStore();
     const { 
         selectedUser, 
@@ -61,6 +62,8 @@ const App: React.FC = () => {
                 toast.success('Pagamento aprovado! Seu plano Plus está ativo.');
                 // Atualiza o perfil para refletir o novo status de assinatura
                 if(session?.user) fetchProfile(session.user);
+            } else if (paymentStatus === 'success_donation') {
+                toast.success('Muito obrigado pelo seu apoio!');
             } else if (paymentStatus === 'failure') {
                 toast.error('O pagamento falhou. Tente novamente.');
             }
@@ -140,6 +143,7 @@ const App: React.FC = () => {
             )}
             
             {isSubscriptionModalOpen && <SubscriptionModal />}
+            {isDonationModalOpen && <DonationModal />}
 
             <PwaInstallButton />
 

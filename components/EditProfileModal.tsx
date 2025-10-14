@@ -159,9 +159,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
     const toastId = toast.loading('Atualizando perfil...');
     
     // 1. Prepare profile data (exclude non-db fields)
-    // Fix: Removed 'age' from destructuring as it does not exist on the 'Profile' type.
-    // 'age' is a calculated field on the 'User' type and is not stored in the database.
-    const { tribes: formTribes, ...profileUpdates } = formData;
+    // FIX: Destructure and remove calculated fields (distance_km, lat, lng) 
+    // that do not exist in the 'profiles' table schema. This prevents the API
+    // from trying to update non-existent columns, resolving the 400 error.
+    const { 
+      tribes: formTribes,
+      distance_km,
+      lat,
+      lng,
+      ...profileUpdates 
+    } = formData;
 
     const { error: profileError } = await supabase
         .from('profiles')

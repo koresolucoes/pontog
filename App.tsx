@@ -3,7 +3,6 @@ import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
 import { useUiStore, View } from './stores/uiStore';
 import { useMapStore } from './stores/mapStore';
-import { usePwaStore } from './stores/pwaStore'; // Importa o novo store de PWA
 import { Auth } from './components/Auth';
 import { UserGrid } from './components/UserGrid';
 import { Map } from './components/Map';
@@ -12,12 +11,15 @@ import { ProfileView } from './components/ProfileView';
 import { ProfileModal } from './components/ProfileModal';
 import { ChatWindow } from './components/ChatWindow';
 import { AgoraView } from './components/AgoraView';
+import { PwaInstallButton } from './components/PwaInstallButton'; // Importa o novo botão
 import { SearchIcon, MessageCircleIcon, MapPinIcon, UserIcon, FlameIcon } from './components/icons';
+// Fix: Import 'usePwaStore' to resolve the undefined reference.
+import { usePwaStore } from './stores/pwaStore';
 
 const App: React.FC = () => {
     const { session, user, loading } = useAuthStore();
     const { activeView, setActiveView, chatUser, setChatUser } = useUiStore();
-    const { setInstallPromptEvent } = usePwaStore();
+    const { setInstallPromptEvent } = usePwaStore(); // Movido de volta para App.tsx para escopo global
     const { 
         selectedUser, 
         setSelectedUser, 
@@ -26,12 +28,24 @@ const App: React.FC = () => {
         cleanupRealtime 
     } = useMapStore();
 
-    // Listener para o evento de instalação do PWA
+    // CRITICAL FIX: Registra o Service Worker e escuta pelo evento de instalação.
     useEffect(() => {
+        // 1. Registra o Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registrado com sucesso:', registration.scope);
+                    })
+                    .catch(err => {
+                        console.error('Falha ao registrar o Service Worker:', err);
+                    });
+            });
+        }
+
+        // 2. Escuta pelo evento de instalação do PWA
         const handleBeforeInstallPrompt = (e: Event) => {
-            // Previne o mini-infobar do Chrome de aparecer
             e.preventDefault();
-            // Guarda o evento para que possa ser acionado mais tarde.
             setInstallPromptEvent(e as any);
         };
 
@@ -41,6 +55,7 @@ const App: React.FC = () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
         };
     }, [setInstallPromptEvent]);
+
 
     useEffect(() => {
         if (session) {
@@ -118,7 +133,10 @@ const App: React.FC = () => {
                 />
             )}
 
-            {/* Nova Barra de Navegação Inferior */}
+            {/* Novo Botão de Instalação Flutuante */}
+            <PwaInstallButton />
+
+            {/* Barra de Navegação Inferior */}
             <nav className="fixed bottom-0 left-0 right-0 bg-gray-800/90 backdrop-blur-sm border-t border-gray-700 z-20">
                 <div className="max-w-md mx-auto grid grid-cols-5">
                    <NavButton 

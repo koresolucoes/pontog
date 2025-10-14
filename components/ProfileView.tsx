@@ -3,13 +3,11 @@ import { useAuthStore } from '../stores/authStore';
 import { usePwaStore } from '../stores/pwaStore';
 import { EditProfileModal } from './EditProfileModal';
 import { MyAlbumsModal } from './MyAlbumsModal';
-import { DownloadCloudIcon, BellIcon } from './icons'; // BellIcon pode ser um novo ícone
+import { BellIcon } from './icons';
 
 export const ProfileView: React.FC = () => {
     const { user, signOut } = useAuthStore();
     const { 
-        installPromptEvent, 
-        triggerInstall, 
         pushState, 
         checkPushSupport, 
         subscribeToPushNotifications,
@@ -33,13 +31,13 @@ export const ProfileView: React.FC = () => {
             case 'unsupported':
                 return <p className="text-sm text-gray-500">Seu navegador não suporta notificações.</p>;
             case 'prompt':
+            default:
                 return (
                     <button 
                         onClick={subscribeToPushNotifications}
                         disabled={isSubscribing}
                         className="w-full text-left p-3 rounded-lg bg-gray-700 text-white font-semibold flex items-center gap-3 hover:bg-gray-600 transition-colors disabled:opacity-50"
                     >
-                        {/* Fix: Replace inline SVG with the BellIcon component. */}
                         <BellIcon className="w-5 h-5" />
                         {isSubscribing ? 'Ativando...' : 'Ativar Notificações de Mensagens'}
                     </button>
@@ -74,15 +72,6 @@ export const ProfileView: React.FC = () => {
 
                     {/* Menu Options */}
                      <div className="space-y-1 pt-4 border-t border-gray-700">
-                        {installPromptEvent && (
-                            <button 
-                                onClick={triggerInstall} 
-                                className="w-full text-left p-3 rounded-lg bg-pink-600 text-white font-semibold flex items-center gap-3 hover:bg-pink-700 transition-colors mb-2"
-                            >
-                                <DownloadCloudIcon className="w-5 h-5" />
-                                Instalar App na Tela de Início
-                            </button>
-                        )}
                         <div className="space-y-2">
                              <h3 className="text-xs font-bold uppercase text-gray-500 px-3 pt-2">Conta</h3>
                              <button onClick={() => setIsEditProfileOpen(true)} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">

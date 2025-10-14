@@ -70,7 +70,7 @@ export const HomeView: React.FC = () => {
                 <p className="text-sm text-slate-400">Perfis populares na sua região.</p>
             </header>
             
-            <div className="p-2 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 flex-1 overflow-y-auto content-start">
+            <div className="p-4 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 flex-1 overflow-y-auto content-start">
                 {sortedUsers.map((user) => {
                     const isAgora = agoraUserIds.includes(user.id);
                     const isPlus = user.subscription_tier === 'plus';

@@ -205,6 +205,19 @@ export const useAlbumStore = create<AlbumState>((set, get) => ({
             console.error('Error requesting access:', error);
             throw error;
         }
+        
+        // Notifica o usuário sobre a solicitação de acesso
+        const { session } = (await supabase.auth.getSession()).data;
+        if (session) {
+            fetch('/api/send-album-request-push', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ receiver_id: ownerId })
+            }).catch(err => console.error("Error sending album request push notification:", err));
+        }
 
         set({ viewedUserAccessStatus: 'pending' });
     },

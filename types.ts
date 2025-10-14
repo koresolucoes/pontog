@@ -128,3 +128,11 @@ export interface AgoraComment {
     likes_count: number;
     user_has_liked: boolean;
 }
+
+// Novo tipo para as preferências de notificação
+export type NotificationType = 'new_message' | 'new_wink' | 'new_album_request';
+
+export interface NotificationPreference {
+    notification_type: NotificationType;
+    enabled: boolean;
+}

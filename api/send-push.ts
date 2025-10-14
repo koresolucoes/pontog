@@ -45,6 +45,19 @@ export default async function handler(
       return res.status(401).json({ error: 'Sender not authenticated' });
     }
     
+    // 1. Verifica se o destinatário tem notificações para 'new_message' ativadas
+    const { data: preference } = await supabaseAdmin
+        .from('notification_preferences')
+        .select('enabled')
+        .eq('user_id', receiver_id)
+        .eq('notification_type', 'new_message')
+        .single();
+        
+    // Se a preferência não existe ou está desativada, não envia a notificação
+    if (!preference || !preference.enabled) {
+        return res.status(200).json({ success: true, message: 'User has disabled new message notifications.' });
+    }
+    
     // Busca o nome de usuário do remetente
     const { data: senderProfile } = await supabaseAdmin
         .from('profiles')

@@ -64,6 +64,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
       }
     } else {
       toast.success('Chamado enviado com sucesso!');
+      // Dispara a notificação push
+      const { session } = (await supabase.auth.getSession()).data;
+      if (session) {
+        fetch('/api/send-wink-push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({ receiver_id: user.id })
+        }).catch(err => console.error("Error sending wink push notification:", err));
+      }
     }
   };
   

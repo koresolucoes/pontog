@@ -107,21 +107,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signOut: async () => {
-    // Unlink the push subscription from the backend before signing out
-    await usePwaStore.getState().unlinkSubscriptionOnLogout();
+    set({ loading: true });
     const { error } = await supabase.auth.signOut();
-    
     if (error) {
-        console.error('Error signing out:', error);
-        toast.error('Erro ao sair. Tente novamente.');
-    } else {
-        // Manually clear other stores to prevent stale data.
-        // The onAuthStateChange listener will handle clearing this store's state.
-        // Use dynamic imports to prevent circular dependencies.
-        (await import('./inboxStore')).useInboxStore.setState({ conversations: [], winks: [], accessRequests: [] });
-        (await import('./albumStore')).useAlbumStore.setState({ myAlbums: [], viewedUserAlbums: [], viewedUserAccessStatus: null });
-        (await import('./notificationStore')).useNotificationStore.setState({ preferences: [] });
+        toast.error('Erro ao sair.');
+        console.error(error);
+        set({ loading: false });
     }
+    // The onAuthStateChange listener will handle all state cleanup.
   },
 }));
 
@@ -137,14 +130,28 @@ supabase.auth.getSession().then(({ data: { session } }) => {
 });
 
 // Listen to auth state changes
-supabase.auth.onAuthStateChange((_event, session) => {
+supabase.auth.onAuthStateChange(async (_event, session) => {
   useAuthStore.getState().setSession(session);
   if (session?.user) {
+    // User signed in
     useAuthStore.getState().fetchProfile(session.user);
-    // When a user logs in, re-link any existing device subscription to them
     usePwaStore.getState().relinkSubscriptionOnLogin();
   } else {
-    // User signed out
+    // User signed out, reset all application state.
     useAuthStore.setState({ session: null, user: null, profile: null, loading: false });
+
+    // Use dynamic imports to prevent circular dependencies and reset all stores.
+    // This is the single source of truth for a logout event.
+    (await import('./pwaStore')).usePwaStore.getState().unlinkSubscriptionOnLogout();
+    // Fix: Remove `replace: true` and provide the full initial data state to reset stores correctly without TypeScript errors.
+    (await import('./inboxStore')).useInboxStore.setState({ conversations: [], winks: [], accessRequests: [], loadingConversations: false, loadingWinks: false, loadingRequests: false });
+    (await import('./albumStore')).useAlbumStore.setState({ myAlbums: [], viewedUserAlbums: [], viewedUserAccessStatus: null, isUploading: false, isLoading: false, isFetchingViewedUserAlbums: false });
+    (await import('./notificationStore')).useNotificationStore.setState({ preferences: [], loading: false });
+    (await import('./mapStore')).useMapStore.getState().stopLocationWatch();
+    (await import('./mapStore')).useMapStore.getState().cleanupRealtime();
+    (await import('./mapStore')).useMapStore.setState({ users: [], myLocation: null, selectedUser: null, onlineUsers: [], loading: true, error: null, filters: { onlineOnly: false } });
+    (await import('./agoraStore')).useAgoraStore.setState({ posts: [], agoraUserIds: [], isLoading: false, isActivating: false });
+    (await import('./homeStore')).useHomeStore.setState({ popularUsers: [], loading: true, error: null });
+    (await import('./uiStore')).useUiStore.setState({ chatUser: null, activeView: 'home' });
   }
 });

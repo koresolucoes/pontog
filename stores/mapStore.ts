@@ -37,7 +37,7 @@ interface MapState {
   loading: boolean;
   error: string | null;
   selectedUser: User | null;
-  watchId: number | null;
+  watchId: number | null; // This will now hold an interval ID
   realtimeChannel: any | null; // Supabase Realtime Channel
   presenceChannel: any | null; // Supabase Presence Channel
   filters: {
@@ -75,34 +75,55 @@ export const useMapStore = create<MapState>((set, get) => ({
 
 
   requestLocationPermission: () => {
+    // Prevent multiple intervals from running
+    if (get().watchId) {
+      get().stopLocationWatch();
+    }
+
     if (navigator.geolocation) {
-      const watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const newLocation = { lat: latitude, lng: longitude };
-          
-          const oldLocation = get().myLocation;
-          // Only fetch/update if it's the first time or location changed significantly
-          if (!oldLocation || 
-              Math.abs(oldLocation.lat - newLocation.lat) > 0.001 || 
-              Math.abs(oldLocation.lng - newLocation.lng) > 0.001) {
-                
-            set({ myLocation: newLocation, loading: false, error: null });
-            get().updateMyLocationInDb(newLocation);
-            get().fetchNearbyUsers(newLocation);
-          }
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-          set({ 
-            loading: false, 
-            error: "Não foi possível obter sua localização. Verifique as permissões do seu navegador e tente novamente." 
-          });
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-      set({ watchId });
+      const updateLocation = () => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            const newLocation = { lat: latitude, lng: longitude };
+            
+            const oldLocation = get().myLocation;
+            // A threshold of 0.0005 degrees is roughly 55 meters.
+            // Only update if it's the first time or location changed significantly.
+            if (!oldLocation || 
+                Math.abs(oldLocation.lat - newLocation.lat) > 0.0005 || 
+                Math.abs(oldLocation.lng - newLocation.lng) > 0.0005) {
+                  
+              set({ myLocation: newLocation, loading: false, error: null });
+              get().updateMyLocationInDb(newLocation);
+              get().fetchNearbyUsers(newLocation);
+            } else if (get().loading) {
+              // If location hasn't changed but we're still in a loading state, turn it off.
+              set({ loading: false });
+            }
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+            set({ 
+              loading: false, 
+              error: "Não foi possível obter sua localização. Verifique as permissões do seu navegador e tente novamente." 
+            });
+            // Stop trying if there's an error to avoid repeated failures.
+            get().stopLocationWatch();
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 } // Allow cached position for 1 min
+        );
+      };
+
+      // Perform an initial update immediately on load.
+      updateLocation();
+
+      // Set up an interval to update every 30 seconds.
+      const intervalId = setInterval(updateLocation, 30000); // 30 seconds
+      
+      set({ watchId: intervalId as any });
       get().setupRealtime();
+
     } else {
       set({ loading: false, error: "Geolocalização não é suportada por este navegador." });
     }
@@ -111,7 +132,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   stopLocationWatch: () => {
     const { watchId } = get();
     if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
+      clearInterval(watchId);
       set({ watchId: null });
     }
   },

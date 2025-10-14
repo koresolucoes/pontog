@@ -36,7 +36,7 @@ interface PwaState {
   // Novas propriedades de estado para Push Notifications
   pushState: 'unsupported' | 'denied' | 'prompt' | 'granted';
   isSubscribing: boolean;
-  checkPushSupport: () => void;
+  checkPushSupport: () => Promise<void>;
   subscribeToPushNotifications: () => Promise<void>;
 }
 
@@ -60,14 +60,33 @@ export const usePwaStore = create<PwaState>((set, get) => ({
     set({ installPromptEvent: null });
   },
 
-  checkPushSupport: () => {
+  checkPushSupport: async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       set({ pushState: 'unsupported' });
       return;
     }
-    set({ pushState: Notification.permission === 'granted' ? 'granted' : 'prompt' });
+
     if (Notification.permission === 'denied') {
         set({pushState: 'denied'});
+        return;
+    }
+
+    if (Notification.permission === 'granted') {
+      // Permissão concedida, mas precisamos verificar se uma inscrição realmente existe.
+      // É possível que o usuário tenha limpado os dados do site, invalidando a inscrição anterior.
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+
+      if (subscription) {
+        // Se já existe uma inscrição, o estado é 'granted'.
+        set({ pushState: 'granted' });
+      } else {
+        // Se a permissão foi dada mas não há inscrição, o usuário precisa se inscrever de novo.
+        set({ pushState: 'prompt' });
+      }
+    } else {
+      // Se a permissão for 'default', mostramos o botão.
+      set({ pushState: 'prompt' });
     }
   },
 
@@ -79,15 +98,19 @@ export const usePwaStore = create<PwaState>((set, get) => ({
         return;
     }
 
-    if (get().pushState !== 'prompt') {
-        // Fix: Changed toast.info to the default toast() function, as .info does not exist.
-        toast('As notificações já estão ativadas ou bloqueadas.');
+    if (get().pushState === 'denied' || get().pushState === 'unsupported') {
+        toast('As notificações estão bloqueadas ou não são suportadas neste navegador.');
         return;
     }
 
     set({ isSubscribing: true });
 
     try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            throw new Error('Permission not granted for Notifications');
+        }
+
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
@@ -108,7 +131,8 @@ export const usePwaStore = create<PwaState>((set, get) => ({
         });
 
         if (!response.ok) {
-            throw new Error('Failed to store push subscription on server.');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to store push subscription on server.');
         }
 
         toast.success('Notificações ativadas com sucesso!');
@@ -116,10 +140,12 @@ export const usePwaStore = create<PwaState>((set, get) => ({
 
     } catch (error) {
         console.error('Failed to subscribe to push notifications:', error);
-        toast.error('Não foi possível ativar as notificações.');
-        // Se o usuário negou a permissão
+        
         if (Notification.permission === 'denied') {
             set({ pushState: 'denied' });
+            toast.error('Você bloqueou as notificações. Altere nas configurações do navegador.');
+        } else {
+            toast.error('Não foi possível ativar as notificações.');
         }
     } finally {
         set({ isSubscribing: false });

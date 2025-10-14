@@ -3,9 +3,10 @@ import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
 import { useUiStore, View } from './stores/uiStore';
 import { useMapStore } from './stores/mapStore';
+import { usePwaStore } from './stores/pwaStore'; // Importa o novo store de PWA
 import { Auth } from './components/Auth';
 import { UserGrid } from './components/UserGrid';
-import { Map } from './components/Map'; // Importa o componente de Mapa
+import { Map } from './components/Map';
 import { Inbox } from './components/Inbox';
 import { ProfileView } from './components/ProfileView';
 import { ProfileModal } from './components/ProfileModal';
@@ -16,6 +17,7 @@ import { SearchIcon, MessageCircleIcon, MapPinIcon, UserIcon, FlameIcon } from '
 const App: React.FC = () => {
     const { session, user, loading } = useAuthStore();
     const { activeView, setActiveView, chatUser, setChatUser } = useUiStore();
+    const { setInstallPromptEvent } = usePwaStore();
     const { 
         selectedUser, 
         setSelectedUser, 
@@ -23,6 +25,22 @@ const App: React.FC = () => {
         stopLocationWatch, 
         cleanupRealtime 
     } = useMapStore();
+
+    // Listener para o evento de instalação do PWA
+    useEffect(() => {
+        const handleBeforeInstallPrompt = (e: Event) => {
+            // Previne o mini-infobar do Chrome de aparecer
+            e.preventDefault();
+            // Guarda o evento para que possa ser acionado mais tarde.
+            setInstallPromptEvent(e as any);
+        };
+
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        };
+    }, [setInstallPromptEvent]);
 
     useEffect(() => {
         if (session) {

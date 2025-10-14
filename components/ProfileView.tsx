@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { usePwaStore } from '../stores/pwaStore';
 import { EditProfileModal } from './EditProfileModal';
 import { MyAlbumsModal } from './MyAlbumsModal';
-import { PencilIcon, ShoppingBagIcon } from './icons';
+import { DownloadCloudIcon } from './icons';
 
 export const ProfileView: React.FC = () => {
     const { user, signOut } = useAuthStore();
+    const { installPromptEvent, triggerInstall } = usePwaStore();
     const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
     const [isMyAlbumsOpen, setIsMyAlbumsOpen] = useState(false);
 
@@ -38,6 +40,15 @@ export const ProfileView: React.FC = () => {
 
                     {/* Menu Options */}
                      <div className="space-y-1 pt-4 border-t border-gray-700">
+                        {installPromptEvent && (
+                            <button 
+                                onClick={triggerInstall} 
+                                className="w-full text-left p-3 rounded-lg bg-pink-600 text-white font-semibold flex items-center gap-3 hover:bg-pink-700 transition-colors mb-2"
+                            >
+                                <DownloadCloudIcon className="w-5 h-5" />
+                                Instalar App na Tela de Início
+                            </button>
+                        )}
                         <button onClick={() => setIsEditProfileOpen(true)} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">
                             Editar Perfil
                         </button>

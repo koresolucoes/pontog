@@ -32,6 +32,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
 
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [viewingAlbum, setViewingAlbum] = useState<PrivateAlbum | null>(null);
+  const [winkCount, setWinkCount] = useState<number | null>(null);
   
   const agoraPost = posts.find(p => p.user_id === user.id);
 
@@ -40,10 +41,21 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
     if (user) {
         fetchAlbumsAndAccessStatusForUser(user.id);
     }
+    
+    const fetchWinkCount = async () => {
+        if (currentUser && currentUser.subscription_tier === 'free') {
+            const { data, error } = await supabase.rpc('get_daily_wink_count', { p_sender_id: currentUser.id });
+            if (!error) {
+                setWinkCount(data);
+            }
+        }
+    };
+    fetchWinkCount();
+
     return () => {
         clearViewedUserData();
     }
-  }, [user, fetchAlbumsAndAccessStatusForUser, clearViewedUserData, fetchAgoraPosts]);
+  }, [user, fetchAlbumsAndAccessStatusForUser, clearViewedUserData, fetchAgoraPosts, currentUser]);
 
   const isOnline = onlineUsers.includes(user.id);
   const statusText = isOnline ? 'Online' : formatLastSeen(user.last_seen);
@@ -61,8 +73,26 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
 
     switch (result) {
       case 'success_plus':
+        toast.success('Chamado enviado com sucesso!');
+        // No need to change count for plus users
+        break;
       case 'success_free':
         toast.success('Chamado enviado com sucesso!');
+        setWinkCount(count => (count !== null ? count + 1 : 1));
+        break;
+      case 'limit_reached':
+        toast.error('Você atingiu seu limite diário de chamados.');
+        setSubscriptionModalOpen(true);
+        break;
+      case 'already_winked':
+        toast('Você já chamou este perfil!', { icon: '😉' });
+        break;
+      default:
+        toast.error('Ocorreu um erro inesperado.');
+    }
+    
+    // Send push notification regardless of success type (if not an error)
+    if (result.startsWith('success')) {
         const { session } = (await supabase.auth.getSession()).data;
         if (session) {
           fetch('/api/send-wink-push', {
@@ -74,16 +104,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
             body: JSON.stringify({ receiver_id: user.id })
           }).catch(err => console.error("Error sending wink push notification:", err));
         }
-        break;
-      case 'limit_reached':
-        toast.error('Você atingiu seu limite diário de chamados.');
-        setSubscriptionModalOpen(true);
-        break;
-      case 'already_winked':
-        toast('Você já chamou este perfil!', { icon: '😉' });
-        break;
-      default:
-        toast.error('Ocorreu um erro inesperado.');
     }
   };
   
@@ -148,7 +168,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
           )}
 
           <div className="absolute bottom-4 left-4 right-4 text-white">
-            <h2 className="text-3xl font-bold">{user.username}, {user.age}</h2>
+            <h2 className="text-3xl font-bold flex items-center gap-2 flex-wrap">
+              <span>{user.username}, {user.age}</span>
+              {user.subscription_tier === 'plus' && (
+                  <span className="flex items-center gap-1 text-base bg-yellow-400/20 text-yellow-300 font-semibold px-2 py-0.5 rounded-full">
+                      <span className="material-symbols-outlined !text-sm">auto_awesome</span>
+                      Plus
+                  </span>
+              )}
+            </h2>
             <div className="flex items-center space-x-2 mt-1">
               {isOnline && <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse"></div>}
               <p className="text-sm text-gray-300">{statusText}</p>
@@ -224,15 +252,36 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
             </div>
         </div>
         
-        <div className="p-4 border-t border-gray-700 flex-shrink-0 flex gap-4">
-          <button onClick={handleWink} className="w-full bg-gray-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-600 transition-colors">
-            <span className="material-symbols-outlined text-xl text-pink-400">favorite</span>
-            <span>Chamar</span>
-          </button>
-          <button onClick={handleChatClick} className="w-full bg-pink-600 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-pink-700 transition-colors">
-            <span className="material-symbols-outlined text-xl">chat</span>
-            <span>Mensagem</span>
-          </button>
+        <div className="p-4 border-t border-gray-700 flex-shrink-0 flex flex-col gap-3">
+          {currentUser?.subscription_tier === 'free' && winkCount !== null && (
+              <div className="text-center text-sm text-gray-400">
+                  {10 - winkCount > 0 ? (
+                      <p>Você tem <span className="font-bold text-white">{10 - winkCount} de 10</span> chamados restantes hoje.</p>
+                  ) : (
+                      <p>Limite diário atingido. <button onClick={() => { onClose(); setSubscriptionModalOpen(true); }} className="text-pink-400 underline font-semibold">Seja Plus</button> para ilimitado.</p>
+                  )}
+              </div>
+          )}
+          {currentUser?.subscription_tier === 'plus' && (
+                <div className="text-center text-sm text-green-400 font-semibold flex items-center justify-center gap-1.5">
+                  <span className="material-symbols-outlined !text-base">all_inclusive</span>
+                  <span>Chamados ilimitados</span>
+              </div>
+          )}
+          <div className="flex gap-4">
+            <button 
+              onClick={handleWink} 
+              disabled={currentUser?.subscription_tier === 'free' && winkCount !== null && winkCount >= 10}
+              className="w-full bg-gray-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="material-symbols-outlined text-xl text-pink-400">favorite</span>
+              <span>Chamar</span>
+            </button>
+            <button onClick={handleChatClick} className="w-full bg-pink-600 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-pink-700 transition-colors">
+              <span className="material-symbols-outlined text-xl">chat</span>
+              <span>Mensagem</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

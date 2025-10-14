@@ -6,6 +6,7 @@ import { useNotificationStore } from '../stores/notificationStore';
 import { EditProfileModal } from './EditProfileModal';
 import { MyAlbumsModal } from './MyAlbumsModal';
 import { NotificationType } from '../types';
+import { format } from 'date-fns';
 
 const NotificationToggle: React.FC<{
     label: string;
@@ -61,12 +62,15 @@ export const ProfileView: React.FC = () => {
     const renderSubscriptionSection = () => {
         if (user.subscription_tier === 'plus') {
             return (
-                <div className="p-4 rounded-lg bg-gray-800 border border-pink-500/30 text-center">
+                <div className="p-4 rounded-lg bg-gradient-to-tr from-gray-800 to-gray-900 border border-yellow-400/30 text-center shadow-lg">
                     <div className="flex items-center justify-center gap-2 text-yellow-400">
                         <span className="material-symbols-outlined text-xl">auto_awesome</span>
-                        <span className="font-bold">Você é um membro Plus!</span>
+                        <span className="font-bold">Ponto G Plus Ativo</span>
                     </div>
-                    <p className="text-sm text-gray-400 mt-1">Sua assinatura está ativa.</p>
+                    <p className="text-sm text-gray-300 mt-2">Sua assinatura está ativa e você tem acesso a todos os benefícios.</p>
+                    {user.subscription_expires_at && (
+                        <p className="text-xs text-gray-500 mt-2">Válida até: {format(new Date(user.subscription_expires_at), 'dd/MM/yyyy')}</p>
+                    )}
                 </div>
             );
         }

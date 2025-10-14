@@ -133,6 +133,7 @@ const App: React.FC = () => {
                         name: chatUser.username,
                         imageUrl: chatUser.avatar_url,
                         last_seen: chatUser.last_seen,
+                        subscription_tier: chatUser.subscription_tier,
                     }} 
                     onClose={() => setChatUser(null)}
                 />
@@ -149,7 +150,7 @@ const App: React.FC = () => {
                    <NavButton icon="travel_explore" label="Mapa" isActive={activeView === 'map'} onClick={() => setActiveView('map')} />
                    <NavButton icon="local_fire_department" label="Agora" isActive={activeView === 'agora'} onClick={() => setActiveView('agora')} />
                    <NavButton icon="inbox" label="Entrada" isActive={activeView === 'inbox'} onClick={() => setActiveView('inbox')} />
-                   <NavButton icon="person" label="Perfil" isActive={activeView === 'profile'} onClick={() => setActiveView('profile')} />
+                   <NavButton icon="person" label="Perfil" isActive={activeView === 'profile'} onClick={() => setActiveView('profile')} isPlus={user.subscription_tier === 'plus'} />
                 </div>
             </nav>
         </div>
@@ -161,16 +162,20 @@ interface NavButtonProps {
     label: string;
     isActive: boolean;
     onClick: () => void;
+    isPlus?: boolean;
 }
 
-const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick }) => (
+const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, isPlus = false }) => (
     <button
         onClick={onClick}
-        className={`flex flex-col items-center justify-center pt-2 pb-1 transition-colors ${isActive ? 'text-pink-500' : 'text-gray-400 hover:text-white'}`}
+        className={`relative flex flex-col items-center justify-center pt-2 pb-1 transition-colors ${isActive ? 'text-pink-500' : 'text-gray-400 hover:text-white'}`}
         aria-label={label}
     >
         <span className="material-symbols-outlined text-2xl">{icon}</span>
         <span className="text-[10px] mt-0.5">{label}</span>
+        {isPlus && (
+            <span className="absolute top-1 right-2 material-symbols-outlined !text-[12px] text-yellow-400">auto_awesome</span>
+        )}
     </button>
 );
 

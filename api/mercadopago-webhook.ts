@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { add } from 'date-fns';
 import crypto from 'crypto'; // Módulo nativo do Node.js para criptografia
+// FIX: Import Buffer to resolve TypeScript error 'Cannot find name Buffer'.
+import { Buffer } from 'buffer';
 
 const plans: { [key: string]: { price: number, months: number } } = {
   monthly: { price: 29.90, months: 1 },
@@ -54,7 +56,14 @@ export default async function handler(
     const expectedHash = hmac.digest('hex');
 
     // Compara as assinaturas de forma segura para evitar timing attacks
-    if (!crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(expectedHash))) {
+    // FIX: Create Buffers from hex strings and check for equal length before comparing.
+    // This prevents timingSafeEqual from throwing an error and ensures correct comparison.
+    const receivedHashBuffer = Buffer.from(hash, 'hex');
+    const expectedHashBuffer = Buffer.from(expectedHash, 'hex');
+    if (
+      receivedHashBuffer.length !== expectedHashBuffer.length ||
+      !crypto.timingSafeEqual(receivedHashBuffer, expectedHashBuffer)
+    ) {
       return res.status(401).send('Invalid signature.');
     }
     // --- FIM DA VERIFICAÇÃO ---

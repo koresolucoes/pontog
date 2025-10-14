@@ -4,14 +4,22 @@ import { useAuthStore } from '../stores/authStore';
 import * as L from 'leaflet';
 import { User } from '../types';
 
-const createUserIcon = (avatarUrl: string, isOnline: boolean) => {
-    const onlineClass = isOnline ? 'border-green-400' : 'border-pink-500';
+const createUserIcon = (user: User, isOnline: boolean) => {
+    const baseClass = 'rounded-full object-cover shadow-lg border-4';
+    let statusClass;
+    if (isOnline) {
+        statusClass = 'border-green-400';
+    } else if (user.subscription_tier === 'plus') {
+        statusClass = 'border-yellow-400';
+    } else {
+        statusClass = 'border-pink-500';
+    }
     return new L.Icon({
-        iconUrl: avatarUrl,
+        iconUrl: user.avatar_url,
         iconSize: [48, 48],
         iconAnchor: [24, 48],
         popupAnchor: [0, -52],
-        className: `rounded-full object-cover shadow-lg border-4 ${onlineClass}`
+        className: `${baseClass} ${statusClass}`
     });
 };
 
@@ -104,11 +112,11 @@ export const Map: React.FC = () => {
         if (existingMarker) {
             // Atualiza posição e ícone (para status online)
             existingMarker.setLatLng([user.lat, user.lng]);
-            existingMarker.setIcon(createUserIcon(user.avatar_url, isOnline));
+            existingMarker.setIcon(createUserIcon(user, isOnline));
         } else {
             // Cria novo marcador
             const marker = L.marker([user.lat, user.lng], {
-                icon: createUserIcon(user.avatar_url, isOnline)
+                icon: createUserIcon(user, isOnline)
             });
 
             // FIX: Attach a direct click handler to open the modal, avoiding popup complexities.

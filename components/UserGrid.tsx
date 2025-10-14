@@ -87,16 +87,18 @@ export const UserGrid: React.FC = () => {
                 <div className="p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 flex-1">
                     {filteredUsers.map((user) => {
                         const isAgora = agoraUserIds.includes(user.id);
+                        const isPlus = user.subscription_tier === 'plus';
                         return (
                             <div 
                                 key={user.id} 
-                                className={`relative aspect-square cursor-pointer group ${isAgora ? 'border-2 border-red-600 animate-pulse-fire' : ''}`}
+                                className={`relative aspect-square cursor-pointer group rounded-lg overflow-hidden ${isAgora ? 'border-2 border-red-600 animate-pulse-fire' : ''} ${isPlus && !isAgora ? 'border-2 border-yellow-400/80' : ''}`}
                                 onClick={() => handleUserClick(user)}
                             >
                                 <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                                 <div className="absolute bottom-2 left-2 right-2 text-white">
                                     <div className="flex items-center space-x-1.5">
+                                        {isPlus && <span className="material-symbols-outlined !text-[14px] text-yellow-400">auto_awesome</span>}
                                         {onlineUsers.includes(user.id) && (
                                             <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                                         )}

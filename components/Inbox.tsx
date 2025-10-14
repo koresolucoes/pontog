@@ -7,6 +7,7 @@ import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest } from '
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ConfirmationModal } from './ConfirmationModal';
+import toast from 'react-hot-toast';
 
 type ActiveTab = 'messages' | 'winks' | 'requests';
 
@@ -30,10 +31,18 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     useEffect(() => {
         switch (activeTab) {
             case 'messages': fetchConversations(); break;
-            case 'winks': fetchWinks(); break;
+            case 'winks': 
+                fetchWinks();
+                if (currentUser?.subscription_tier === 'plus') {
+                    toast('Benefício Plus: Veja quem te chamou!', {
+                        icon: '✨',
+                        duration: 4000
+                    });
+                }
+                break;
             case 'requests': fetchAccessRequests(); break;
         }
-    }, [activeTab, fetchConversations, fetchWinks, fetchAccessRequests]);
+    }, [activeTab, fetchConversations, fetchWinks, fetchAccessRequests, currentUser]);
     
     const handleConversationClick = (convo: ConversationPreview) => {
         const chatPartner: User = {
@@ -41,7 +50,8 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             avatar_url: convo.other_participant_avatar_url, last_seen: convo.other_participant_last_seen,
             display_name: null, public_photos: [], status_text: null, date_of_birth: null,
             height_cm: null, weight_kg: null, tribes: [], position: null, hiv_status: null,
-            updated_at: '', lat: 0, lng: 0, age: 0, distance_km: null, subscription_tier: 'free',
+            updated_at: '', lat: 0, lng: 0, age: 0, distance_km: null, subscription_tier: 'free', // Tier here is a placeholder
+            subscription_expires_at: null,
         };
         setChatUser(chatPartner);
     };

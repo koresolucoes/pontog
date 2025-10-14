@@ -30,6 +30,7 @@ export interface Profile {
   last_seen: string | null; // Adicionado para status de atividade
   distance_km: number | null; // Adicionado para distância
   subscription_tier: 'free' | 'plus'; // Adicionado para o plano premium
+  subscription_expires_at: string | null; // Adicionado para data de expiração
 }
 
 // O tipo User estende Profile com campos calculados como 'idade'

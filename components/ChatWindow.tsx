@@ -14,6 +14,7 @@ interface ChatUser {
   name: string;
   imageUrl: string;
   last_seen?: string | null;
+  subscription_tier: 'free' | 'plus';
 }
 
 interface ChatWindowProps {
@@ -220,7 +221,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
         <div className="flex items-center space-x-3">
           <img src={user.imageUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
           <div>
-            <h3 className="font-bold">{user.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold">{user.name}</h3>
+              {user.subscription_tier === 'plus' && (
+                  <span className="flex items-center text-xs bg-yellow-400/20 text-yellow-300 font-semibold px-1.5 py-0.5 rounded-full">
+                      <span className="material-symbols-outlined !text-[12px]">auto_awesome</span>
+                  </span>
+              )}
+            </div>
             <div className="flex items-center space-x-1.5">
               {isOnline && <div className="w-2 h-2 rounded-full bg-green-400"></div>}
               <span className="text-xs text-gray-400">{isOnline ? 'Online' : statusText}</span>

@@ -45,12 +45,24 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const { 
         conversations, winks, accessRequests, profileViews,
         loadingConversations, loadingWinks, loadingRequests, loadingProfileViews,
-        respondToRequest, deleteConversation
+        respondToRequest, deleteConversation, clearWinks, clearAccessRequests
     } = useInboxStore();
     const { setChatUser, setSubscriptionModalOpen } = useUiStore();
     const { setSelectedUser } = useMapStore();
     const { user: currentUser } = useAuthStore();
     const [confirmDelete, setConfirmDelete] = useState<ConversationPreview | null>(null);
+
+    // Efeito para limpar as notificações quando o usuário visualiza a aba.
+    useEffect(() => {
+        if (activeTab === 'winks' && winks.length > 0) {
+            // Remove os winks do estado para zerar a notificação.
+            // A busca de dados não precisa ser chamada de novo, pois já está no estado.
+            clearWinks();
+        }
+        if (activeTab === 'requests' && accessRequests.length > 0) {
+            clearAccessRequests();
+        }
+    }, [activeTab, winks.length, accessRequests.length, clearWinks, clearAccessRequests]);
     
     const handleConversationClick = (convo: ConversationPreview) => {
         const chatPartner: User = {
@@ -61,8 +73,6 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             updated_at: '', lat: 0, lng: 0, age: 0, distance_km: null, 
             subscription_tier: convo.other_participant_subscription_tier,
             subscription_expires_at: null, is_incognito: false,
-            // FIX: Added missing 'has_completed_onboarding' property to satisfy the User type.
-            // It's safe to assume an existing user in a conversation has completed onboarding.
             has_completed_onboarding: true,
         };
         setChatUser(chatPartner);
@@ -86,7 +96,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const TabButton = ({ label, tabName, isPremium = false }: { label: string, tabName: ActiveTab, isPremium?: boolean }) => (
          <button 
             onClick={() => setActiveTab(tabName)}
-            className={`flex items-center gap-1.5 py-2 px-2 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${activeTab === tabName ? 'text-pink-500 border-pink-500' : 'text-slate-400 border-transparent hover:text-white'}`}
+            className={`flex items-center gap-1.5 py-2 px-3 text-sm font-semibold transition-colors border-b-2 flex-shrink-0 ${activeTab === tabName ? 'text-pink-500 border-pink-500' : 'text-slate-400 border-transparent hover:text-white'}`}
         >
             {label}
             {isPremium && <span className="material-symbols-outlined !text-[16px] text-yellow-400">auto_awesome</span>}
@@ -98,11 +108,13 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         <div className="flex flex-col h-full bg-slate-900 text-white">
             <header className="p-4">
                 <h1 className="text-xl font-bold">Caixa de Entrada</h1>
-                <div className="mt-4 flex justify-around border-b border-slate-700">
-                    <TabButton label="Mensagens" tabName="messages" />
-                    <TabButton label="Te Chamaram" tabName="winks" isPremium />
-                    <TabButton label="Quem Me Viu" tabName="views" isPremium />
-                    <TabButton label="Solicitações" tabName="requests" />
+                <div className="mt-4 border-b border-slate-700">
+                    <div className="flex space-x-4 overflow-x-auto pb-2 -mb-2">
+                        <TabButton label="Mensagens" tabName="messages" />
+                        <TabButton label="Te Chamaram" tabName="winks" isPremium />
+                        <TabButton label="Quem Me Viu" tabName="views" isPremium />
+                        <TabButton label="Solicitações" tabName="requests" />
+                    </div>
                 </div>
             </header>
 

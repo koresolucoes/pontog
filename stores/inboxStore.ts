@@ -35,8 +35,10 @@ interface InboxState {
   fetchProfileViews: () => Promise<void>;
   respondToRequest: (requestId: number, status: 'granted' | 'denied') => Promise<void>;
   deleteConversation: (conversationId: number) => Promise<void>;
-  subscribeToInboxChanges: () => void; // Adicionado
-  cleanupRealtime: () => void; // Adicionado
+  clearWinks: () => void; // Adicionado para zerar notificações
+  clearAccessRequests: () => void; // Adicionado para zerar notificações
+  subscribeToInboxChanges: () => void;
+  cleanupRealtime: () => void;
 }
 
 export const useInboxStore = create<InboxState>((set, get) => {
@@ -44,7 +46,8 @@ export const useInboxStore = create<InboxState>((set, get) => {
     const updateTotalUnreadCount = () => {
         const { conversations, winks, accessRequests } = get();
         const unreadMessages = conversations.reduce((sum, convo) => sum + (convo.unread_count || 0), 0);
-        const newWinks = winks.length;
+        // A contagem agora reflete o estado atual dos arrays
+        const newWinks = winks.length; 
         const newRequests = accessRequests.length;
         set({ totalUnreadCount: unreadMessages + newWinks + newRequests });
     };
@@ -186,6 +189,18 @@ export const useInboxStore = create<InboxState>((set, get) => {
             } else {
                 toast.success('Conversa apagada.');
             }
+        },
+
+        // Nova função para limpar os winks e atualizar a contagem de notificações
+        clearWinks: () => {
+            set({ winks: [] });
+            updateTotalUnreadCount();
+        },
+
+        // Nova função para limpar as solicitações e atualizar a contagem de notificações
+        clearAccessRequests: () => {
+            set({ accessRequests: [] });
+            updateTotalUnreadCount();
         },
 
         subscribeToInboxChanges: () => {

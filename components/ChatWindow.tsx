@@ -87,6 +87,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const [isAttachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
   const [isAlbumSelectorOpen, setIsAlbumSelectorOpen] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  
+  // Novo estado para o menu de opções da mensagem
+  const [messageOptions, setMessageOptions] = useState<MessageType | null>(null);
 
   const markMessagesAsRead = useCallback(async (messageIds: number[]) => {
       if (messageIds.length === 0) return;
@@ -268,6 +271,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const handleStartEdit = (msg: MessageType) => {
       setEditingMessage(msg);
       setEditedContent(msg.content ?? '');
+      setMessageOptions(null); // Fecha o menu de opções
   };
   
   const handleCancelEdit = () => {
@@ -309,7 +313,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const MessageStatus = ({ msg }: { msg: MessageType }) => {
     if (msg.sender_id !== currentUser.id) return null;
     
-    // Premium Feature: Read Receipts. Only Plus users can see them.
     const isRead = msg.read_at && currentUser.subscription_tier === 'plus';
 
     return (
@@ -330,7 +333,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
 
   return (
     <>
-    <div className="fixed bottom-0 right-0 sm:right-4 md:right-8 w-full sm:w-96 h-full sm:h-[500px] bg-slate-900 shadow-2xl rounded-t-2xl sm:rounded-2xl z-40 flex flex-col animate-slide-in-up border border-slate-700">
+    <div className="fixed bottom-0 right-0 sm:right-4 md:right-8 w-full sm:w-96 h-full sm:h-[500px] bg-slate-900 shadow-2xl rounded-t-2xl sm:rounded-lg z-40 flex flex-col animate-slide-in-up border border-slate-700">
       <header className="flex items-center justify-between p-3 bg-slate-800 rounded-t-2xl sm:rounded-t-lg border-b border-slate-700 flex-shrink-0">
         <div className="flex items-center space-x-3">
           <img src={user.imageUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
@@ -362,7 +365,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       <div className="flex-1 p-4 overflow-y-auto bg-slate-900">
         <div className="flex flex-col space-y-2">
           {messages.map((msg) => (
-            <div key={msg.id} className={`flex flex-col group ${msg.sender_id === currentUser.id ? 'items-end' : 'items-start'}`}>
+            <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUser.id ? 'items-end' : 'items-start'}`}>
               <div className={`flex items-end gap-2 max-w-xs md:max-w-sm ${msg.sender_id === currentUser.id ? 'flex-row-reverse' : 'flex-row'}`}>
                  {msg.sender_id !== currentUser.id && <img src={user.imageUrl} className="w-6 h-6 rounded-full self-start" />}
                  
@@ -382,15 +385,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                      </div>
                  ) : (
                     <div className={`px-4 py-2 rounded-2xl relative ${msg.sender_id === currentUser.id ? 'bg-pink-600 text-white rounded-br-none' : 'bg-slate-700 text-slate-200 rounded-bl-none'}`}>
-                      <MessageContent message={msg} />
-                       {msg.sender_id === currentUser.id && !msg.image_url && !msg.content?.includes('"type":') &&(
-                           <div className="absolute top-0 -left-14 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                               <button onClick={() => handleStartEdit(msg)} className="text-xs bg-slate-700 text-white rounded-full px-2 py-0.5">Editar</button>
-                               <button onClick={() => setConfirmDeleteMessage(msg)} className="text-xs bg-slate-700 text-white rounded-full px-2 py-0.5">Excluir</button>
-                           </div>
-                       )}
+                        <MessageContent message={msg} />
                     </div>
                  )}
+                
+                 {msg.sender_id === currentUser.id && !editingMessage && !msg.image_url && !msg.content?.includes('"type":') && (
+                    <div className="relative">
+                        <button onClick={() => setMessageOptions(msg)} className="text-slate-500 hover:text-white px-1 self-center">
+                            <span className="material-symbols-outlined text-base">more_vert</span>
+                        </button>
+                        {messageOptions?.id === msg.id && (
+                             <div className="absolute bottom-full right-0 mb-1 w-28 bg-slate-700 rounded-lg shadow-lg z-10 text-left">
+                                <button onClick={() => handleStartEdit(msg)} className="w-full text-sm p-2 text-white hover:bg-slate-600 rounded-t-lg">Editar</button>
+                                <button onClick={() => { setConfirmDeleteMessage(msg); setMessageOptions(null); }} className="w-full text-sm p-2 text-red-400 hover:bg-slate-600 rounded-b-lg">Apagar</button>
+                             </div>
+                        )}
+                    </div>
+                )}
+
               </div>
               <div className={`mt-1 pr-2 ${msg.sender_id === currentUser.id ? 'self-end' : 'self-start ml-8'}`}>
                  <MessageStatus msg={msg} />
@@ -416,19 +428,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                     </button>
                 </div>
             )}
-            <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+            <form onSubmit={handleSendMessage} className="relative flex items-center">
                 <input type="file" accept="image/*" className="hidden" ref={imageInputRef} onChange={handleSendImage}/>
-                 <button type="button" onClick={() => setAttachmentMenuOpen(prev => !prev)} className="text-slate-400 hover:text-white p-2.5 rounded-full hover:bg-slate-700 transition-colors">
-                    <span className="material-symbols-outlined text-xl">add_circle</span>
-                </button>
                 <input
                     type="text"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Digite uma mensagem..."
-                    className="flex-1 bg-slate-700 rounded-full py-2.5 pl-4 pr-12 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    className="w-full bg-slate-700 rounded-full py-2.5 pl-12 pr-12 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
                 />
-                <button type="submit" className="bg-pink-600 text-white rounded-full p-2.5 hover:bg-pink-700 transition-colors">
+                 <button type="button" onClick={() => setAttachmentMenuOpen(prev => !prev)} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-2.5 rounded-full hover:bg-slate-600 transition-colors">
+                    <span className="material-symbols-outlined text-xl">add_circle</span>
+                </button>
+                <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-pink-600 text-white rounded-full p-2.5 hover:bg-pink-700 transition-colors">
                     <span className="material-symbols-outlined text-xl">send</span>
                 </button>
             </form>
@@ -460,6 +472,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
             onClose={() => setIsAlbumSelectorOpen(false)}
             onSelect={handleSelectAlbum}
         />
+    )}
+    {messageOptions && (
+        <div className="fixed inset-0 z-0" onClick={() => setMessageOptions(null)}></div>
     )}
     </>
   );

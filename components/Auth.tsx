@@ -38,13 +38,18 @@ export const Auth: React.FC = () => {
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 auth-background text-white">
       <div className="w-full max-w-md bg-slate-900/70 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-white/10 animate-fade-in-up">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
             <h1 className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">
                 Ponto G
             </h1>
             <p className="text-slate-300 mt-2 font-semibold">Encontros gays. Sem enrolação.</p>
         </div>
         
+        <div className="my-6 text-center text-amber-400 font-semibold flex items-center justify-center gap-2 border border-amber-400/50 bg-amber-400/10 py-2 px-4 rounded-lg">
+            <span className="material-symbols-outlined">warning</span>
+            <span>Exclusivo para maiores de 18 anos</span>
+        </div>
+
         <div className="mt-6">
           <button
             type="button"
@@ -53,14 +58,14 @@ export const Auth: React.FC = () => {
             className="w-full flex items-center justify-center gap-3 bg-white text-slate-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-200 transition-all transform hover:scale-105 disabled:opacity-50"
           >
             <GoogleIcon className="w-6 h-6" />
-            <span className="text-base">{loading ? 'Aguarde...' : 'Entrar com Google'}</span>
+            <span className="text-base">{loading ? 'Aguarde...' : 'Cadastre-se ou Entre com Google'}</span>
           </button>
         </div>
 
         {error && <p className="mt-4 text-center text-red-400">{error}</p>}
         
         <p className="mt-8 text-center text-xs text-slate-400">
-          Ao entrar, você concorda com nossos Termos de Serviço e Política de Privacidade.
+          Ao continuar, você confirma que tem mais de 18 anos e concorda com nossos Termos de Serviço e Política de Privacidade.
         </p>
       </div>
 

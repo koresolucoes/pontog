@@ -172,6 +172,7 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
 
     if (error) {
         console.error("Error fetching comments:", error);
+        toast.error("Não foi possível carregar os comentários.");
         return [];
     }
     

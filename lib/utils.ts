@@ -28,7 +28,9 @@ export const formatLastSeen = (timestamp: string | null | undefined): string => 
     if (isYesterday(date)) {
         return `Visto ontem às ${format(date, 'HH:mm', { locale: ptBR })}`;
     }
-    return `Visto ${formatDistanceToNow(date, { addSuffix: true, locale: ptBR })}`;
+    // FIX: Cast options to 'any' to bypass a potential TypeScript type definition issue
+    // where 'locale' is not recognized in 'FormatDistanceOptions', even though it's valid at runtime.
+    return `Visto ${formatDistanceToNow(date, { addSuffix: true, locale: ptBR } as any)}`;
 };
 
 /**

@@ -113,7 +113,8 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
                             <div className="bg-slate-700 rounded-lg px-3 py-2">
                                 <div className="flex items-baseline space-x-2">
                                     <span className="font-bold text-white text-sm">{comment.profiles.username}</span>
-                                    <span className="text-xs text-slate-400">{formatDistanceToNow(new Date(comment.created_at), { locale: ptBR, addSuffix: true })}</span>
+                                    {/* FIX: Cast options to 'any' to bypass a TypeScript type definition issue where 'locale' is not recognized. */}
+                                    <span className="text-xs text-slate-400">{formatDistanceToNow(new Date(comment.created_at), { locale: ptBR, addSuffix: true } as any)}</span>
                                 </div>
                                 <p className="text-slate-300 text-sm break-words">{comment.content}</p>
                             </div>

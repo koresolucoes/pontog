@@ -39,28 +39,28 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
   
   const MainView = () => (
     <>
-      <div className="p-6 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
+      <header className="p-6 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
         <h2 className="text-xl font-bold text-white">Meus Álbuns Privados</h2>
-        <button type="button" onClick={onClose} className="text-gray-400 hover:text-white"><span className="material-symbols-outlined">close</span></button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <button type="button" onClick={onClose} className="text-slate-400 hover:text-white"><span className="material-symbols-outlined">close</span></button>
+      </header>
+      <main className="flex-1 overflow-y-auto p-6 space-y-6">
         <form onSubmit={handleCreateAlbum} className="flex gap-2">
           <input
             type="text"
             value={newAlbumName}
             onChange={(e) => setNewAlbumName(e.target.value)}
             placeholder="Nome do novo álbum"
-            className="flex-1 bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="flex-1 bg-slate-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
           />
           <button type="submit" className="bg-pink-600 text-white font-semibold p-2 rounded-lg hover:bg-pink-700"><span className="material-symbols-outlined">add_circle</span></button>
         </form>
         {isLoading ? (
-          <p className="text-gray-400 text-center">Carregando álbuns...</p>
+          <p className="text-slate-400 text-center">Carregando álbuns...</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {myAlbums.map(album => (
               <div key={album.id} className="relative aspect-square group cursor-pointer" onClick={() => setSelectedAlbum(album)}>
-                <div className="absolute inset-0 bg-gray-700 rounded-lg flex items-center justify-center text-center p-2">
+                <div className="absolute inset-0 bg-slate-700 rounded-lg flex items-center justify-center text-center p-2">
                   <span className="font-bold text-white">{album.name}</span>
                 </div>
                 {album.private_album_photos && album.private_album_photos.length > 0 && (
@@ -72,7 +72,7 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
             ))}
           </div>
         )}
-      </div>
+      </main>
     </>
   );
 
@@ -80,14 +80,14 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
     if (!selectedAlbum) return null;
     return (
      <>
-      <div className="p-6 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
+      <header className="p-6 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
         <div className="flex items-center gap-4">
-            <button onClick={() => setSelectedAlbum(null)} className="text-gray-400 hover:text-white"><span className="material-symbols-outlined">arrow_back_ios_new</span></button>
+            <button onClick={() => setSelectedAlbum(null)} className="text-slate-400 hover:text-white"><span className="material-symbols-outlined">arrow_back_ios_new</span></button>
             <h2 className="text-xl font-bold text-white">{selectedAlbum.name}</h2>
         </div>
         <button type="button" onClick={() => deleteAlbum(selectedAlbum.id).then(() => setSelectedAlbum(null))} className="text-red-400 hover:text-red-300"><span className="material-symbols-outlined text-xl">delete</span></button>
-      </div>
-       <div className="flex-1 overflow-y-auto p-6">
+      </header>
+       <main className="flex-1 overflow-y-auto p-6">
            <input type="file" accept="image/*" onChange={handleFileSelect} ref={fileInputRef} className="hidden" disabled={isUploading} />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {selectedAlbum.private_album_photos?.map(photo => (
@@ -102,7 +102,7 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
                     type="button" 
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    className="flex flex-col items-center justify-center w-full aspect-square bg-gray-700 rounded-lg border-2 border-dashed border-gray-500 text-gray-400 hover:bg-gray-600 hover:border-pink-500 transition-colors"
+                    className="flex flex-col items-center justify-center w-full aspect-square bg-slate-700 rounded-lg border-2 border-dashed border-slate-500 text-slate-400 hover:bg-slate-600 hover:border-pink-500 transition-colors"
                 >
                     {isUploading ? (
                         <>
@@ -117,7 +117,7 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
                     )}
                 </button>
             </div>
-       </div>
+       </main>
       </>
     )
   }
@@ -125,7 +125,7 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50" onClick={onClose}>
       <div 
-        className="bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-2xl mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-[95vh] sm:h-auto sm:max-h-[90vh]" 
+        className="bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-2xl mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-full sm:h-auto sm:max-h-[90vh]" 
         onClick={(e) => e.stopPropagation()}
       >
         {selectedAlbum ? <AlbumDetailView /> : <MainView />}

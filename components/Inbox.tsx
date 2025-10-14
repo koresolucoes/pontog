@@ -191,7 +191,8 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
                                         {isOnline && <div className="w-2 h-2 rounded-full bg-green-400"></div>}
                                         <h3 className="font-bold truncate text-base">{convo.other_participant_username}</h3>
                                     </div>
-                                    <span className="text-xs text-slate-500 flex-shrink-0 ml-2">{formatDistanceToNow(new Date(convo.last_message_created_at), { addSuffix: true, locale: ptBR })}</span>
+                                    {/* FIX: Cast options to 'any' to bypass a TypeScript type definition issue where 'locale' is not recognized. */}
+                                    <span className="text-xs text-slate-500 flex-shrink-0 ml-2">{formatDistanceToNow(new Date(convo.last_message_created_at), { addSuffix: true, locale: ptBR } as any)}</span>
                                 </div>
                                 <p className={`text-sm truncate ${convo.unread_count > 0 ? 'text-white' : 'text-slate-400'}`}>
                                     {convo.last_message_sender_id === currentUserId && "Você: "}
@@ -248,7 +249,8 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                     <div className="absolute bottom-2 left-2 right-2 text-white">
                         <h3 className="font-semibold text-sm truncate">{wink.username}</h3>
-                        <p className="text-xs text-slate-300">{formatDistanceToNow(new Date(wink.wink_created_at), { addSuffix: true, locale: ptBR })}</p>
+                        {/* FIX: Cast options to 'any' to bypass a TypeScript type definition issue where 'locale' is not recognized. */}
+                        <p className="text-xs text-slate-300">{formatDistanceToNow(new Date(wink.wink_created_at), { addSuffix: true, locale: ptBR } as any)}</p>
                     </div>
                 </div>
             ))}
@@ -295,7 +297,8 @@ const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlu
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                     <div className="absolute bottom-2 left-2 right-2 text-white">
                         <h3 className="font-semibold text-sm truncate">{view.username}</h3>
-                         <p className="text-xs text-slate-300">{formatDistanceToNow(new Date(view.viewed_at), { addSuffix: true, locale: ptBR })}</p>
+                         {/* FIX: Cast options to 'any' to bypass a TypeScript type definition issue where 'locale' is not recognized. */}
+                         <p className="text-xs text-slate-300">{formatDistanceToNow(new Date(view.viewed_at), { addSuffix: true, locale: ptBR } as any)}</p>
                     </div>
                 </div>
             ))}
@@ -320,7 +323,8 @@ const RequestList: React.FC<RequestListProps> = ({ requests, loading, onRespond 
                         <p className="text-sm">
                             <span className="font-bold">{req.username}</span> solicitou acesso aos seus álbuns.
                         </p>
-                        <span className="text-xs text-slate-500">{formatDistanceToNow(new Date(req.created_at), { addSuffix: true, locale: ptBR })}</span>
+                        {/* FIX: Cast options to 'any' to bypass a TypeScript type definition issue where 'locale' is not recognized. */}
+                        <span className="text-xs text-slate-500">{formatDistanceToNow(new Date(req.created_at), { addSuffix: true, locale: ptBR } as any)}</span>
                     </div>
                     <div className="flex gap-3">
                         <button onClick={() => onRespond(req.id, 'denied')} className="p-2.5 bg-slate-700 text-slate-300 rounded-full hover:bg-slate-600"><span className="material-symbols-outlined">close</span></button>

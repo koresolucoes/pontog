@@ -72,68 +72,70 @@ export const SubscriptionModal: React.FC = () => {
     
     return (
         <div 
-            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 animate-fade-in p-4" 
+            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 animate-fade-in p-0 sm:p-4" 
             onClick={() => setSubscriptionModalOpen(false)}
         >
             <div 
-                className="bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm mx-auto animate-fade-in-up flex flex-col border border-pink-500/30" 
+                className="bg-slate-800 sm:rounded-2xl shadow-xl w-full max-w-sm mx-auto animate-slide-in-up flex flex-col border border-pink-500/30 h-full sm:h-auto sm:max-h-[90vh]" 
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="p-6 text-center border-b border-gray-700 relative">
+                <header className="p-6 text-center border-b border-slate-700 relative flex-shrink-0">
                      <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-4xl text-white mx-auto shadow-lg">G+</div>
                     <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-500 mt-4">Ponto G Plus</h2>
-                    <p className="text-gray-400 mt-2">Desbloqueie o melhor do Ponto G.</p>
-                     <button onClick={() => setSubscriptionModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+                    <p className="text-slate-400 mt-2">Desbloqueie o melhor do Ponto G.</p>
+                     <button onClick={() => setSubscriptionModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">
                         <span className="material-symbols-outlined">close</span>
                     </button>
-                </div>
+                </header>
 
-                <div className="p-6 space-y-3">
-                    {loadingPlans ? (
-                        <div className="text-center text-gray-400">Carregando planos...</div>
-                    ) : (
-                        plans.map(plan => (
-                            <div
-                                key={plan.id}
-                                onClick={() => setSelectedPlanId(plan.id)}
-                                className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${selectedPlanId === plan.id ? 'border-pink-500 bg-pink-500/10' : 'border-gray-700 hover:border-gray-600'}`}
-                            >
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPlanId === plan.id ? 'border-pink-500' : 'border-gray-500'}`}>
-                                            {selectedPlanId === plan.id && <div className="w-2.5 h-2.5 bg-pink-500 rounded-full"></div>}
+                <main className="flex-1 overflow-y-auto p-6 space-y-4">
+                    <div className="space-y-3">
+                        {loadingPlans ? (
+                            <div className="text-center text-slate-400">Carregando planos...</div>
+                        ) : (
+                            plans.map(plan => (
+                                <div
+                                    key={plan.id}
+                                    onClick={() => setSelectedPlanId(plan.id)}
+                                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${selectedPlanId === plan.id ? 'border-pink-500 bg-pink-500/10' : 'border-slate-700 hover:border-slate-600'}`}
+                                >
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPlanId === plan.id ? 'border-pink-500' : 'border-slate-500'}`}>
+                                                {selectedPlanId === plan.id && <div className="w-2.5 h-2.5 bg-pink-500 rounded-full"></div>}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-white">{plan.name}</p>
+                                                <p className="text-sm text-slate-400">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.perMonth)}/mês
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="font-bold text-white">{plan.name}</p>
-                                            <p className="text-sm text-gray-400">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.perMonth)}/mês
-                                            </p>
+                                        <div className="text-right">
+                                            <p className="font-bold text-white">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.price)}</p>
+                                            {plan.discount && <span className="text-xs font-bold bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded-md">{plan.discount}</span>}
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="font-bold text-white">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.price)}</p>
-                                        {plan.discount && <span className="text-xs font-bold bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded-md">{plan.discount}</span>}
-                                    </div>
+                                    {plan.popular && <div className="text-center text-xs font-bold text-pink-400 pt-2">MAIS POPULAR</div>}
                                 </div>
-                                {plan.popular && <div className="text-center text-xs font-bold text-pink-400 pt-2">MAIS POPULAR</div>}
-                            </div>
-                        ))
-                    )}
-                </div>
+                            ))
+                        )}
+                    </div>
                 
-                <div className="p-6 space-y-4 border-t border-gray-700">
-                    <h3 className="text-sm font-bold text-gray-300 text-center">O que está incluso:</h3>
-                    {features.map((feature, index) => (
-                        <div key={index} className="flex items-center gap-3">
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center">
-                                <span className={`material-symbols-outlined ${feature.color}`}>{feature.icon}</span>
+                    <div className="space-y-4 pt-4 border-t border-slate-700">
+                        <h3 className="text-sm font-bold text-slate-300 text-center">O que está incluso:</h3>
+                        {features.map((feature, index) => (
+                            <div key={index} className="flex items-center gap-3">
+                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
+                                    <span className={`material-symbols-outlined ${feature.color}`}>{feature.icon}</span>
+                                </div>
+                                <span className="font-semibold text-sm text-white">{feature.text}</span>
                             </div>
-                            <span className="font-semibold text-sm text-white">{feature.text}</span>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                </main>
 
-                <div className="p-6 border-t border-gray-700">
+                <footer className="p-6 border-t border-slate-700 flex-shrink-0">
                      <button 
                         onClick={handleSubscribe}
                         disabled={isLoading || loadingPlans || !selectedPlanId}
@@ -141,8 +143,8 @@ export const SubscriptionModal: React.FC = () => {
                     >
                         {isLoading ? 'Aguarde...' : 'Assinar Agora'}
                     </button>
-                    <p className="text-xs text-gray-500 text-center mt-3">Pagamento seguro via Mercado Pago. A cobrança não é recorrente.</p>
-                </div>
+                    <p className="text-xs text-slate-500 text-center mt-3">Pagamento seguro via Mercado Pago. A cobrança não é recorrente.</p>
+                </footer>
             </div>
         </div>
     );

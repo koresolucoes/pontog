@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { add } from 'date-fns';
+import crypto from 'crypto'; // Módulo nativo do Node.js para criptografia
 
 const plans: { [key: string]: { price: number, months: number } } = {
   monthly: { price: 29.90, months: 1 },
@@ -18,10 +19,49 @@ export default async function handler(
   }
 
   try {
+    // --- VERIFICAÇÃO DE ASSINATURA ---
+    const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+    if (!secret) {
+      console.error('Mercado Pago webhook secret is not configured.');
+      return res.status(500).json({ error: 'Webhook secret not configured.' });
+    }
+
+    const signatureHeader = req.headers['x-signature'] as string;
+    const requestIdHeader = req.headers['x-request-id'] as string;
+
+    if (!signatureHeader || !requestIdHeader) {
+      return res.status(401).send('Signature headers are missing.');
+    }
+
+    // Fix: Correctly parse the signature header by destructuring the resulting object.
+    // The original code was incorrectly trying to destructure an object as an array.
+    const { ts, v1: hash } = signatureHeader.split(',').reduce((acc, part) => {
+      const [key, value] = part.split('=');
+      acc[key.trim()] = value.trim();
+      return acc;
+    }, {} as { [key:string]: string });
+
+    if (!ts || !hash) {
+      return res.status(401).send('Invalid signature format.');
+    }
+    
+    // Recria a string que o Mercado Pago assinou
+    const manifest = `id:${req.body.data.id};request-id:${requestIdHeader};ts:${ts};`;
+    
+    // Calcula nossa própria assinatura
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(manifest);
+    const expectedHash = hmac.digest('hex');
+
+    // Compara as assinaturas de forma segura para evitar timing attacks
+    if (!crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(expectedHash))) {
+      return res.status(401).send('Invalid signature.');
+    }
+    // --- FIM DA VERIFICAÇÃO ---
+
+
     const { action, data } = req.body;
     
-    // O Mercado Pago envia um teste de webhook, que ignoramos.
-    // O que nos interessa é a notificação de pagamento criado/atualizado.
     if (action !== 'payment.updated' && action !== 'payment.created') {
         return res.status(200).send('Event not relevant, skipped.');
     }
@@ -31,7 +71,6 @@ export default async function handler(
         return res.status(400).json({ error: 'Payment ID not found in webhook body' });
     }
 
-    // 1. Busca os detalhes do pagamento na API do Mercado Pago
     const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
       headers: { 'Authorization': `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN!}` },
     });
@@ -43,14 +82,12 @@ export default async function handler(
     
     const paymentDetails = await mpResponse.json();
 
-    // Inicializa o cliente admin do Supabase
     const supabaseAdmin = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false } }
     );
     
-    // 2. Insere/Atualiza o registro na nossa tabela 'payments' para auditoria
     const { error: paymentLogError } = await supabaseAdmin
       .from('payments')
       .upsert({
@@ -64,7 +101,6 @@ export default async function handler(
     
     if (paymentLogError) throw paymentLogError;
 
-    // 3. Se o pagamento foi aprovado, atualiza o perfil do usuário
     if (paymentDetails.status === 'approved') {
         const [userId, planId] = paymentDetails.external_reference.split('|');
         const plan = plans[planId];
@@ -73,10 +109,8 @@ export default async function handler(
             return res.status(400).json({ error: 'Invalid external reference in payment' });
         }
         
-        // Calcula a data de expiração da assinatura
         const expiresAt = add(new Date(), { months: plan.months }).toISOString();
         
-        // Atualiza a tabela 'profiles'
         const { error: profileUpdateError } = await supabaseAdmin
             .from('profiles')
             .update({
@@ -88,13 +122,10 @@ export default async function handler(
         if (profileUpdateError) throw profileUpdateError;
     }
 
-    // Responde 200 OK para o Mercado Pago para confirmar o recebimento
     return res.status(200).json({ success: true });
 
   } catch (error: any) {
     console.error('Mercado Pago Webhook Error:', error);
-    // Retorna status 500 mas com mensagem de sucesso para o MP não ficar tentando reenviar
-    // já que o erro foi do nosso lado.
     return res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 }

@@ -3,10 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import webpush from 'web-push';
 
-// Inicializa o web-push com as VAPID keys das variáveis de ambiente
+// FIX: Usa variáveis de ambiente consistentes e apropriadas para o servidor.
+// O e-mail de contato e a chave pública VAPID agora são lidos de variáveis
+// sem o prefixo 'VITE_', que é uma convenção para o frontend.
 webpush.setVapidDetails(
-  'mailto:your-email@example.com', // Substitua por um e-mail de contato
-  process.env.VITE_VAPID_PUBLIC_KEY!,
+  `mailto:${process.env.VAPID_CONTACT_EMAIL || 'contact@example.com'}`,
+  process.env.VAPID_PUBLIC_KEY!,
   process.env.VAPID_PRIVATE_KEY!
 );
 

@@ -117,6 +117,10 @@ export const usePwaStore = create<PwaState>((set, get) => ({
             applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
         });
 
+        // FIX: Converte explicitamente o objeto PushSubscription para um objeto JSON puro.
+        // Isso evita possíveis problemas de serialização ao enviá-lo para o backend.
+        const subscriptionObject = subscription.toJSON();
+
         // Envia a inscrição para o backend
         const { session } = (await supabase.auth.getSession()).data;
         if (!session) throw new Error("User not authenticated");
@@ -127,7 +131,7 @@ export const usePwaStore = create<PwaState>((set, get) => ({
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${session.access_token}`
             },
-            body: JSON.stringify({ subscription_object: subscription }),
+            body: JSON.stringify({ subscription_object: subscriptionObject }),
         });
 
         if (!response.ok) {

@@ -4,6 +4,7 @@ import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { Profile, User } from '../types';
 import { calculateAge } from '../lib/utils';
 import { usePwaStore } from './pwaStore';
+import toast from 'react-hot-toast';
 
 interface AuthState {
   session: Session | null;
@@ -71,8 +72,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   signOut: async () => {
     // Unlink the push subscription from the backend before signing out
     await usePwaStore.getState().unlinkSubscriptionOnLogout();
-    await supabase.auth.signOut();
-    // onAuthStateChange will handle setting state to null
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+        console.error('Error signing out:', error);
+        toast.error('Erro ao sair. Tente novamente.');
+    } else {
+        // Manually clear other stores to prevent stale data.
+        // The onAuthStateChange listener will handle clearing this store's state.
+        // Use dynamic imports to prevent circular dependencies.
+        (await import('./inboxStore')).useInboxStore.setState({ conversations: [], winks: [], accessRequests: [] });
+        (await import('./albumStore')).useAlbumStore.setState({ myAlbums: [], viewedUserAlbums: [], viewedUserAccessStatus: null });
+        (await import('./notificationStore')).useNotificationStore.setState({ preferences: [] });
+    }
   },
 }));
 
@@ -96,6 +108,6 @@ supabase.auth.onAuthStateChange((_event, session) => {
     usePwaStore.getState().relinkSubscriptionOnLogin();
   } else {
     // User signed out
-    useAuthStore.setState({ session: null, user: null, profile: null });
+    useAuthStore.setState({ session: null, user: null, profile: null, loading: false });
   }
 });

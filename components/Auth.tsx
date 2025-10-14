@@ -117,7 +117,7 @@ export const Auth: React.FC = () => {
             className="w-full flex items-center justify-center gap-3 bg-white text-gray-700 font-semibold py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
           >
             <GoogleIcon className="w-5 h-5" />
-            <span>Entrar com Google</span>
+            <span>{isLogin ? 'Entrar com Google' : 'Cadastrar com Google'}</span>
           </button>
         </div>
 

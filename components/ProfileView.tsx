@@ -1,17 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { usePwaStore } from '../stores/pwaStore';
 import { EditProfileModal } from './EditProfileModal';
 import { MyAlbumsModal } from './MyAlbumsModal';
-import { DownloadCloudIcon } from './icons';
+import { DownloadCloudIcon, BellIcon } from './icons'; // BellIcon pode ser um novo ícone
 
 export const ProfileView: React.FC = () => {
     const { user, signOut } = useAuthStore();
-    const { installPromptEvent, triggerInstall } = usePwaStore();
+    const { 
+        installPromptEvent, 
+        triggerInstall, 
+        pushState, 
+        checkPushSupport, 
+        subscribeToPushNotifications,
+        isSubscribing 
+    } = usePwaStore();
     const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
     const [isMyAlbumsOpen, setIsMyAlbumsOpen] = useState(false);
 
+    useEffect(() => {
+        checkPushSupport();
+    }, [checkPushSupport]);
+
     if (!user) return null;
+    
+    const renderPushStatus = () => {
+        switch (pushState) {
+            case 'granted':
+                return <p className="text-sm text-green-400">Notificações ativadas.</p>;
+            case 'denied':
+                return <p className="text-sm text-red-400">Notificações bloqueadas. Altere nas configurações do seu navegador.</p>;
+            case 'unsupported':
+                return <p className="text-sm text-gray-500">Seu navegador não suporta notificações.</p>;
+            case 'prompt':
+                return (
+                    <button 
+                        onClick={subscribeToPushNotifications}
+                        disabled={isSubscribing}
+                        className="w-full text-left p-3 rounded-lg bg-gray-700 text-white font-semibold flex items-center gap-3 hover:bg-gray-600 transition-colors disabled:opacity-50"
+                    >
+                        {/* Fix: Replace inline SVG with the BellIcon component. */}
+                        <BellIcon className="w-5 h-5" />
+                        {isSubscribing ? 'Ativando...' : 'Ativar Notificações de Mensagens'}
+                    </button>
+                );
+        }
+    }
 
     return (
         <>
@@ -49,18 +83,32 @@ export const ProfileView: React.FC = () => {
                                 Instalar App na Tela de Início
                             </button>
                         )}
-                        <button onClick={() => setIsEditProfileOpen(true)} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">
-                            Editar Perfil
-                        </button>
-                        <button onClick={() => setIsMyAlbumsOpen(true)} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">
-                            Meus Álbuns
-                        </button>
-                         <button className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">
-                            Configurações
-                        </button>
-                        <button onClick={signOut} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold text-red-400">
-                            Sair
-                        </button>
+                        <div className="space-y-2">
+                             <h3 className="text-xs font-bold uppercase text-gray-500 px-3 pt-2">Conta</h3>
+                             <button onClick={() => setIsEditProfileOpen(true)} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">
+                                Editar Perfil
+                            </button>
+                            <button onClick={() => setIsMyAlbumsOpen(true)} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">
+                                Meus Álbuns
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <h3 className="text-xs font-bold uppercase text-gray-500 px-3 pt-4">Notificações</h3>
+                            <div className="p-1">
+                                {renderPushStatus()}
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <h3 className="text-xs font-bold uppercase text-gray-500 px-3 pt-4">Sistema</h3>
+                             <button className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">
+                                Configurações
+                            </button>
+                            <button onClick={signOut} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold text-red-400">
+                                Sair
+                            </button>
+                        </div>
                     </div>
 
                 </div>

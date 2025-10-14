@@ -123,16 +123,35 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
     e.preventDefault();
     if (newMessage.trim() === '' || !currentUser || !conversationId) return;
 
+    const content = newMessage.trim();
+
     const { error } = await supabase.from('messages').insert({
       sender_id: currentUser.id,
       conversation_id: conversationId,
-      content: newMessage.trim(),
+      content: content,
     });
 
     if (error) {
       console.error("Error sending message:", error);
+      toast.error("Falha ao enviar mensagem.");
     } else {
       setNewMessage('');
+      
+      // Fire and forget: Chamar a API para enviar a notificação push
+      const { session } = (await supabase.auth.getSession()).data;
+      if (session) {
+        fetch('/api/send-push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            receiver_id: user.id,
+            message_content: content
+          })
+        }).catch(err => console.error("Error sending push notification:", err));
+      }
     }
   };
   

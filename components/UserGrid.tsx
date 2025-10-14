@@ -84,15 +84,15 @@ export const UserGrid: React.FC = () => {
                     <p className="mt-2">Tente voltar mais tarde.</p>
                 </div>
             ) : (
-                <div className="flex-1 overflow-y-auto">
-                    <div className="p-4 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="flex-1 overflow-y-auto bg-slate-800">
+                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px">
                         {filteredUsers.map((user) => {
                             const isAgora = agoraUserIds.includes(user.id);
                             const isPlus = user.subscription_tier === 'plus';
                             return (
                                 <div 
                                     key={user.id} 
-                                    className={`isolate relative aspect-square cursor-pointer group rounded-lg overflow-hidden ${isAgora ? 'border-2 border-red-600 animate-pulse-fire' : ''} ${isPlus && !isAgora ? 'border-2 border-yellow-400/80' : ''}`}
+                                    className={`isolate relative aspect-square cursor-pointer group overflow-hidden bg-slate-900 ${isAgora ? 'border-2 border-red-600 animate-pulse-fire' : ''} ${isPlus && !isAgora ? 'border-2 border-yellow-400/80' : ''}`}
                                     onClick={() => handleUserClick(user)}
                                 >
                                     <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />

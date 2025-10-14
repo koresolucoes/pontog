@@ -14,8 +14,8 @@ export default async function handler(
   try {
     const { subscription_object } = req.body;
 
-    if (!subscription_object) {
-        return res.status(400).json({ error: 'subscription_object is required' });
+    if (!subscription_object || !subscription_object.endpoint) { // Check for endpoint
+        return res.status(400).json({ error: 'subscription_object with endpoint is required' });
     }
 
     // Initialize Supabase admin client using environment variables from Vercel
@@ -36,14 +36,15 @@ export default async function handler(
       return res.status(401).json({ error: 'User not authenticated or token is invalid' });
     }
 
-    // Insert or update the subscription in the database.
-    // Using upsert with onConflict is efficient for re-subscriptions.
+    // Upsert based on the endpoint, which is now the primary key.
+    // This correctly links the device to the currently logged-in user.
     const { error } = await supabaseAdmin
       .from('push_subscriptions')
       .upsert({
+        endpoint: subscription_object.endpoint, // The conflict target
         user_id: user.id,
         subscription_details: subscription_object
-      }, { onConflict: 'user_id' }); 
+      }, { onConflict: 'endpoint' }); 
 
     if (error) throw error;
 

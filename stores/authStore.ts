@@ -3,6 +3,7 @@ import { supabase, getPublicImageUrl } from '../lib/supabase';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { Profile, User } from '../types';
 import { calculateAge } from '../lib/utils';
+import { usePwaStore } from './pwaStore';
 
 interface AuthState {
   session: Session | null;
@@ -68,6 +69,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signOut: async () => {
+    // Unlink the push subscription from the backend before signing out
+    await usePwaStore.getState().unlinkSubscriptionOnLogout();
     await supabase.auth.signOut();
     // onAuthStateChange will handle setting state to null
   },
@@ -89,6 +92,8 @@ supabase.auth.onAuthStateChange((_event, session) => {
   useAuthStore.getState().setSession(session);
   if (session?.user) {
     useAuthStore.getState().fetchProfile(session.user);
+    // When a user logs in, re-link any existing device subscription to them
+    usePwaStore.getState().relinkSubscriptionOnLogin();
   } else {
     // User signed out
     useAuthStore.setState({ session: null, user: null, profile: null });

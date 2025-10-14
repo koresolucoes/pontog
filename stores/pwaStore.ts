@@ -38,6 +38,8 @@ interface PwaState {
   isSubscribing: boolean;
   checkPushSupport: () => Promise<void>;
   subscribeToPushNotifications: () => Promise<void>;
+  unlinkSubscriptionOnLogout: () => Promise<void>;
+  relinkSubscriptionOnLogin: () => Promise<void>;
 }
 
 export const usePwaStore = create<PwaState>((set, get) => ({
@@ -153,6 +155,63 @@ export const usePwaStore = create<PwaState>((set, get) => ({
         }
     } finally {
         set({ isSubscribing: false });
+    }
+  },
+
+  unlinkSubscriptionOnLogout: async () => {
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      
+      if (subscription) {
+        const subscriptionObject = subscription.toJSON();
+        // Fire-and-forget request to the backend to set user_id to null
+        fetch('/api/unlink-push-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription_object: subscriptionObject }),
+        });
+        console.log('Unlinking push subscription from backend.');
+      }
+    } catch (error) {
+      console.error('Error during push subscription unlinking:', error);
+    }
+  },
+
+  relinkSubscriptionOnLogin: async () => {
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      
+      // If a subscription exists on the device, send it to the backend to link it to the new user.
+      if (subscription) {
+        console.log('Existing subscription found on device. Relinking with current user.');
+        const subscriptionObject = subscription.toJSON();
+        const { session } = (await supabase.auth.getSession()).data;
+        if (!session) return; // Can't re-link if not logged in.
+
+        const response = await fetch('/api/store-push-subscription', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ subscription_object: subscriptionObject }),
+        });
+
+        if (response.ok) {
+          console.log('Subscription successfully re-linked.');
+          // Silently update state to 'granted' as we now have a valid server link.
+          set({ pushState: 'granted' });
+        } else {
+          console.error('Failed to re-link subscription.');
+        }
+      }
+    } catch (error) {
+      console.error('Error during push subscription re-linking:', error);
     }
   },
 }));

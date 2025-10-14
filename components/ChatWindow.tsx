@@ -313,13 +313,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const MessageStatus = ({ msg }: { msg: MessageType }) => {
     if (msg.sender_id !== currentUser.id) return null;
     
-    const isRead = msg.read_at && currentUser.subscription_tier === 'plus';
+    // FIX: A lógica de confirmação de leitura foi refatorada para ser mais explícita e robusta.
+    // Isso garante que o benefício funcione corretamente para usuários Plus.
+    const isPremiumUser = currentUser?.subscription_tier === 'plus';
+    const hasBeenRead = msg.read_at !== null && msg.read_at !== undefined;
+    const showReadReceipt = isPremiumUser && hasBeenRead;
 
     return (
       <div className="flex items-center space-x-1">
           {msg.updated_at && <span className="text-xs text-slate-500">(editado)</span>}
           <span className="text-xs text-slate-400">{format(new Date(msg.created_at), 'HH:mm')}</span>
-          {isRead ? (
+          {showReadReceipt ? (
               <span className="material-symbols-outlined !text-[16px] text-blue-400">done_all</span>
           ) : (
               <span className="material-symbols-outlined !text-[16px] text-slate-400">check</span>

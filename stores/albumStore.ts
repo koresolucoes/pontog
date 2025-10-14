@@ -158,15 +158,20 @@ export const useAlbumStore = create<AlbumState>((set, get) => ({
             return;
         }
         
-        // 1. Check access status
+        // FIX: Replaced `.single()` with `.limit(1)` to prevent a 406 error when no access
+        // record exists between users. The code now handles an array response gracefully.
         const { data: accessData, error: accessError } = await supabase
             .from('private_album_access')
             .select('status')
             .eq('owner_id', userId)
             .eq('requester_id', currentUser.id)
-            .single();
+            .limit(1);
         
-        const status = accessData?.status as AlbumAccessStatus || null;
+        if (accessError) {
+            console.error("Error fetching album access status:", accessError);
+        }
+
+        const status = accessData && accessData.length > 0 ? accessData[0].status as AlbumAccessStatus : null;
         set({ viewedUserAccessStatus: status });
 
         // 2. If access is granted, fetch albums

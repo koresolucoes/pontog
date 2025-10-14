@@ -1,30 +1,17 @@
 // public/service-worker.js
 
-const CACHE_NAME = 'ponto-g-cache-v3'; // Versão incrementada para forçar a atualização
-// FIX: Removido os ícones da lista de pré-cache.
-// Se os ícones não forem encontrados, a instalação do Service Worker falha,
-// fazendo com que `navigator.serviceWorker.ready` nunca resolva, o que causa o
-// estado de carregamento infinito ao tentar se inscrever para notificações.
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json'
-];
+const CACHE_NAME = 'ponto-g-cache-v3'; // A versão do cache permanece a mesma por enquanto.
 
-// Evento de instalação: força a ativação do novo SW.
+// Evento de instalação: simplificado para ser mais robusto.
+// A etapa de pré-cache foi removida pois o evento 'fetch' já cuida do cache sob demanda.
+// Se a instalação falhar, as notificações e o PWA não funcionam. Esta é a correção principal.
 self.addEventListener('install', event => {
   self.skipWaiting(); // Força o novo Service Worker a se tornar ativo imediatamente.
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Cache aberto e ativos principais sendo cacheados');
-        return cache.addAll(urlsToCache);
-      })
-  );
 });
 
 // Evento de fetch: serve conteúdo do cache quando offline.
 self.addEventListener('fetch', event => {
+  // Ignora requisições que não sejam GET (ex: POST para a API)
   if (event.request.method !== 'GET') {
     return;
   }
@@ -32,19 +19,24 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
+        // Se o recurso já está no cache, retorna ele.
         if (response) {
           return response;
         }
 
+        // Se não está no cache, busca na rede.
         return fetch(event.request).then(
           networkResponse => {
+            // Se a resposta da rede for inválida, apenas retorna ela.
             if(!networkResponse || networkResponse.status !== 200) {
               return networkResponse;
             }
 
+            // Clona a resposta para poder colocar no cache e retornar ao navegador.
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME)
               .then(cache => {
+                // Não armazena em cache as chamadas de API para evitar dados obsoletos.
                 if (!event.request.url.includes('/api/')) {
                     cache.put(event.request, responseToCache);
                 }
@@ -53,7 +45,9 @@ self.addEventListener('fetch', event => {
             return networkResponse;
           }
         ).catch(error => {
-            console.log('Falha no fetch; retornando página offline.', error);
+            console.log('Falha no fetch; retornando página offline se disponível no cache.', error);
+            // Em um app real, você poderia retornar uma página de fallback de offline aqui.
+            // Ex: return caches.match('/offline.html');
         });
       })
   );
@@ -81,8 +75,8 @@ self.addEventListener('push', event => {
   const data = event.data.json();
   const options = {
     body: data.body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png'
+    icon: 'https://placehold.co/192x192/db2777/FFFFFF/png?text=G&font=sans', // Usando o ícone de placeholder
+    badge: 'https://placehold.co/192x192/db2777/FFFFFF/png?text=G&font=sans'
   };
   event.waitUntil(
     self.registration.showNotification(data.title, options)

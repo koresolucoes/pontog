@@ -4,13 +4,13 @@
   "description": "Um aplicativo de encontros para a comunidade gay, focado em geolocalização para encontrar conexões rápidas e diretas ao seu redor.",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "https://placehold.co/192x192/db2777/FFFFFF/png?text=G&font=sans",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "https://placehold.co/512x512/db2777/FFFFFF/png?text=G&font=sans",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"

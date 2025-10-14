@@ -23,6 +23,7 @@ interface AlbumState {
     // Functions for access control and viewing other's albums
     fetchAlbumsAndAccessStatusForUser: (userId: string) => Promise<void>;
     requestAccess: (ownerId: string) => Promise<void>;
+    grantAccess: (albumId: number, targetUserId: string) => Promise<void>;
     clearViewedUserData: () => void;
 }
 
@@ -220,6 +221,17 @@ export const useAlbumStore = create<AlbumState>((set, get) => ({
         }
 
         set({ viewedUserAccessStatus: 'pending' });
+    },
+    
+    grantAccess: async (albumId: number, targetUserId: string) => {
+        const { error } = await supabase.rpc('grant_album_access', {
+            p_album_id: albumId,
+            p_target_user_id: targetUserId,
+        });
+        if (error) {
+            console.error('Error granting album access:', error);
+            throw error;
+        }
     },
 
     clearViewedUserData: () => {

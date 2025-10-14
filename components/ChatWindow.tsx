@@ -1,12 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { User, Message as MessageType } from '../types';
+import { User, Message as MessageType, PrivateAlbum } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import { useMapStore } from '../stores/mapStore';
 import { useInboxStore } from '../stores/inboxStore';
+import { useAlbumStore } from '../stores/albumStore';
+import { useUiStore } from '../stores/uiStore';
 import { format } from 'date-fns';
 import { formatLastSeen } from '../lib/utils';
 import { ConfirmationModal } from './ConfirmationModal';
+import { SelectAlbumModal } from './SelectAlbumModal';
+import { getPublicImageUrl } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 interface ChatUser {
@@ -22,6 +26,49 @@ interface ChatWindowProps {
   onClose: () => void;
 }
 
+const MessageContent: React.FC<{ message: MessageType }> = ({ message }) => {
+    const { setSelectedUser } = useMapStore();
+    const { user: currentUser } = useAuthStore();
+
+    try {
+        const parsedContent = JSON.parse(message.content);
+        if (parsedContent.type) {
+            switch(parsedContent.type) {
+                case 'location':
+                    const { lat, lng } = parsedContent;
+                    const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                    return (
+                        <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="block text-left">
+                            <div className="p-2 rounded-lg bg-gray-600 hover:bg-gray-500 transition-colors">
+                                <p className="font-bold text-sm text-white">Localização Compartilhada</p>
+                                <p className="text-xs text-gray-300">Clique para ver no mapa</p>
+                            </div>
+                        </a>
+                    );
+                case 'album':
+                    const { albumName } = parsedContent;
+                    return (
+                         <div className="p-2 rounded-lg bg-gray-600 text-left">
+                            <p className="font-bold text-sm text-white">Álbum Compartilhado</p>
+                            <p className="text-xs text-gray-300 italic">"{albumName}"</p>
+                        </div>
+                    );
+            }
+        }
+    } catch (e) {
+        // Not JSON, treat as plain text
+    }
+
+    return (
+        <div className="space-y-2">
+            {message.image_url && (
+                <img src={getPublicImageUrl(message.image_url)} alt="Imagem enviada" className="max-w-xs rounded-lg cursor-pointer" onClick={() => window.open(getPublicImageUrl(message.image_url))}/>
+            )}
+            {message.content && <p className="text-sm break-words">{message.content}</p>}
+        </div>
+    );
+};
+
 export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -30,11 +77,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const currentUser = useAuthStore(state => state.user);
   const onlineUsers = useMapStore(state => state.onlineUsers);
   const { deleteConversation } = useInboxStore();
+  const { uploadPhoto, grantAccess } = useAlbumStore();
 
   const [editingMessage, setEditingMessage] = useState<MessageType | null>(null);
   const [editedContent, setEditedContent] = useState('');
   const [confirmDeleteMessage, setConfirmDeleteMessage] = useState<MessageType | null>(null);
   const [confirmDeleteConvo, setConfirmDeleteConvo] = useState(false);
+  
+  const [isAttachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
+  const [isAlbumSelectorOpen, setIsAlbumSelectorOpen] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const markMessagesAsRead = useCallback(async (messageIds: number[]) => {
       if (messageIds.length === 0) return;
@@ -118,45 +170,103 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   };
 
   useEffect(scrollToBottom, [messages]);
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newMessage.trim() === '' || !currentUser || !conversationId) return;
-
-    const content = newMessage.trim();
+  
+  const sendMessage = async (content: string | null, imageUrl: string | null = null) => {
+    if ((!content || content.trim() === '') && !imageUrl) return;
+    if (!currentUser || !conversationId) return;
 
     const { error } = await supabase.from('messages').insert({
       sender_id: currentUser.id,
       conversation_id: conversationId,
       content: content,
+      image_url: imageUrl,
     });
-
+    
     if (error) {
-      console.error("Error sending message:", error);
-      toast.error("Falha ao enviar mensagem.");
+        toast.error("Falha ao enviar mensagem.");
     } else {
-      setNewMessage('');
-      
-      const { session } = (await supabase.auth.getSession()).data;
-      if (session) {
-        fetch('/api/send-push', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({
-            receiver_id: user.id,
-            message_content: content
-          })
-        }).catch(err => console.error("Error sending push notification:", err));
+        const { session } = (await supabase.auth.getSession()).data;
+        if (session && content) {
+            fetch('/api/send-push', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({
+                    receiver_id: user.id,
+                    message_content: content.length > 50 ? 'Nova mensagem' : content
+                })
+            }).catch(err => console.error("Error sending push notification:", err));
+        }
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await sendMessage(newMessage, null);
+    setNewMessage('');
+  };
+  
+  const handleSendImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const toastId = toast.loading('Enviando imagem...');
+    const imagePath = await uploadPhoto(file);
+    if (imagePath) {
+        await sendMessage(newMessage, imagePath);
+        setNewMessage('');
+        toast.success('Imagem enviada!', { id: toastId });
+    } else {
+        toast.error('Falha ao enviar imagem.', { id: toastId });
+    }
+    // Reset file input
+    if (e.target) e.target.value = '';
+  };
+
+  const handleSendLocation = () => {
+    setAttachmentMenuOpen(false);
+    toast.loading('Obtendo sua localização...');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        toast.dismiss();
+        const { latitude, longitude } = position.coords;
+        const locationContent = JSON.stringify({
+          type: 'location',
+          lat: latitude,
+          lng: longitude,
+        });
+        sendMessage(locationContent);
+      },
+      (error) => {
+        toast.dismiss();
+        toast.error('Não foi possível obter a localização.');
+        console.error("Geolocation error:", error);
       }
+    );
+  };
+  
+  const handleSelectAlbum = async (album: PrivateAlbum) => {
+    setIsAlbumSelectorOpen(false);
+    const toastId = toast.loading(`Compartilhando álbum "${album.name}"...`);
+    try {
+        await grantAccess(album.id, user.id);
+        const albumContent = JSON.stringify({
+            type: 'album',
+            albumId: album.id,
+            albumName: album.name,
+        });
+        await sendMessage(albumContent);
+        toast.success('Álbum compartilhado!', { id: toastId });
+    } catch (error) {
+        toast.error('Falha ao compartilhar o álbum.', { id: toastId });
     }
   };
   
   const handleStartEdit = (msg: MessageType) => {
       setEditingMessage(msg);
-      setEditedContent(msg.content);
+      setEditedContent(msg.content ?? '');
   };
   
   const handleCancelEdit = () => {
@@ -268,8 +378,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                      </div>
                  ) : (
                     <div className={`px-4 py-2 rounded-2xl relative ${msg.sender_id === currentUser.id ? 'bg-pink-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'}`}>
-                      <p className="text-sm break-words">{msg.content}</p>
-                       {msg.sender_id === currentUser.id && (
+                      <MessageContent message={msg} />
+                       {msg.sender_id === currentUser.id && !msg.image_url && !msg.content?.includes('"type":') &&(
                            <div className="absolute top-0 -left-14 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                                <button onClick={() => handleStartEdit(msg)} className="text-xs bg-gray-700 text-white rounded-full px-2 py-0.5">Editar</button>
                                <button onClick={() => setConfirmDeleteMessage(msg)} className="text-xs bg-gray-700 text-white rounded-full px-2 py-0.5">Excluir</button>
@@ -288,20 +398,37 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       </div>
       
       {!editingMessage && (
-        <form onSubmit={handleSendMessage} className="p-2 border-t border-gray-700 bg-gray-800">
-            <div className="relative">
-            <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Digite uma mensagem..."
-                className="w-full bg-gray-700 rounded-full py-2.5 pl-4 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
-            />
-            <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-pink-600 text-white rounded-full p-2 hover:bg-pink-700 transition-colors">
-                <span className="material-symbols-outlined text-xl">send</span>
-            </button>
-            </div>
-        </form>
+        <div className="p-2 border-t border-gray-700 bg-gray-800 relative">
+             {isAttachmentMenuOpen && (
+                <div className="absolute bottom-full left-2 mb-2 w-48 bg-gray-700 rounded-lg shadow-lg p-2 animate-fade-in-up">
+                    <button onClick={() => { setAttachmentMenuOpen(false); imageInputRef.current?.click(); }} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-gray-600 text-white">
+                        <span className="material-symbols-outlined text-xl">image</span> Foto
+                    </button>
+                     <button onClick={handleSendLocation} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-gray-600 text-white">
+                        <span className="material-symbols-outlined text-xl">location_on</span> Localização
+                    </button>
+                     <button onClick={() => { setAttachmentMenuOpen(false); setIsAlbumSelectorOpen(true); }} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-gray-600 text-white">
+                        <span className="material-symbols-outlined text-xl">photo_album</span> Álbum Privado
+                    </button>
+                </div>
+            )}
+            <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                <input type="file" accept="image/*" className="hidden" ref={imageInputRef} onChange={handleSendImage}/>
+                 <button type="button" onClick={() => setAttachmentMenuOpen(prev => !prev)} className="text-gray-400 hover:text-white p-2.5 rounded-full hover:bg-gray-700 transition-colors">
+                    <span className="material-symbols-outlined text-xl">add_circle</span>
+                </button>
+                <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Digite uma mensagem..."
+                    className="flex-1 bg-gray-700 rounded-full py-2.5 pl-4 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                />
+                <button type="submit" className="bg-pink-600 text-white rounded-full p-2.5 hover:bg-pink-700 transition-colors">
+                    <span className="material-symbols-outlined text-xl">send</span>
+                </button>
+            </form>
+        </div>
       )}
     </div>
     {confirmDeleteMessage && (
@@ -322,6 +449,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
             onConfirm={handleDeleteConversation}
             onCancel={() => setConfirmDeleteConvo(false)}
             confirmText="Apagar Conversa"
+        />
+    )}
+    {isAlbumSelectorOpen && (
+        <SelectAlbumModal 
+            onClose={() => setIsAlbumSelectorOpen(false)}
+            onSelect={handleSelectAlbum}
         />
     )}
     </>

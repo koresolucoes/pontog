@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ponto G</title>
+  <title>Ponto G: Encontros Gays. Agora.</title>
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="/manifest.json" />
@@ -12,7 +12,7 @@
   <meta name="theme-color" content="#db2777" />
   
   <!-- Basic SEO and App Info -->
-  <meta name="description" content="Um aplicativo de encontros para a comunidade gay, focado em geolocalização para encontrar conexões rápidas e diretas ao seu redor." />
+  <meta name="description" content="Encontros gays, sem enrolação. O Ponto G te conecta com caras por perto que buscam o mesmo que você. Rápido, direto e discreto." />
   
   <!-- Tailwind CSS Play CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -20,7 +20,7 @@
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Google Material Symbols -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
@@ -118,7 +118,7 @@
         }
     }
     .animate-fade-in-up {
-        animation: fadeInUp 0.3s ease-out forwards;
+        animation: fadeInUp 0.5s ease-out forwards;
     }
 
     /* Animação para o modo 'Agora' */
@@ -148,6 +148,13 @@
     }
     ::-webkit-scrollbar-thumb:hover {
         background: #475569; /* bg-slate-600 */
+    }
+
+    /* Auth page background style */
+    .auth-background {
+        background-image: linear-gradient(to top, rgba(15, 23, 42, 1) 0%, rgba(15, 23, 42, 0.7) 50%, rgba(15, 23, 42, 1) 100%), url('https://images.pexels.com/photos/1528642/pexels-photo-1528642.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2');
+        background-size: cover;
+        background-position: center;
     }
   </style>
 

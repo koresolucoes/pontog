@@ -1,16 +1,16 @@
 {
   "short_name": "Ponto G",
-  "name": "Ponto G",
-  "description": "Um aplicativo de encontros para a comunidade gay, focado em geolocalização para encontrar conexões rápidas e diretas ao seu redor.",
+  "name": "Ponto G: Encontros Gays",
+  "description": "Encontros gays, sem enrolação. O Ponto G te conecta com caras por perto que buscam o mesmo que você. Rápido, direto e discreto.",
   "icons": [
     {
-      "src": "https://placehold.co/192x192/db2777/FFFFFF/png?text=G&font=sans",
+      "src": "https://placehold.co/192x192/db2777/FFFFFF/png?text=G&font=raleway&bold",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "https://placehold.co/512x512/db2777/FFFFFF/png?text=G&font=sans",
+      "src": "https://placehold.co/512x512/db2777/FFFFFF/png?text=G&font=raleway&bold",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
@@ -19,5 +19,5 @@
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#db2777",
-  "background_color": "#111827"
+  "background_color": "#0f172a"
 }

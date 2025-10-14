@@ -10,6 +10,12 @@ const GoogleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     </svg>
 );
 
+const features = [
+    { icon: "location_on", text: "Encontre caras perto de você" },
+    { icon: "bolt", text: "Conexões rápidas e diretas" },
+    { icon: "admin_panel_settings", text: "Discreto e 100% anônimo" }
+];
+
 export const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -61,22 +67,19 @@ export const Auth: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-slate-800 p-8 rounded-2xl shadow-lg">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 auth-background text-white">
+      <div className="w-full max-w-md bg-slate-900/70 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-white/10 animate-fade-in-up">
         <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-4xl text-white mx-auto">
-                G
-            </div>
-            <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-500 mt-4">
+            <h1 className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">
                 Ponto G
             </h1>
-            <p className="text-slate-400 mt-2">{isLogin ? 'Bem-vindo de volta!' : 'Crie sua conta'}</p>
+            <p className="text-slate-300 mt-2 font-semibold">Encontros gays. Sem enrolação.</p>
         </div>
         
         <form onSubmit={handleAuth}>
           <div className="space-y-4">
             <input
-              className="w-full bg-slate-700 rounded-lg py-3 px-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500 border border-transparent focus:border-pink-500"
+              className="w-full bg-slate-800/50 rounded-lg py-3 px-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 border border-white/10"
               type="email"
               placeholder="Seu e-mail"
               value={email}
@@ -84,7 +87,7 @@ export const Auth: React.FC = () => {
               required
             />
             <input
-              className="w-full bg-slate-700 rounded-lg py-3 px-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500 border border-transparent focus:border-pink-500"
+              className="w-full bg-slate-800/50 rounded-lg py-3 px-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 border border-white/10"
               type="password"
               placeholder="Sua senha"
               value={password}
@@ -94,10 +97,10 @@ export const Auth: React.FC = () => {
           </div>
           <div className="mt-6">
             <button
-              className="w-full bg-pink-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
+              className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-pink-700 transition-all transform hover:scale-105 disabled:opacity-50"
               disabled={loading}
             >
-              {loading ? 'Carregando...' : (isLogin ? 'Entrar' : 'Cadastrar')}
+              {loading ? 'Carregando...' : (isLogin ? 'Entrar na Ação' : 'Criar Conta')}
             </button>
           </div>
         </form>
@@ -107,10 +110,10 @@ export const Auth: React.FC = () => {
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-600"></div>
+            <div className="w-full border-t border-slate-700"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-slate-800 text-slate-500">OU</span>
+            <span className="px-2 bg-slate-900/0 text-slate-500 backdrop-blur-sm">ou</span>
           </div>
         </div>
 
@@ -119,26 +122,35 @@ export const Auth: React.FC = () => {
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 bg-white text-slate-700 font-semibold py-3 px-4 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 bg-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg hover:bg-white transition-colors disabled:opacity-50"
           >
             <GoogleIcon className="w-5 h-5" />
-            <span>{isLogin ? 'Entrar com Google' : 'Cadastrar com Google'}</span>
+            <span>Continuar com Google</span>
           </button>
         </div>
 
         <p className="mt-6 text-center text-sm text-slate-400">
-          {isLogin ? "Não tem uma conta?" : "Já tem uma conta?"}
+          {isLogin ? "Novo por aqui?" : "Já tem uma conta?"}
           <button
             onClick={() => {
                 setIsLogin(!isLogin);
                 setError(null);
                 setMessage(null);
             }}
-            className="font-semibold text-pink-500 hover:underline ml-1"
+            className="font-semibold text-pink-400 hover:underline ml-1"
           >
             {isLogin ? 'Cadastre-se' : 'Faça login'}
           </button>
         </p>
+      </div>
+
+      <div className="w-full max-w-md mt-8 space-y-4 text-center animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+        {features.map((feature, index) => (
+            <div key={index} className="flex items-center justify-center gap-3 text-slate-300">
+                <span className="material-symbols-outlined text-xl text-pink-400">{feature.icon}</span>
+                <span className="font-medium">{feature.text}</span>
+            </div>
+        ))}
       </div>
     </div>
   );

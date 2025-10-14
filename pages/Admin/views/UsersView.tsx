@@ -1,43 +1,44 @@
 // pages/Admin/views/UsersView.tsx
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAdminStore } from '../../../stores/adminStore';
 import { Profile } from '../../../types';
 import { format } from 'date-fns';
+import { GrantSubscriptionModal } from '../components/GrantSubscriptionModal';
 
 export const UsersView: React.FC = () => {
     const [users, setUsers] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
     const token = useAdminStore((state) => state.getToken());
     
-    // Paginação
     const [currentPage, setCurrentPage] = useState(1);
     const usersPerPage = 15;
 
+    const fetchUsers = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await fetch('/api/admin/users', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Falha ao buscar usuários');
+            }
+            const data = await response.json();
+            setUsers(data);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [token]);
 
     useEffect(() => {
-        const fetchUsers = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const response = await fetch('/api/admin/users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Falha ao buscar usuários');
-                }
-                const data = await response.json();
-                setUsers(data);
-            } catch (err: any) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchUsers();
-    }, [token]);
+    }, [fetchUsers]);
     
     const filteredUsers = useMemo(() => {
         return users.filter(user => 
@@ -46,13 +47,17 @@ export const UsersView: React.FC = () => {
         );
     }, [users, searchTerm]);
     
-    // Lógica da paginação
     const indexOfLastUser = currentPage * usersPerPage;
     const indexOfFirstUser = indexOfLastUser - usersPerPage;
     const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
     const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
     const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+    const handleGrantSuccess = () => {
+        setSelectedUser(null);
+        fetchUsers(); // Re-fetch users to show updated status
+    };
 
     if (loading) return <div className="text-center">Carregando usuários...</div>;
     if (error) return <div className="text-center text-red-500">Erro: {error}</div>;
@@ -78,6 +83,7 @@ export const UsersView: React.FC = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Usuário</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Assinatura</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Última Atualização</th>
+                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-700">
@@ -102,6 +108,13 @@ export const UsersView: React.FC = () => {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                                     {format(new Date(user.updated_at), 'dd/MM/yyyy HH:mm')}
                                 </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    {user.subscription_tier !== 'plus' && (
+                                        <button onClick={() => setSelectedUser(user)} className="text-pink-400 hover:text-pink-300">
+                                            Conceder Plus
+                                        </button>
+                                    )}
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -121,6 +134,13 @@ export const UsersView: React.FC = () => {
                     </button>
                 </div>
             </div>
+            {selectedUser && (
+                <GrantSubscriptionModal 
+                    user={selectedUser} 
+                    onClose={() => setSelectedUser(null)} 
+                    onSuccess={handleGrantSuccess}
+                />
+            )}
         </div>
     );
 };

@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
+import { getPublicImageUrl } from '../../lib/supabase';
 
 const verifyAdmin = (req: VercelRequest) => {
     const token = req.headers.authorization?.split(' ')[1];
@@ -24,11 +25,17 @@ export default async function handler(
     const { data, error } = await supabaseAdmin
         .from('profiles')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false }); // FIX: Changed created_at to updated_at
 
     if (error) throw error;
         
-    res.status(200).json(data);
+    // Process avatar URLs before sending
+    const processedData = data.map(user => ({
+      ...user,
+      avatar_url: getPublicImageUrl(user.avatar_url)
+    }));
+
+    res.status(200).json(processedData);
 
   } catch (error: any) {
     res.status(401).json({ error: error.message || 'Authentication failed' });

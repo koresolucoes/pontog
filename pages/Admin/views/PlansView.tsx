@@ -31,7 +31,7 @@ const PlanFormModal: React.FC<{
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : type === 'number' ? parseFloat(value) : value,
+            [name]: type === 'checkbox' ? checked : type === 'number' ? (value === '' ? null : parseFloat(value)) : value,
         }));
     };
 
@@ -66,19 +66,36 @@ const PlanFormModal: React.FC<{
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in" onClick={onClose}>
             <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
                 <h2 className="text-xl font-bold mb-4">{isEditing ? 'Editar Plano' : 'Novo Plano'}</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <input type="text" name="name" value={formData.name || ''} onChange={handleChange} placeholder="Nome (ex: 1 Mês)" className="w-full bg-gray-700 p-2 rounded" required />
-                    <input type="text" name="plan_id" value={formData.plan_id || ''} onChange={handleChange} placeholder="ID do Plano (ex: monthly)" className="w-full bg-gray-700 p-2 rounded" required disabled={isEditing} />
-                    <input type="number" name="price" value={formData.price || ''} onChange={handleChange} placeholder="Preço (ex: 29.90)" step="0.01" className="w-full bg-gray-700 p-2 rounded" required />
-                    <input type="number" name="months_duration" value={formData.months_duration || ''} onChange={handleChange} placeholder="Duração em Meses" className="w-full bg-gray-700 p-2 rounded" required />
-                    <label className="flex items-center gap-2"><input type="checkbox" name="is_active" checked={formData.is_active || false} onChange={handleChange} /> Ativo</label>
-                    <label className="flex items-center gap-2"><input type="checkbox" name="is_popular" checked={formData.is_popular || false} onChange={handleChange} /> Popular</label>
+                    <div>
+                        <label htmlFor="name" className="block text-sm font-medium text-gray-300">Nome</label>
+                        <input id="name" type="text" name="name" value={formData.name || ''} onChange={handleChange} placeholder="Ex: 1 Mês" className="mt-1 w-full bg-gray-700 p-2 rounded" required />
+                    </div>
+                     <div>
+                        <label htmlFor="plan_id" className="block text-sm font-medium text-gray-300">ID do Plano</label>
+                        <input id="plan_id" type="text" name="plan_id" value={formData.plan_id || ''} onChange={handleChange} placeholder="Ex: monthly" className="mt-1 w-full bg-gray-700 p-2 rounded" required disabled={isEditing} />
+                        <p className="mt-1 text-xs text-gray-400">Identificador único. Não pode ser alterado após a criação.</p>
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="price" className="block text-sm font-medium text-gray-300">Preço (R$)</label>
+                            <input id="price" type="number" name="price" value={formData.price ?? ''} onChange={handleChange} placeholder="Ex: 29.90" step="0.01" className="mt-1 w-full bg-gray-700 p-2 rounded" required />
+                        </div>
+                        <div>
+                            <label htmlFor="months_duration" className="block text-sm font-medium text-gray-300">Duração (Meses)</label>
+                            <input id="months_duration" type="number" name="months_duration" value={formData.months_duration ?? ''} onChange={handleChange} placeholder="Ex: 1" className="mt-1 w-full bg-gray-700 p-2 rounded" required />
+                        </div>
+                    </div>
+                    <div className="flex space-x-4 pt-2">
+                        <label className="flex items-center gap-2 text-sm text-gray-200"><input type="checkbox" name="is_active" checked={formData.is_active || false} onChange={handleChange} /> Ativo</label>
+                        <label className="flex items-center gap-2 text-sm text-gray-200"><input type="checkbox" name="is_popular" checked={formData.is_popular || false} onChange={handleChange} /> Popular</label>
+                    </div>
                     <div className="flex justify-end gap-2 pt-4">
-                        <button type="button" onClick={onClose} className="bg-gray-600 px-4 py-2 rounded">Cancelar</button>
-                        <button type="submit" disabled={loading} className="bg-pink-600 px-4 py-2 rounded disabled:opacity-50">{loading ? 'Salvando...' : 'Salvar'}</button>
+                        <button type="button" onClick={onClose} className="bg-gray-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-500 transition-colors">Cancelar</button>
+                        <button type="submit" disabled={loading} className="bg-pink-600 px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-pink-700 transition-colors">{loading ? 'Salvando...' : 'Salvar'}</button>
                     </div>
                 </form>
             </div>
@@ -142,7 +159,7 @@ export const PlansView: React.FC = () => {
                             <tr key={plan.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{plan.name}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plan.price)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{plan.months_duration} meses</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{plan.months_duration} {plan.months_duration > 1 ? 'meses' : 'mês'}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${plan.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                         {plan.is_active ? 'Ativo' : 'Inativo'}

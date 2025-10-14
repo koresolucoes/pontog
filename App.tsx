@@ -3,6 +3,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
 import { useUiStore, View } from './stores/uiStore';
 import { useMapStore } from './stores/mapStore';
+import { useInboxStore } from './stores/inboxStore';
 import { Auth } from './components/Auth';
 import { HomeView } from './components/HomeView';
 import { UserGrid } from './components/UserGrid';
@@ -27,6 +28,7 @@ const App: React.FC = () => {
 
     const { session, user, loading, fetchProfile, showOnboarding } = useAuthStore();
     const { activeView, setActiveView, chatUser, setChatUser, isSubscriptionModalOpen, isDonationModalOpen } = useUiStore();
+    const { totalUnreadCount, fetchConversations, fetchWinks, fetchAccessRequests } = useInboxStore();
     const { setInstallPromptEvent } = usePwaStore();
     const { 
         selectedUser, 
@@ -76,12 +78,16 @@ const App: React.FC = () => {
     useEffect(() => {
         if (session) {
             requestLocationPermission();
+            // Carrega os dados da caixa de entrada para ter a contagem de notificações
+            fetchConversations();
+            fetchWinks();
+            fetchAccessRequests();
         }
         return () => {
             stopLocationWatch();
             cleanupRealtime();
         };
-    }, [session, requestLocationPermission, stopLocationWatch, cleanupRealtime]);
+    }, [session, requestLocationPermission, stopLocationWatch, cleanupRealtime, fetchConversations, fetchWinks, fetchAccessRequests]);
 
     if (loading) {
         return (
@@ -158,7 +164,7 @@ const App: React.FC = () => {
                    <NavButton icon="search" label="Buscar" isActive={activeView === 'grid'} onClick={() => setActiveView('grid')} />
                    <NavButton icon="travel_explore" label="Mapa" isActive={activeView === 'map'} onClick={() => setActiveView('map')} />
                    <NavButton icon="local_fire_department" label="Agora" isActive={activeView === 'agora'} onClick={() => setActiveView('agora')} />
-                   <NavButton icon="inbox" label="Entrada" isActive={activeView === 'inbox'} onClick={() => setActiveView('inbox')} />
+                   <NavButton icon="inbox" label="Entrada" isActive={activeView === 'inbox'} onClick={() => setActiveView('inbox')} notificationCount={totalUnreadCount} />
                    <NavButton icon="person" label="Perfil" isActive={activeView === 'profile'} onClick={() => setActiveView('profile')} isPlus={user.subscription_tier === 'plus'} />
                 </div>
             </nav>
@@ -172,9 +178,10 @@ interface NavButtonProps {
     isActive: boolean;
     onClick: () => void;
     isPlus?: boolean;
+    notificationCount?: number;
 }
 
-const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, isPlus = false }) => (
+const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, isPlus = false, notificationCount = 0 }) => (
     <button
         onClick={onClick}
         className={`relative flex flex-col items-center justify-center h-16 transition-colors group ${isActive ? 'text-pink-500' : 'text-slate-400 hover:text-white'}`}
@@ -183,6 +190,11 @@ const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, i
         <div className="relative">
              <div className={`absolute -inset-2.5 rounded-full transition-colors ${isActive ? 'bg-pink-500/10' : 'group-hover:bg-slate-700/50'}`}></div>
              <span className="material-symbols-outlined text-2xl relative z-10">{icon}</span>
+             {notificationCount > 0 && (
+                <span className="absolute -top-1 -right-2.5 h-5 min-w-[20px] px-1 bg-red-600 rounded-full text-white text-[10px] font-bold flex items-center justify-center border-2 border-slate-800/90 z-20">
+                    {notificationCount > 9 ? '9+' : notificationCount}
+                </span>
+             )}
         </div>
         <span className="text-[10px] mt-1 relative z-10">{label}</span>
         {isPlus && (

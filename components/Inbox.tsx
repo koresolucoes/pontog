@@ -43,6 +43,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     }, [activeTab, fetchConversations, fetchWinks, fetchAccessRequests]);
     
     const handleConversationClick = (convo: ConversationPreview) => {
+        // Fix: Add the missing 'distance_km' property to satisfy the User type.
         const chatPartner: User = {
             id: convo.other_participant_id,
             username: convo.other_participant_username,
@@ -50,7 +51,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             last_seen: convo.other_participant_last_seen,
             display_name: null, public_photos: [], status_text: null, date_of_birth: null,
             height_cm: null, weight_kg: null, tribes: [], position: null, hiv_status: null,
-            updated_at: '', lat: 0, lng: 0, age: 0 
+            updated_at: '', lat: 0, lng: 0, age: 0, distance_km: null
         };
         setChatUser(chatPartner);
     };

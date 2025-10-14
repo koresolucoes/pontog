@@ -85,7 +85,15 @@ export const UserGrid: React.FC = () => {
                                         )}
                                         <h3 className="font-bold text-sm truncate">{user.username}</h3>
                                     </div>
-                                    <p className="text-xs text-gray-300 truncate">{user.age} anos</p>
+                                    <div className="flex items-center gap-2 text-xs text-gray-300 truncate">
+                                        <span>{user.age} anos</span>
+                                        {user.distance_km != null && (
+                                            <>
+                                                <span>&middot;</span>
+                                                <span>{user.distance_km < 1 ? `${Math.round(user.distance_km * 1000)} m` : `${user.distance_km.toFixed(1)} km`}</span>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                                 {isAgora && (
                                     <div className="absolute top-1 right-1 bg-red-600/80 rounded-full p-1 shadow-lg">

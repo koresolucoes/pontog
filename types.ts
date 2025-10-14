@@ -28,6 +28,7 @@ export interface Profile {
   lat: number;
   lng: number;
   last_seen: string | null; // Adicionado para status de atividade
+  distance_km: number | null; // Adicionado para distância
 }
 
 // O tipo User estende Profile com campos calculados como 'idade'

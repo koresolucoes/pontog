@@ -1,34 +1,8 @@
 import { create } from 'zustand';
-import { supabase, getPublicImageUrl } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { User, Coordinates } from '../types';
 import { useAuthStore } from './authStore';
-
-// Helper function to calculate age from date of birth
-const calculateAge = (dob: string | null): number => {
-    if (!dob) return 0;
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-    }
-    return age;
-};
-
-// Helper to transform raw profile data into a User object
-const transformProfileToUser = (profile: any): User => {
-  const user = {
-    ...profile,
-    age: calculateAge(profile.date_of_birth),
-    avatar_url: getPublicImageUrl(profile.avatar_url),
-    public_photos: (profile.public_photos || []).map(getPublicImageUrl),
-    tribes: profile.profile_tribes?.map((pt: any) => pt.tribes.name) || [],
-  };
-  delete user.profile_tribes; // Clean up joined data
-  return user as User;
-};
-
+import { transformProfileToUser } from '../lib/utils';
 
 interface MapState {
   users: User[];

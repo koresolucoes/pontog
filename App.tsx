@@ -4,6 +4,7 @@ import { useAuthStore } from './stores/authStore';
 import { useUiStore, View } from './stores/uiStore';
 import { useMapStore } from './stores/mapStore';
 import { Auth } from './components/Auth';
+import { HomeView } from './components/HomeView';
 import { UserGrid } from './components/UserGrid';
 import { Map } from './components/Map';
 import { Inbox } from './components/Inbox';
@@ -12,7 +13,7 @@ import { ProfileModal } from './components/ProfileModal';
 import { ChatWindow } from './components/ChatWindow';
 import { AgoraView } from './components/AgoraView';
 import { PwaInstallButton } from './components/PwaInstallButton'; // Importa o novo botão
-import { SearchIcon, MessageCircleIcon, MapPinIcon, UserIcon, FlameIcon } from './components/icons';
+import { SearchIcon, MessageCircleIcon, MapPinIcon, UserIcon, FlameIcon, HomeIcon } from './components/icons';
 // Fix: Import 'usePwaStore' to resolve the undefined reference.
 import { usePwaStore } from './stores/pwaStore';
 
@@ -81,6 +82,8 @@ const App: React.FC = () => {
 
     const renderActiveView = () => {
         switch (activeView) {
+            case 'home':
+                return <HomeView />;
             case 'grid':
                 return <UserGrid />;
             case 'map':
@@ -92,7 +95,7 @@ const App: React.FC = () => {
             case 'profile':
                 return <ProfileView />;
             default:
-                return <UserGrid />;
+                return <HomeView />;
         }
     };
 
@@ -138,7 +141,13 @@ const App: React.FC = () => {
 
             {/* Barra de Navegação Inferior */}
             <nav className="fixed bottom-0 left-0 right-0 bg-gray-800/90 backdrop-blur-sm border-t border-gray-700 z-20">
-                <div className="max-w-md mx-auto grid grid-cols-5">
+                <div className="max-w-md mx-auto grid grid-cols-6">
+                   <NavButton 
+                        icon={HomeIcon} 
+                        label="Início" 
+                        isActive={activeView === 'home'} 
+                        onClick={() => setActiveView('home')}
+                    />
                    <NavButton 
                         icon={SearchIcon} 
                         label="Buscar" 

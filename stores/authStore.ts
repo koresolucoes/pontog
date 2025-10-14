@@ -2,19 +2,7 @@ import { create } from 'zustand';
 import { supabase, getPublicImageUrl } from '../lib/supabase';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { Profile, User } from '../types';
-
-// Helper function to calculate age from date of birth
-const calculateAge = (dob: string | null): number => {
-    if (!dob) return 0;
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-    }
-    return age;
-};
+import { calculateAge } from '../lib/utils';
 
 interface AuthState {
   session: Session | null;
@@ -61,6 +49,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             avatar_url: getPublicImageUrl(data.avatar_url),
             public_photos: (data.public_photos || []).map(getPublicImageUrl),
             tribes: data.profile_tribes?.map((pt: any) => pt.tribes.name) || [],
+            distance_km: null, // Distance is not relevant for the auth user's own profile
         };
         delete (profileData as any).profile_tribes; // Clean up joined data
         

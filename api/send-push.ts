@@ -30,7 +30,8 @@ export default async function handler(
     // Inicializa o cliente admin do Supabase
     const supabaseAdmin = createClient(
       process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } }
     );
 
     // Obtém o usuário remetente a partir do token de autenticação

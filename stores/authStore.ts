@@ -14,9 +14,10 @@ interface AuthState {
   setSession: (session: Session | null) => void;
   fetchProfile: (user: SupabaseUser) => Promise<void>;
   signOut: () => Promise<void>;
+  toggleIncognitoMode: (isIncognito: boolean) => Promise<void>; // Nova função
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
   user: null,
   profile: null,
@@ -53,6 +54,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             tribes: data.profile_tribes?.map((pt: any) => pt.tribes.name) || [],
             distance_km: null, // Distance is not relevant for the auth user's own profile
             subscription_tier: data.subscription_tier || 'free',
+            is_incognito: data.is_incognito || false,
         };
         delete (profileData as any).profile_tribes; // Clean up joined data
         
@@ -71,6 +73,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           display_name: supabaseUser.user_metadata?.full_name || supabaseUser.email!.split('@')[0],
           avatar_url: supabaseUser.user_metadata?.avatar_url,
           subscription_tier: 'free', // Default to free on creation
+          is_incognito: false, // Default
         };
 
         const { data: insertedProfile, error: insertError } = await supabase
@@ -92,6 +95,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             tribes: [],
             distance_km: null,
             subscription_tier: 'free',
+            is_incognito: false,
           };
   
           const userData: User = {
@@ -121,6 +125,40 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     // The onAuthStateChange listener will handle all state cleanup.
   },
+
+  toggleIncognitoMode: async (isIncognito: boolean) => {
+    const { user } = get();
+    if (!user) return;
+    
+    if (user.subscription_tier !== 'plus') {
+        toast.error('Modo Invisível é um benefício do Ponto G Plus.');
+        // Revert UI change
+        set(state => ({ user: state.user ? { ...state.user, is_incognito: !isIncognito } : null }));
+        return;
+    }
+
+    const toastId = toast.loading('Atualizando status...');
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_incognito: isIncognito })
+      .eq('id', user.id);
+    
+    if (error) {
+      toast.error('Erro ao atualizar o modo invisível.', { id: toastId });
+      // Revert UI on error
+       set(state => ({
+          user: state.user ? { ...state.user, is_incognito: !isIncognito } : null,
+          profile: state.profile ? { ...state.profile, is_incognito: !isIncognito } : null,
+      }));
+    } else {
+      toast.success(`Modo Invisível ${isIncognito ? 'ativado' : 'desativado'}.`, { id: toastId });
+      // Update local state to reflect the change immediately.
+      set(state => ({
+          user: state.user ? { ...state.user, is_incognito: isIncognito } : null,
+          profile: state.profile ? { ...state.profile, is_incognito: isIncognito } : null,
+      }));
+    }
+  },
 }));
 
 // Initial check for session on app load
@@ -149,7 +187,7 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
     // This is the single source of truth for a logout event.
     (await import('./pwaStore')).usePwaStore.getState().unlinkSubscriptionOnLogout();
     // Fix: Remove `replace: true` and provide the full initial data state to reset stores correctly without TypeScript errors.
-    (await import('./inboxStore')).useInboxStore.setState({ conversations: [], winks: [], accessRequests: [], loadingConversations: false, loadingWinks: false, loadingRequests: false });
+    (await import('./inboxStore')).useInboxStore.setState({ conversations: [], winks: [], accessRequests: [], profileViews: [], loadingConversations: false, loadingWinks: false, loadingRequests: false, loadingProfileViews: false });
     (await import('./albumStore')).useAlbumStore.setState({ myAlbums: [], viewedUserAlbums: [], viewedUserAccessStatus: null, isUploading: false, isLoading: false, isFetchingViewedUserAlbums: false });
     (await import('./notificationStore')).useNotificationStore.setState({ preferences: [], loading: false });
     (await import('./mapStore')).useMapStore.getState().stopLocationWatch();
@@ -157,7 +195,7 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
     (await import('./mapStore')).useMapStore.setState({ users: [], myLocation: null, selectedUser: null, onlineUsers: [], loading: true, error: null, filters: { onlineOnly: false } });
     (await import('./agoraStore')).useAgoraStore.setState({ posts: [], agoraUserIds: [], isLoading: false, isActivating: false });
     (await import('./homeStore')).useHomeStore.setState({ popularUsers: [], loading: true, error: null });
-    (await import('./uiStore')).useUiStore.setState({ chatUser: null, activeView: 'home', isSubscriptionModalOpen: false });
+    (await import('./uiStore')).useUiStore.setState({ chatUser: null, activeView: 'home', isSubscriptionModalOpen: false, isDonationModalOpen: false });
     // FIX: The admin auth state is separate from user auth and should not be reset here.
     // This was causing a redirect loop to the /admin page on app load for non-logged-in users.
     // (await import('./adminStore')).useAdminStore.getState().logout();

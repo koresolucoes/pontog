@@ -90,7 +90,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
 
   const markMessagesAsRead = useCallback(async (messageIds: number[]) => {
       if (messageIds.length === 0) return;
-      await supabase.rpc('mark_messages_as_read', { message_ids: messageIds });
+      const { error } = await supabase.rpc('mark_messages_as_read', { message_ids: messageIds });
+      if (error) console.error("Error marking messages as read:", error);
   }, []);
 
   useEffect(() => {
@@ -152,7 +153,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                  )
                );
            } else if (payload.eventType === 'DELETE') {
-               const deletedMessageId = payload.old.id;
+               const deletedMessageId = (payload.old as MessageType).id;
                setMessages(prev => prev.filter(m => m.id !== deletedMessageId));
            }
         }
@@ -308,11 +309,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const MessageStatus = ({ msg }: { msg: MessageType }) => {
     if (msg.sender_id !== currentUser.id) return null;
     
+    // Premium Feature: Read Receipts. Only Plus users can see them.
+    const isRead = msg.read_at && currentUser.subscription_tier === 'plus';
+
     return (
       <div className="flex items-center space-x-1">
           {msg.updated_at && <span className="text-xs text-gray-500">(editado)</span>}
           <span className="text-xs text-gray-400">{format(new Date(msg.created_at), 'HH:mm')}</span>
-          {msg.read_at ? (
+          {isRead ? (
               <span className="material-symbols-outlined !text-[16px] text-blue-400">done_all</span>
           ) : (
               <span className="material-symbols-outlined !text-[16px] text-gray-400">check</span>

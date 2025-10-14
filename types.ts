@@ -31,6 +31,7 @@ export interface Profile {
   distance_km: number | null; // Adicionado para distância
   subscription_tier: 'free' | 'plus'; // Adicionado para o plano premium
   subscription_expires_at: string | null; // Adicionado para data de expiração
+  is_incognito: boolean; // Adicionado para o Modo Invisível
 }
 
 // O tipo User estende Profile com campos calculados como 'idade'
@@ -79,11 +80,17 @@ export interface ConversationPreview {
     last_message_created_at: string;
     last_message_sender_id: string;
     unread_count: number; // Adicionado para contagem de não lidas
+    other_participant_subscription_tier: 'free' | 'plus';
 }
 
 // Novo tipo para os winks na caixa de entrada (basicamente um User)
 export interface WinkWithProfile extends User {
     wink_created_at: string;
+}
+
+// Novo tipo para os visitantes do perfil (Quem Me Viu)
+export interface ProfileViewWithProfile extends User {
+    viewed_at: string;
 }
 
 // Novos tipos para acesso a álbuns privados

@@ -1,7 +1,7 @@
 // stores/inboxStore.ts
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import { ConversationPreview, WinkWithProfile, User, AlbumAccessRequest } from '../types';
+import { ConversationPreview, WinkWithProfile, User, AlbumAccessRequest, ProfileViewWithProfile } from '../types';
 import { getPublicImageUrl } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
@@ -21,12 +21,15 @@ interface InboxState {
   conversations: ConversationPreview[];
   winks: WinkWithProfile[];
   accessRequests: AlbumAccessRequest[];
+  profileViews: ProfileViewWithProfile[];
   loadingConversations: boolean;
   loadingWinks: boolean;
   loadingRequests: boolean;
+  loadingProfileViews: boolean;
   fetchConversations: () => Promise<void>;
   fetchWinks: () => Promise<void>;
   fetchAccessRequests: () => Promise<void>;
+  fetchProfileViews: () => Promise<void>;
   respondToRequest: (requestId: number, status: 'granted' | 'denied') => Promise<void>;
   deleteConversation: (conversationId: number) => Promise<void>;
 }
@@ -35,9 +38,11 @@ export const useInboxStore = create<InboxState>((set, get) => ({
   conversations: [],
   winks: [],
   accessRequests: [],
+  profileViews: [],
   loadingConversations: false,
   loadingWinks: false,
   loadingRequests: false,
+  loadingProfileViews: false,
 
   fetchConversations: async () => {
     set({ loadingConversations: true });
@@ -68,6 +73,11 @@ export const useInboxStore = create<InboxState>((set, get) => ({
       return;
     }
     
+    if (!data) {
+        set({ winks: [], loadingWinks: false });
+        return;
+    }
+
     // O RPC já retorna o perfil completo, só precisamos adicionar a idade e processar URLs
     const winksWithAgeAndUrls = data.map((wink: any) => ({
         ...(wink as User),
@@ -96,6 +106,32 @@ export const useInboxStore = create<InboxState>((set, get) => ({
     }));
 
     set({ accessRequests: processedRequests, loadingRequests: false });
+  },
+
+  fetchProfileViews: async () => {
+    set({ loadingProfileViews: true });
+    const { data, error } = await supabase.rpc('get_my_profile_viewers');
+
+    if (error) {
+      console.error('Error fetching profile views:', error);
+      set({ loadingProfileViews: false });
+      return;
+    }
+    
+    if (!data) {
+        set({ profileViews: [], loadingProfileViews: false });
+        return;
+    }
+
+    const viewsWithAgeAndUrls = data.map((view: any) => ({
+        ...(view as User),
+        viewed_at: view.viewed_at,
+        age: calculateAge(view.date_of_birth),
+        avatar_url: getPublicImageUrl(view.avatar_url),
+        public_photos: (view.public_photos || []).map(getPublicImageUrl),
+    }));
+
+    set({ profileViews: viewsWithAgeAndUrls, loadingProfileViews: false });
   },
   
   respondToRequest: async (requestId: number, status: 'granted' | 'denied') => {

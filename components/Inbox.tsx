@@ -3,13 +3,13 @@ import { useInboxStore } from '../stores/inboxStore';
 import { useUiStore } from '../stores/uiStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
-import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest } from '../types';
+import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest, ProfileViewWithProfile } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ConfirmationModal } from './ConfirmationModal';
 import toast from 'react-hot-toast';
 
-type ActiveTab = 'messages' | 'winks' | 'requests';
+type ActiveTab = 'messages' | 'winks' | 'views' | 'requests';
 
 interface InboxProps {
     initialTab?: ActiveTab;
@@ -18,9 +18,9 @@ interface InboxProps {
 export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab);
     const { 
-        conversations, winks, accessRequests,
-        loadingConversations, loadingWinks, loadingRequests,
-        fetchConversations, fetchWinks, fetchAccessRequests,
+        conversations, winks, accessRequests, profileViews,
+        loadingConversations, loadingWinks, loadingRequests, loadingProfileViews,
+        fetchConversations, fetchWinks, fetchAccessRequests, fetchProfileViews,
         respondToRequest, deleteConversation
     } = useInboxStore();
     const { setChatUser, setSubscriptionModalOpen } = useUiStore();
@@ -32,17 +32,26 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         switch (activeTab) {
             case 'messages': fetchConversations(); break;
             case 'winks': 
-                fetchWinks();
-                if (currentUser?.subscription_tier === 'plus') {
-                    toast('Benefício Plus: Veja quem te chamou!', {
-                        icon: '✨',
-                        duration: 4000
-                    });
+                if (currentUser?.subscription_tier !== 'plus') {
+                    // Pre-fetch a small number for the blurred grid for free users
+                    fetchWinks(); 
+                } else {
+                    toast('Benefício Plus: Veja quem te chamou!', { icon: '✨', duration: 4000 });
+                    fetchWinks();
                 }
                 break;
             case 'requests': fetchAccessRequests(); break;
+            case 'views':
+                 if (currentUser?.subscription_tier !== 'plus') {
+                    // Pre-fetch a small number for the blurred grid for free users
+                    fetchProfileViews();
+                } else {
+                    toast('Benefício Plus: Veja quem visitou seu perfil!', { icon: '✨', duration: 4000 });
+                    fetchProfileViews();
+                }
+                break;
         }
-    }, [activeTab, fetchConversations, fetchWinks, fetchAccessRequests, currentUser]);
+    }, [activeTab, fetchConversations, fetchWinks, fetchAccessRequests, fetchProfileViews, currentUser]);
     
     const handleConversationClick = (convo: ConversationPreview) => {
         const chatPartner: User = {
@@ -50,18 +59,19 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             avatar_url: convo.other_participant_avatar_url, last_seen: convo.other_participant_last_seen,
             display_name: null, public_photos: [], status_text: null, date_of_birth: null,
             height_cm: null, weight_kg: null, tribes: [], position: null, hiv_status: null,
-            updated_at: '', lat: 0, lng: 0, age: 0, distance_km: null, subscription_tier: 'free', // Tier here is a placeholder
-            subscription_expires_at: null,
+            updated_at: '', lat: 0, lng: 0, age: 0, distance_km: null, 
+            subscription_tier: convo.other_participant_subscription_tier,
+            subscription_expires_at: null, is_incognito: false,
         };
         setChatUser(chatPartner);
     };
 
-    const handleWinkClick = (wink: WinkWithProfile) => {
+    const handlePremiumUserClick = (user: WinkWithProfile | ProfileViewWithProfile) => {
         if (currentUser?.subscription_tier !== 'plus') {
             setSubscriptionModalOpen(true);
             return;
         }
-        setSelectedUser(wink);
+        setSelectedUser(user);
     }
     
     const handleDeleteConfirm = () => {
@@ -89,6 +99,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                 <div className="mt-4 flex space-x-6 border-b border-gray-700">
                     <TabButton label="Mensagens" tabName="messages" />
                     <TabButton label="Te Chamaram" tabName="winks" isPremium />
+                    <TabButton label="Quem Me Viu" tabName="views" isPremium />
                     <TabButton label="Solicitações" tabName="requests" />
                 </div>
             </header>
@@ -108,7 +119,16 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                         winks={winks}
                         loading={loadingWinks}
                         isPlus={currentUser?.subscription_tier === 'plus'}
-                        onWinkClick={handleWinkClick}
+                        onWinkClick={handlePremiumUserClick}
+                        onUpgradeClick={() => setSubscriptionModalOpen(true)}
+                    />
+                )}
+                 {activeTab === 'views' && (
+                    <ProfileViewList 
+                        views={profileViews}
+                        loading={loadingProfileViews}
+                        isPlus={currentUser?.subscription_tier === 'plus'}
+                        onViewClick={handlePremiumUserClick}
                         onUpgradeClick={() => setSubscriptionModalOpen(true)}
                     />
                 )}
@@ -195,7 +215,7 @@ interface WinkListProps {
 }
 const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick, onUpgradeClick }) => {
     if (loading) return <p className="text-center p-8 text-gray-400">Carregando chamados...</p>;
-    if (winks.length === 0) return <p className="text-center p-8 text-gray-400">Ninguém te chamou ainda.</p>;
+    if (!isPlus && winks.length === 0) return <p className="text-center p-8 text-gray-400">Ninguém te chamou ainda.</p>;
 
     if (!isPlus) {
         return (
@@ -216,6 +236,8 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
             </div>
         );
     }
+    
+    if (winks.length === 0) return <p className="text-center p-8 text-gray-400">Ninguém te chamou ainda.</p>;
 
     return (
         <div className="p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
@@ -225,6 +247,54 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                     <div className="absolute bottom-2 left-2 right-2 text-white">
                         <h3 className="font-semibold text-sm truncate">{wink.username}</h3>
+                        <p className="text-xs text-gray-300">{formatDistanceToNow(new Date(wink.wink_created_at), { addSuffix: true, locale: ptBR })}</p>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+interface ProfileViewListProps {
+    views: ProfileViewWithProfile[]; loading: boolean; isPlus: boolean;
+    onViewClick: (view: ProfileViewWithProfile) => void;
+    onUpgradeClick: () => void;
+}
+const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlus, onViewClick, onUpgradeClick }) => {
+    if (loading) return <p className="text-center p-8 text-gray-400">Carregando visitantes...</p>;
+    if (!isPlus && views.length === 0) return <p className="text-center p-8 text-gray-400">Ninguém visitou seu perfil ainda.</p>;
+
+    if (!isPlus) {
+        return (
+            <div className="relative p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
+                {views.slice(0, 10).map(view => (
+                    <div key={view.id} className="relative aspect-square">
+                        <img src={view.avatar_url} alt="Perfil ofuscado" className="w-full h-full object-cover filter blur-md" />
+                    </div>
+                ))}
+                <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
+                    <span className="material-symbols-outlined text-5xl text-pink-400 mb-4">visibility</span>
+                    <h3 className="text-lg font-bold text-white">Descubra quem te viu</h3>
+                    <p className="text-gray-300 my-2">Veja todos que visitaram seu perfil com o Ponto G Plus.</p>
+                    <button onClick={onUpgradeClick} className="mt-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-2 px-6 rounded-lg">
+                        Fazer Upgrade
+                    </button>
+                </div>
+            </div>
+        );
+    }
+    
+    if (views.length === 0) return <p className="text-center p-8 text-gray-400">Ninguém visitou seu perfil ainda.</p>;
+
+    return (
+        <div className="p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
+            {views.map(view => (
+                <div key={view.id} onClick={() => onViewClick(view)} className="relative aspect-square cursor-pointer group">
+                     <img src={view.avatar_url} alt={view.username} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                    <div className="absolute bottom-2 left-2 right-2 text-white">
+                        <h3 className="font-semibold text-sm truncate">{view.username}</h3>
+                         <p className="text-xs text-gray-300">{formatDistanceToNow(new Date(view.viewed_at), { addSuffix: true, locale: ptBR })}</p>
                     </div>
                 </div>
             ))}

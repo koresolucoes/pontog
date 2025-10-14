@@ -38,8 +38,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
 
   useEffect(() => {
     fetchAgoraPosts();
-    if (user) {
+    if (user && currentUser && user.id !== currentUser.id) {
         fetchAlbumsAndAccessStatusForUser(user.id);
+        // Record profile view for the new "Who Viewed Me" feature
+        supabase.rpc('record_profile_view', { p_viewed_id: user.id })
+            .then(({ error }) => {
+                if(error) console.error("Error recording profile view:", error);
+            });
     }
     
     const fetchWinkCount = async () => {
@@ -55,7 +60,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
     return () => {
         clearViewedUserData();
     }
-  }, [user, fetchAlbumsAndAccessStatusForUser, clearViewedUserData, fetchAgoraPosts, currentUser]);
+  }, [user, currentUser, fetchAlbumsAndAccessStatusForUser, clearViewedUserData, fetchAgoraPosts]);
 
   const isOnline = onlineUsers.includes(user.id);
   const statusText = isOnline ? 'Online' : formatLastSeen(user.last_seen);

@@ -5,10 +5,11 @@ import { supabase } from '../lib/supabase';
 import { usePlanStore } from '../stores/planStore';
 
 const features = [
-    { icon: "favorite", text: "Chamados (Winks) ilimitados", color: "text-pink-400" },
-    { icon: "visibility", text: "Veja quem te chamou", color: "text-yellow-400" },
-    { icon: "filter_alt", text: "Filtros de busca avançados", color: "text-blue-400" },
-    { icon: "more_horiz", text: "E muito mais em breve!", color: "text-green-400" },
+    { icon: "all_inclusive", text: "Chamados (Winks) ilimitados", color: "text-pink-400" },
+    { icon: "visibility", text: "Veja quem te chamou e visitou seu perfil", color: "text-yellow-400" },
+    { icon: "done_all", text: "Confirmação de leitura de mensagens", color: "text-blue-400" },
+    { icon: "security", text: "Navegue com o Modo Invisível", color: "text-green-400" },
+    { icon: "filter_alt", text: "Filtros de busca avançados (em breve)", color: "text-purple-400" },
 ];
 
 export const SubscriptionModal: React.FC = () => {

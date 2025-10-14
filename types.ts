@@ -45,6 +45,7 @@ export interface Message {
   viewed_at: string | null;
   created_at: string;
   read_at: string | null; // Adicionado para confirmação de leitura
+  updated_at: string | null; // Adicionado para rastrear edições
 }
 
 export interface PrivateAlbumPhoto {

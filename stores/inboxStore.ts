@@ -28,6 +28,7 @@ interface InboxState {
   fetchWinks: () => Promise<void>;
   fetchAccessRequests: () => Promise<void>;
   respondToRequest: (requestId: number, status: 'granted' | 'denied') => Promise<void>;
+  deleteConversation: (conversationId: number) => Promise<void>;
 }
 
 export const useInboxStore = create<InboxState>((set, get) => ({
@@ -112,6 +113,24 @@ export const useInboxStore = create<InboxState>((set, get) => ({
         set(state => ({
             accessRequests: state.accessRequests.filter(req => req.id !== requestId)
         }));
+    }
+  },
+
+  deleteConversation: async (conversationId: number) => {
+    // Optimistic update
+    set(state => ({
+        conversations: state.conversations.filter(c => c.conversation_id !== conversationId)
+    }));
+
+    const { error } = await supabase.rpc('delete_conversation', { p_conversation_id: conversationId });
+
+    if (error) {
+        toast.error('Erro ao apagar a conversa.');
+        console.error('Error deleting conversation:', error);
+        // Re-fetch to revert optimistic update
+        get().fetchConversations();
+    } else {
+        toast.success('Conversa apagada.');
     }
   },
 }));

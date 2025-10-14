@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { User, Message as MessageType } from '../types';
-import { SendIcon, XIcon, CheckIcon, CheckCheckIcon } from './icons';
+import { SendIcon, XIcon, CheckIcon, CheckCheckIcon, TrashIcon } from './icons';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import { useMapStore } from '../stores/mapStore';
+import { useInboxStore } from '../stores/inboxStore';
 import { format } from 'date-fns';
 import { formatLastSeen } from '../lib/utils';
+import { ConfirmationModal } from './ConfirmationModal';
+import toast from 'react-hot-toast';
 
 interface ChatUser {
   id: string;
@@ -26,6 +29,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentUser = useAuthStore(state => state.user);
   const onlineUsers = useMapStore(state => state.onlineUsers);
+  const { deleteConversation } = useInboxStore();
+
+  const [editingMessage, setEditingMessage] = useState<MessageType | null>(null);
+  const [editedContent, setEditedContent] = useState('');
+  const [confirmDeleteMessage, setConfirmDeleteMessage] = useState<MessageType | null>(null);
+  const [confirmDeleteConvo, setConfirmDeleteConvo] = useState(false);
 
   const markMessagesAsRead = useCallback(async (messageIds: number[]) => {
       if (messageIds.length === 0) return;
@@ -90,6 +99,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                    msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
                  )
                );
+           } else if (payload.eventType === 'DELETE') {
+               const deletedMessageId = payload.old.id;
+               setMessages(prev => prev.filter(m => m.id !== deletedMessageId));
            }
         }
       )
@@ -123,6 +135,45 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       setNewMessage('');
     }
   };
+  
+  const handleStartEdit = (msg: MessageType) => {
+      setEditingMessage(msg);
+      setEditedContent(msg.content);
+  };
+  
+  const handleCancelEdit = () => {
+      setEditingMessage(null);
+      setEditedContent('');
+  };
+
+  const handleSaveEdit = async () => {
+      if (!editingMessage || editedContent.trim() === '') return;
+
+      const { error } = await supabase
+        .from('messages')
+        .update({ content: editedContent.trim(), updated_at: new Date().toISOString() })
+        .eq('id', editingMessage.id);
+      
+      if (error) {
+          toast.error('Erro ao editar mensagem.');
+      }
+      handleCancelEdit();
+  };
+
+  const handleDeleteMessage = async () => {
+      if (!confirmDeleteMessage) return;
+      const { error } = await supabase.from('messages').delete().eq('id', confirmDeleteMessage.id);
+      if (error) {
+          toast.error('Erro ao apagar mensagem.');
+      }
+      setConfirmDeleteMessage(null);
+  };
+
+  const handleDeleteConversation = async () => {
+      if (!conversationId) return;
+      await deleteConversation(conversationId);
+      onClose();
+  };
 
   if (!currentUser) return null;
   
@@ -131,6 +182,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
     
     return (
       <div className="flex items-center space-x-1">
+          {msg.updated_at && <span className="text-xs text-gray-500">(editado)</span>}
           <span className="text-xs text-gray-400">{format(new Date(msg.created_at), 'HH:mm')}</span>
           {msg.read_at ? (
               <CheckCheckIcon className="w-4 h-4 text-blue-400" />
@@ -145,6 +197,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const userStatus = isOnline ? 'Online' : formatLastSeen(user.last_seen);
 
   return (
+    <>
     <div className="fixed bottom-0 right-0 sm:right-4 md:right-8 w-full sm:w-96 h-full sm:h-[500px] bg-gray-900 shadow-2xl rounded-t-2xl sm:rounded-2xl z-40 flex flex-col animate-slide-in-up border border-gray-700">
       <header className="flex items-center justify-between p-3 bg-gray-800 rounded-t-2xl sm:rounded-t-lg border-b border-gray-700 flex-shrink-0">
         <div className="flex items-center space-x-3">
@@ -159,20 +212,48 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
             </div>
           </div>
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-white">
-          <XIcon className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-2">
+            <button onClick={() => setConfirmDeleteConvo(true)} className="text-gray-400 hover:text-white">
+                <TrashIcon className="w-5 h-5" />
+            </button>
+            <button onClick={onClose} className="text-gray-400 hover:text-white">
+                <XIcon className="w-6 h-6" />
+            </button>
+        </div>
       </header>
 
       <div className="flex-1 p-4 overflow-y-auto bg-gray-900">
         <div className="flex flex-col space-y-2">
           {messages.map((msg) => (
-            <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUser.id ? 'items-end' : 'items-start'}`}>
+            <div key={msg.id} className={`flex flex-col group ${msg.sender_id === currentUser.id ? 'items-end' : 'items-start'}`}>
               <div className={`flex items-end gap-2 max-w-xs md:max-w-sm ${msg.sender_id === currentUser.id ? 'flex-row-reverse' : 'flex-row'}`}>
                  {msg.sender_id !== currentUser.id && <img src={user.imageUrl} className="w-6 h-6 rounded-full self-start" />}
-                 <div className={`px-4 py-2 rounded-2xl ${msg.sender_id === currentUser.id ? 'bg-pink-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'}`}>
-                  <p className="text-sm">{msg.content}</p>
-                </div>
+                 
+                 {editingMessage?.id === msg.id ? (
+                     <div className="flex-1 space-y-1">
+                        <textarea
+                            value={editedContent}
+                            onChange={(e) => setEditedContent(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSaveEdit(); } }}
+                            className="w-full bg-gray-600 rounded-lg py-2 px-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                            rows={3}
+                        />
+                        <div className="flex justify-end gap-2 text-xs">
+                            <button onClick={handleCancelEdit} className="hover:underline">Cancelar</button>
+                            <button onClick={handleSaveEdit} className="font-bold text-pink-400 hover:underline">Salvar</button>
+                        </div>
+                     </div>
+                 ) : (
+                    <div className={`px-4 py-2 rounded-2xl relative ${msg.sender_id === currentUser.id ? 'bg-pink-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'}`}>
+                      <p className="text-sm break-words">{msg.content}</p>
+                       {msg.sender_id === currentUser.id && (
+                           <div className="absolute top-0 -left-14 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                               <button onClick={() => handleStartEdit(msg)} className="text-xs bg-gray-700 text-white rounded-full px-2 py-0.5">Editar</button>
+                               <button onClick={() => setConfirmDeleteMessage(msg)} className="text-xs bg-gray-700 text-white rounded-full px-2 py-0.5">Excluir</button>
+                           </div>
+                       )}
+                    </div>
+                 )}
               </div>
               <div className={`mt-1 pr-2 ${msg.sender_id === currentUser.id ? 'self-end' : 'self-start ml-8'}`}>
                  <MessageStatus msg={msg} />
@@ -183,20 +264,43 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
         </div>
       </div>
       
-      <form onSubmit={handleSendMessage} className="p-2 border-t border-gray-700 bg-gray-800">
-        <div className="relative">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Digite uma mensagem..."
-            className="w-full bg-gray-700 rounded-full py-2.5 pl-4 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
-          />
-          <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-pink-600 text-white rounded-full p-2 hover:bg-pink-700 transition-colors">
-            <SendIcon className="w-5 h-5" />
-          </button>
-        </div>
-      </form>
+      {!editingMessage && (
+        <form onSubmit={handleSendMessage} className="p-2 border-t border-gray-700 bg-gray-800">
+            <div className="relative">
+            <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Digite uma mensagem..."
+                className="w-full bg-gray-700 rounded-full py-2.5 pl-4 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+            />
+            <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-pink-600 text-white rounded-full p-2 hover:bg-pink-700 transition-colors">
+                <SendIcon className="w-5 h-5" />
+            </button>
+            </div>
+        </form>
+      )}
     </div>
+    {confirmDeleteMessage && (
+        <ConfirmationModal
+            isOpen={!!confirmDeleteMessage}
+            title="Apagar Mensagem"
+            message="Tem certeza que deseja apagar esta mensagem? Esta ação não pode ser desfeita."
+            onConfirm={handleDeleteMessage}
+            onCancel={() => setConfirmDeleteMessage(null)}
+            confirmText="Apagar"
+        />
+    )}
+     {confirmDeleteConvo && (
+        <ConfirmationModal
+            isOpen={confirmDeleteConvo}
+            title="Apagar Conversa"
+            message="Tem certeza que deseja apagar toda a conversa com este usuário? Esta ação é permanente."
+            onConfirm={handleDeleteConversation}
+            onCancel={() => setConfirmDeleteConvo(false)}
+            confirmText="Apagar Conversa"
+        />
+    )}
+    </>
   );
 };

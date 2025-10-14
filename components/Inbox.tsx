@@ -6,7 +6,8 @@ import { useAuthStore } from '../stores/authStore';
 import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CheckIcon, XIcon } from './icons';
+import { CheckIcon, XIcon, TrashIcon } from './icons';
+import { ConfirmationModal } from './ConfirmationModal';
 
 type ActiveTab = 'messages' | 'winks' | 'requests';
 
@@ -20,11 +21,12 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         conversations, winks, accessRequests,
         loadingConversations, loadingWinks, loadingRequests,
         fetchConversations, fetchWinks, fetchAccessRequests,
-        respondToRequest
+        respondToRequest, deleteConversation
     } = useInboxStore();
     const { setChatUser } = useUiStore();
     const { setSelectedUser } = useMapStore();
     const { profile } = useAuthStore();
+    const [confirmDelete, setConfirmDelete] = useState<ConversationPreview | null>(null);
 
     useEffect(() => {
         switch (activeTab) {
@@ -57,6 +59,13 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         setSelectedUser(wink);
     }
     
+    const handleDeleteConfirm = () => {
+        if (confirmDelete) {
+            deleteConversation(confirmDelete.conversation_id);
+            setConfirmDelete(null);
+        }
+    };
+    
     const TabButton = ({ label, tabName }: { label: string, tabName: ActiveTab }) => (
          <button 
             onClick={() => setActiveTab(tabName)}
@@ -67,6 +76,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     );
 
     return (
+        <>
         <div className="flex flex-col h-full bg-gray-900 text-white">
             <header className="p-4">
                 <h1 className="text-xl font-bold">Caixa de Entrada</h1>
@@ -83,6 +93,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                         conversations={conversations} 
                         loading={loadingConversations}
                         onConversationClick={handleConversationClick}
+                        onDeleteClick={(convo) => setConfirmDelete(convo)}
                         currentUserId={profile?.id}
                     />
                 )}
@@ -102,6 +113,17 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                 )}
             </div>
         </div>
+        {confirmDelete && (
+             <ConfirmationModal
+                isOpen={!!confirmDelete}
+                title="Apagar Conversa"
+                message={`Tem certeza que deseja apagar permanentemente a conversa com ${confirmDelete.other_participant_username}?`}
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setConfirmDelete(null)}
+                confirmText="Apagar"
+             />
+        )}
+        </>
     );
 };
 
@@ -109,9 +131,10 @@ interface ConversationListProps {
     conversations: ConversationPreview[];
     loading: boolean;
     onConversationClick: (convo: ConversationPreview) => void;
+    onDeleteClick: (convo: ConversationPreview) => void;
     currentUserId?: string;
 }
-const ConversationList: React.FC<ConversationListProps> = ({ conversations, loading, onConversationClick, currentUserId }) => {
+const ConversationList: React.FC<ConversationListProps> = ({ conversations, loading, onConversationClick, onDeleteClick, currentUserId }) => {
     const onlineUsers = useMapStore((state) => state.onlineUsers);
 
     if (loading) return <p className="text-center p-8 text-gray-400">Carregando conversas...</p>;
@@ -122,28 +145,33 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
             {conversations.map(convo => {
                 const isOnline = onlineUsers.includes(convo.other_participant_id);
                 return (
-                    <div key={convo.conversation_id} onClick={() => onConversationClick(convo)} className="p-4 flex items-center space-x-3 cursor-pointer hover:bg-gray-800">
-                        <div className="relative flex-shrink-0">
-                            <img src={convo.other_participant_avatar_url} alt={convo.other_participant_username} className="w-12 h-12 rounded-full object-cover" />
-                             {convo.unread_count > 0 && (
-                                <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-pink-500 text-white text-xs flex items-center justify-center font-bold ring-2 ring-gray-900">
-                                    {convo.unread_count > 9 ? '9+' : convo.unread_count}
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex-1 overflow-hidden">
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center space-x-2">
-                                    {isOnline && <div className="w-2 h-2 rounded-full bg-green-400"></div>}
-                                    <h3 className="font-bold truncate text-base">{convo.other_participant_username}</h3>
-                                </div>
-                                <span className="text-xs text-gray-500 flex-shrink-0 ml-2">{formatDistanceToNow(new Date(convo.last_message_created_at), { addSuffix: true, locale: ptBR })}</span>
+                    <div key={convo.conversation_id} className="p-4 flex items-center space-x-3 group hover:bg-gray-800">
+                        <div onClick={() => onConversationClick(convo)} className="flex-1 flex items-center space-x-3 cursor-pointer">
+                            <div className="relative flex-shrink-0">
+                                <img src={convo.other_participant_avatar_url} alt={convo.other_participant_username} className="w-12 h-12 rounded-full object-cover" />
+                                {convo.unread_count > 0 && (
+                                    <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-pink-500 text-white text-xs flex items-center justify-center font-bold ring-2 ring-gray-900">
+                                        {convo.unread_count > 9 ? '9+' : convo.unread_count}
+                                    </span>
+                                )}
                             </div>
-                            <p className={`text-sm truncate ${convo.unread_count > 0 ? 'text-white' : 'text-gray-400'}`}>
-                                {convo.last_message_sender_id === currentUserId && "Você: "}
-                                {convo.last_message_content}
-                            </p>
+                            <div className="flex-1 overflow-hidden">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center space-x-2">
+                                        {isOnline && <div className="w-2 h-2 rounded-full bg-green-400"></div>}
+                                        <h3 className="font-bold truncate text-base">{convo.other_participant_username}</h3>
+                                    </div>
+                                    <span className="text-xs text-gray-500 flex-shrink-0 ml-2">{formatDistanceToNow(new Date(convo.last_message_created_at), { addSuffix: true, locale: ptBR })}</span>
+                                </div>
+                                <p className={`text-sm truncate ${convo.unread_count > 0 ? 'text-white' : 'text-gray-400'}`}>
+                                    {convo.last_message_sender_id === currentUserId && "Você: "}
+                                    {convo.last_message_content}
+                                </p>
+                            </div>
                         </div>
+                        <button onClick={(e) => { e.stopPropagation(); onDeleteClick(convo); }} className="p-2 text-gray-500 rounded-full hover:bg-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <TrashIcon className="w-5 h-5"/>
+                        </button>
                     </div>
                 );
             })}

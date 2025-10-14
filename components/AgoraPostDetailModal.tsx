@@ -72,8 +72,8 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50 animate-fade-in pb-20 sm:pb-0" onClick={onClose}>
-      <div className="bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-full sm:h-auto sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50 animate-fade-in" onClick={onClose}>
+      <div className="bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-[calc(100vh-5rem)] sm:h-auto sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <header className="p-4 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
           <div className="flex items-center space-x-3">
             <img src={currentPost.avatar_url} alt={currentPost.username} className="w-10 h-10 rounded-full object-cover" />

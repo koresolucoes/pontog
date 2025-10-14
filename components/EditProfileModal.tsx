@@ -163,7 +163,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50 animate-fade-in" onClick={onClose}>
-      <div className="bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-2xl mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-full sm:h-auto sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-2xl mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-[calc(100vh-5rem)] sm:h-auto sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <header className="p-6 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
           <h2 className="text-xl font-bold text-white">Editar Perfil</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white"><span className="material-symbols-outlined">close</span></button>

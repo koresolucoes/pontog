@@ -2,26 +2,20 @@ import React, { useState } from 'react';
 import { useAgoraStore } from '../stores/agoraStore';
 import { useAuthStore } from '../stores/authStore';
 import { AgoraPost } from '../types';
-import { FlameIcon, HeartIcon, HeartIconFilled, MessageCircleIcon } from './icons';
 import { ActivateAgoraModal } from './ActivateAgoraModal';
 import { AgoraPostDetailModal } from './AgoraPostDetailModal';
-import { ConfirmationModal } from './ConfirmationModal'; // Importa o novo modal
+import { ConfirmationModal } from './ConfirmationModal';
 
 export const AgoraView: React.FC = () => {
     const { posts, isLoading, agoraUserIds, deactivateAgoraMode, toggleLikePost } = useAgoraStore();
     const { user } = useAuthStore();
     const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
     const [selectedPost, setSelectedPost] = useState<AgoraPost | null>(null);
-    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false); // Estado para o modal de confirmação
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
     const userIsAgora = user ? agoraUserIds.includes(user.id) : false;
 
-    // Ação que abre o modal de confirmação
-    const handleDeactivateClick = () => {
-        setIsConfirmModalOpen(true);
-    };
-
-    // Ação que é executada após a confirmação
+    const handleDeactivateClick = () => setIsConfirmModalOpen(true);
     const handleConfirmDeactivate = async () => {
         await deactivateAgoraMode();
         setIsConfirmModalOpen(false);
@@ -31,7 +25,7 @@ export const AgoraView: React.FC = () => {
         <div className="p-4 bg-gray-900 border-b border-gray-700">
             <div className="flex justify-between items-center">
                 <h1 className="text-xl font-bold flex items-center gap-2">
-                    <FlameIcon className="w-6 h-6 text-red-500"/>
+                    <span className="material-symbols-outlined text-2xl text-red-500">local_fire_department</span>
                     <span>Agora</span>
                 </h1>
                 {userIsAgora ? (
@@ -54,9 +48,7 @@ export const AgoraView: React.FC = () => {
         return (
             <div className="h-full flex flex-col">
                 {renderHeader()}
-                <div className="flex-1 flex items-center justify-center text-gray-400">
-                    Carregando...
-                </div>
+                <div className="flex-1 flex items-center justify-center text-gray-400">Carregando...</div>
             </div>
         );
     }
@@ -101,15 +93,13 @@ export const AgoraView: React.FC = () => {
                             )}
                             <div className="p-4 flex items-center justify-between text-gray-400 border-t border-gray-700">
                                 <button onClick={() => toggleLikePost(post.id)} className="flex items-center gap-2 hover:text-white transition-colors">
-                                    {post.user_has_liked ? (
-                                        <HeartIconFilled className="w-6 h-6 text-pink-500" />
-                                    ) : (
-                                        <HeartIcon className="w-6 h-6" />
-                                    )}
+                                    <span className={`material-symbols-outlined ${post.user_has_liked ? 'text-pink-500' : ''}`} style={post.user_has_liked ? { fontVariationSettings: "'FILL' 1" } : {}}>
+                                        favorite
+                                    </span>
                                     <span className="text-sm font-semibold">{post.likes_count}</span>
                                 </button>
                                 <button onClick={() => setSelectedPost(post)} className="flex items-center gap-2 hover:text-white transition-colors">
-                                    <MessageCircleIcon className="w-6 h-6" />
+                                    <span className="material-symbols-outlined">chat_bubble</span>
                                     <span className="text-sm font-semibold">{post.comments_count}</span>
                                 </button>
                                 <button className="bg-pink-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-pink-700 text-sm">

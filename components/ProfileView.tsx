@@ -5,7 +5,6 @@ import { useUiStore } from '../stores/uiStore';
 import { useNotificationStore } from '../stores/notificationStore';
 import { EditProfileModal } from './EditProfileModal';
 import { MyAlbumsModal } from './MyAlbumsModal';
-import { BellIcon, SparklesIcon } from './icons';
 import { NotificationType } from '../types';
 
 const NotificationToggle: React.FC<{
@@ -64,7 +63,7 @@ export const ProfileView: React.FC = () => {
             return (
                 <div className="p-4 rounded-lg bg-gray-800 border border-pink-500/30 text-center">
                     <div className="flex items-center justify-center gap-2 text-yellow-400">
-                        <SparklesIcon className="w-5 h-5"/>
+                        <span className="material-symbols-outlined text-xl">auto_awesome</span>
                         <span className="font-bold">Você é um membro Plus!</span>
                     </div>
                     <p className="text-sm text-gray-400 mt-1">Sua assinatura está ativa.</p>
@@ -129,7 +128,7 @@ export const ProfileView: React.FC = () => {
                         disabled={isSubscribing}
                         className="w-full text-left p-3 rounded-lg bg-gray-700 text-white font-semibold flex items-center gap-3 hover:bg-gray-600 transition-colors disabled:opacity-50"
                     >
-                        <BellIcon className="w-5 h-5" />
+                        <span className="material-symbols-outlined text-xl">notifications</span>
                         {isSubscribing ? 'Ativando...' : 'Ativar Notificações Push'}
                     </button>
                 );
@@ -140,7 +139,6 @@ export const ProfileView: React.FC = () => {
         <>
             <div className="bg-gray-900 min-h-full">
                 <div className="p-4 space-y-6">
-                    {/* Profile Header */}
                     <div className="flex items-center space-x-4">
                         <img src={user.avatar_url} alt={user.username} className="w-16 h-16 rounded-full object-cover" />
                         <div>
@@ -149,44 +147,29 @@ export const ProfileView: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Menu Options */}
                      <div className="space-y-1 pt-4 border-t border-gray-700">
-                        
                          <div className="space-y-2">
                             <h3 className="text-xs font-bold uppercase text-gray-500 px-3 pt-2">Assinatura</h3>
-                            <div className="p-1">
-                                {renderSubscriptionSection()}
-                            </div>
+                            <div className="p-1">{renderSubscriptionSection()}</div>
                         </div>
 
                         <div className="space-y-2">
                              <h3 className="text-xs font-bold uppercase text-gray-500 px-3 pt-4">Conta</h3>
-                             <button onClick={() => setIsEditProfileOpen(true)} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">
-                                Editar Perfil
-                            </button>
-                            <button onClick={() => setIsMyAlbumsOpen(true)} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">
-                                Meus Álbuns
-                            </button>
+                             <button onClick={() => setIsEditProfileOpen(true)} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">Editar Perfil</button>
+                            <button onClick={() => setIsMyAlbumsOpen(true)} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">Meus Álbuns</button>
                         </div>
                         
                         <div className="space-y-2">
                             <h3 className="text-xs font-bold uppercase text-gray-500 px-3 pt-4">Notificações</h3>
-                            <div className="p-1 space-y-2">
-                                {renderPushSection()}
-                            </div>
+                            <div className="p-1 space-y-2">{renderPushSection()}</div>
                         </div>
 
                         <div className="space-y-2">
                             <h3 className="text-xs font-bold uppercase text-gray-500 px-3 pt-4">Sistema</h3>
-                             <button className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">
-                                Configurações
-                            </button>
-                            <button onClick={signOut} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold text-red-400">
-                                Sair
-                            </button>
+                             <button className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">Configurações</button>
+                            <button onClick={signOut} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold text-red-400">Sair</button>
                         </div>
                     </div>
-
                 </div>
             </div>
             {isEditProfileOpen && <EditProfileModal onClose={() => setIsEditProfileOpen(false)} />}

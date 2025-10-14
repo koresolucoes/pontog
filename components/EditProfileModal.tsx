@@ -4,7 +4,6 @@ import { useDataStore } from '../stores/dataStore';
 import { useAlbumStore } from '../stores/albumStore';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
-import { XIcon, CameraIcon, UploadCloudIcon, TrashIcon } from './icons';
 import { POSITIONS, HIV_STATUSES } from '../lib/constants';
 import toast from 'react-hot-toast';
 
@@ -12,19 +11,12 @@ interface EditProfileModalProps {
   onClose: () => void;
 }
 
-// Helper to get storage path from public URL
 const getPathFromUrl = (url: string): string => {
     try {
         const urlObject = new URL(url);
-        // Pathname is like /storage/v1/object/public/user_uploads/user_id/file.jpg
-        // We want the part after bucket name
         const parts = urlObject.pathname.split('/user_uploads/');
-        if (parts.length > 1) {
-            return parts[1];
-        }
-    } catch (e) {
-        // Not a full URL, might already be a path
-    }
+        if (parts.length > 1) return parts[1];
+    } catch (e) { /* Not a full URL */ }
     return url;
 }
 
@@ -39,19 +31,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
 
   useEffect(() => {
     if (profile) {
-      setFormData({
-          ...profile,
-          tribes: profile.tribes || []
-      });
+      setFormData({ ...profile, tribes: profile.tribes || [] });
     }
-    if (tribes.length === 0) {
-        fetchTribes();
-    }
+    if (tribes.length === 0) fetchTribes();
   }, [profile, tribes.length, fetchTribes]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    // Handle number inputs that might be cleared
     if (e.target.type === 'number') {
         setFormData(prev => ({ ...prev, [name]: value === '' ? null : Number(value) }));
     } else {
@@ -82,10 +68,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
           return;
       }
       
-      const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ avatar_url: newAvatarPath })
-          .eq('id', profile.id);
+      const { error: updateError } = await supabase.from('profiles').update({ avatar_url: newAvatarPath }).eq('id', profile.id);
 
       if (updateError) {
           toast.error('Falha ao atualizar o perfil.', { id: toastId });
@@ -113,10 +96,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
     const currentPhotoPaths = (profile.public_photos || []).map(getPathFromUrl);
     const newPublicPhotos = [...currentPhotoPaths, photoPath];
     
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ public_photos: newPublicPhotos })
-      .eq('id', profile.id);
+    const { error: updateError } = await supabase.from('profiles').update({ public_photos: newPublicPhotos }).eq('id', profile.id);
 
     if (updateError) {
         toast.error('Falha ao adicionar a foto.', { id: toastId });
@@ -133,14 +113,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
     const toastId = toast.loading('Removendo foto...');
     
     const photoPathToRemove = getPathFromUrl(photoUrlToRemove);
-    const newPublicPhotos = (profile.public_photos || [])
-        .map(getPathFromUrl)
-        .filter(path => path !== photoPathToRemove);
+    const newPublicPhotos = (profile.public_photos || []).map(getPathFromUrl).filter(path => path !== photoPathToRemove);
 
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ public_photos: newPublicPhotos })
-      .eq('id', profile.id);
+    const { error: updateError } = await supabase.from('profiles').update({ public_photos: newPublicPhotos }).eq('id', profile.id);
     
     if (updateError) {
         toast.error('Falha ao remover a foto.', { id: toastId });
@@ -158,22 +133,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
     setLoading(true);
     const toastId = toast.loading('Atualizando perfil...');
     
-    // 1. Prepare profile data (exclude non-db fields)
-    // FIX: Destructure and remove calculated fields (distance_km, lat, lng) 
-    // that do not exist in the 'profiles' table schema. This prevents the API
-    // from trying to update non-existent columns, resolving the 400 error.
-    const { 
-      tribes: formTribes,
-      distance_km,
-      lat,
-      lng,
-      ...profileUpdates 
-    } = formData;
+    const { tribes: formTribes, distance_km, lat, lng, ...profileUpdates } = formData;
 
-    const { error: profileError } = await supabase
-        .from('profiles')
-        .update(profileUpdates)
-        .eq('id', profile.id);
+    const { error: profileError } = await supabase.from('profiles').update(profileUpdates).eq('id', profile.id);
         
     if (profileError) {
         toast.error('Erro ao atualizar perfil.', { id: toastId });
@@ -182,34 +144,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
         return;
     }
     
-    // 2. Update tribes (delete all, then insert new ones)
-    const { error: deleteTribesError } = await supabase
-        .from('profile_tribes')
-        .delete()
-        .eq('profile_id', profile.id);
+    await supabase.from('profile_tribes').delete().eq('profile_id', profile.id);
         
-    if (deleteTribesError) {
-        toast.error('Erro ao atualizar tribos.', { id: toastId });
-        setLoading(false);
-        return;
-    }
-
     if (formTribes && formTribes.length > 0) {
         const selectedTribeIds = tribes.filter(t => formTribes.includes(t.name)).map(t => t.id);
-        const newProfileTribes = selectedTribeIds.map(tribeId => ({
-            profile_id: profile.id,
-            tribe_id: tribeId,
-        }));
+        const newProfileTribes = selectedTribeIds.map(tribeId => ({ profile_id: profile.id, tribe_id: tribeId }));
         
-        const { error: insertTribesError } = await supabase
-            .from('profile_tribes')
-            .insert(newProfileTribes);
-            
-        if (insertTribesError) {
-            toast.error('Erro ao salvar tribos.', { id: toastId });
-            setLoading(false);
-            return;
-        }
+        await supabase.from('profile_tribes').insert(newProfileTribes);
     }
     
     toast.success('Perfil salvo com sucesso!', { id: toastId });
@@ -225,42 +166,27 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
       <div className="bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-2xl mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-[95vh] sm:h-auto sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
           <h2 className="text-xl font-bold text-white">Editar Perfil</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white"><XIcon className="w-6 h-6" /></button>
+          <button onClick={onClose} className="text-gray-400 hover:text-white"><span className="material-symbols-outlined">close</span></button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-          
           <div className="flex items-center space-x-4">
             <div className="relative">
               <img src={profile.avatar_url} alt="Seu perfil" className="w-24 h-24 rounded-full object-cover" />
               <button type="button" onClick={() => avatarInputRef.current?.click()} className="absolute bottom-0 right-0 bg-pink-600 p-2 rounded-full text-white hover:bg-pink-700">
-                <CameraIcon className="w-5 h-5" />
+                <span className="material-symbols-outlined text-xl">photo_camera</span>
                 <input type="file" accept="image/*" ref={avatarInputRef} onChange={handleAvatarUpload} className="hidden" />
               </button>
             </div>
             <div className="flex-1">
                <label htmlFor="username" className="block text-sm font-medium text-gray-300">Nome de usuário</label>
-               <input
-                 type="text"
-                 name="username"
-                 id="username"
-                 value={formData.username || ''}
-                 onChange={handleChange}
-                 className="mt-1 w-full bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
-               />
+               <input type="text" name="username" id="username" value={formData.username || ''} onChange={handleChange} className="mt-1 w-full bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" />
             </div>
           </div>
           
           <div>
             <label htmlFor="status_text" className="block text-sm font-medium text-gray-300">Texto de status (bio)</label>
-            <textarea
-              name="status_text"
-              id="status_text"
-              rows={2}
-              value={formData.status_text || ''}
-              onChange={handleChange}
-              className="mt-1 w-full bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
-            />
+            <textarea name="status_text" id="status_text" rows={2} value={formData.status_text || ''} onChange={handleChange} className="mt-1 w-full bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -298,12 +224,12 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
                     <div key={photoUrl} className="relative group aspect-square">
                         <img src={photoUrl} alt="Foto pública" className="w-full h-full object-cover rounded-lg" />
                         <button type="button" onClick={() => handleRemovePublicPhoto(photoUrl)} className="absolute top-1 right-1 bg-red-600/70 p-1 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                            <TrashIcon className="w-4 h-4" />
+                            <span className="material-symbols-outlined !text-sm">delete</span>
                         </button>
                     </div>
                 ))}
                  <button type="button" onClick={() => publicPhotoInputRef.current?.click()} className="flex flex-col items-center justify-center w-full aspect-square bg-gray-700 rounded-lg border-2 border-dashed border-gray-500 text-gray-400 hover:bg-gray-600 hover:border-pink-500 transition-colors">
-                    <UploadCloudIcon className="w-8 h-8"/>
+                    <span className="material-symbols-outlined text-4xl">cloud_upload</span>
                     <input type="file" accept="image/*" ref={publicPhotoInputRef} onChange={handlePublicPhotoUpload} className="hidden" />
                 </button>
             </div>

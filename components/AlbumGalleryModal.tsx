@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { PrivateAlbum } from '../types';
-import { XIcon, ChevronLeftIcon, ChevronRightIcon } from './icons';
 
 interface AlbumGalleryModalProps {
   album: PrivateAlbum;
@@ -11,13 +10,8 @@ export const AlbumGalleryModal: React.FC<AlbumGalleryModalProps> = ({ album, onC
   const [currentIndex, setCurrentIndex] = useState(0);
   const photos = album.private_album_photos;
 
-  const nextPhoto = () => {
-    setCurrentIndex((prev) => (prev + 1) % photos.length);
-  };
-
-  const prevPhoto = () => {
-    setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
-  };
+  const nextPhoto = () => setCurrentIndex((prev) => (prev + 1) % photos.length);
+  const prevPhoto = () => setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
 
   if (!photos || photos.length === 0) {
     return (
@@ -41,16 +35,16 @@ export const AlbumGalleryModal: React.FC<AlbumGalleryModalProps> = ({ album, onC
       </div>
 
        <button onClick={onClose} className="absolute top-4 right-4 text-white bg-black/30 p-2 rounded-full hover:bg-black/50 transition-colors z-10">
-            <XIcon className="w-6 h-6" />
+            <span className="material-symbols-outlined">close</span>
         </button>
 
         {photos.length > 1 && (
         <>
             <button onClick={prevPhoto} className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-black/30 p-3 rounded-full hover:bg-black/50 transition-colors z-10">
-                <ChevronLeftIcon className="w-8 h-8" />
+                <span className="material-symbols-outlined text-3xl">chevron_left</span>
             </button>
             <button onClick={nextPhoto} className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black/30 p-3 rounded-full hover:bg-black/50 transition-colors z-10">
-                <ChevronRightIcon className="w-8 h-8" />
+                <span className="material-symbols-outlined text-3xl">chevron_right</span>
             </button>
         </>
         )}

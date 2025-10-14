@@ -6,7 +6,6 @@ import { useAuthStore } from '../stores/authStore';
 import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CheckIcon, XIcon, TrashIcon, SparklesIcon, LockIcon } from './icons';
 import { ConfirmationModal } from './ConfirmationModal';
 
 type ActiveTab = 'messages' | 'winks' | 'requests';
@@ -30,25 +29,16 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
 
     useEffect(() => {
         switch (activeTab) {
-            case 'messages':
-                fetchConversations();
-                break;
-            case 'winks':
-                fetchWinks();
-                break;
-            case 'requests':
-                fetchAccessRequests();
-                break;
+            case 'messages': fetchConversations(); break;
+            case 'winks': fetchWinks(); break;
+            case 'requests': fetchAccessRequests(); break;
         }
     }, [activeTab, fetchConversations, fetchWinks, fetchAccessRequests]);
     
     const handleConversationClick = (convo: ConversationPreview) => {
-        // Fix: Add the missing 'distance_km' property to satisfy the User type.
         const chatPartner: User = {
-            id: convo.other_participant_id,
-            username: convo.other_participant_username,
-            avatar_url: convo.other_participant_avatar_url,
-            last_seen: convo.other_participant_last_seen,
+            id: convo.other_participant_id, username: convo.other_participant_username,
+            avatar_url: convo.other_participant_avatar_url, last_seen: convo.other_participant_last_seen,
             display_name: null, public_photos: [], status_text: null, date_of_birth: null,
             height_cm: null, weight_kg: null, tribes: [], position: null, hiv_status: null,
             updated_at: '', lat: 0, lng: 0, age: 0, distance_km: null, subscription_tier: 'free',
@@ -77,7 +67,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             className={`flex items-center gap-1.5 py-2 px-1 text-sm font-semibold transition-colors border-b-2 ${activeTab === tabName ? 'text-pink-500 border-pink-500' : 'text-gray-400 border-transparent hover:text-white'}`}
         >
             {label}
-            {isPremium && <SparklesIcon className="w-4 h-4 text-yellow-400" />}
+            {isPremium && <span className="material-symbols-outlined !text-[16px] text-yellow-400">auto_awesome</span>}
         </button>
     );
 
@@ -107,8 +97,8 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                     <WinkList 
                         winks={winks}
                         loading={loadingWinks}
-                        onWinkClick={handleWinkClick}
                         isPlus={currentUser?.subscription_tier === 'plus'}
+                        onWinkClick={handleWinkClick}
                         onUpgradeClick={() => setSubscriptionModalOpen(true)}
                     />
                 )}
@@ -135,9 +125,10 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     );
 };
 
+// ... Sub-componentes ...
+
 interface ConversationListProps {
-    conversations: ConversationPreview[];
-    loading: boolean;
+    conversations: ConversationPreview[]; loading: boolean;
     onConversationClick: (convo: ConversationPreview) => void;
     onDeleteClick: (convo: ConversationPreview) => void;
     currentUserId?: string;
@@ -178,7 +169,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
                             </div>
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); onDeleteClick(convo); }} className="p-2 text-gray-500 rounded-full hover:bg-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <TrashIcon className="w-5 h-5"/>
+                            <span className="material-symbols-outlined text-xl">delete</span>
                         </button>
                     </div>
                 );
@@ -188,9 +179,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
 }
 
 interface WinkListProps {
-    winks: WinkWithProfile[];
-    loading: boolean;
-    isPlus: boolean;
+    winks: WinkWithProfile[]; loading: boolean; isPlus: boolean;
     onWinkClick: (wink: WinkWithProfile) => void;
     onUpgradeClick: () => void;
 }
@@ -207,7 +196,7 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
                     </div>
                 ))}
                 <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
-                    <LockIcon className="w-12 h-12 text-pink-400 mb-4" />
+                    <span className="material-symbols-outlined text-5xl text-pink-400 mb-4">lock</span>
                     <h3 className="text-lg font-bold text-white">Veja quem te chamou</h3>
                     <p className="text-gray-300 my-2">Assine o Ponto G Plus para desbloquear esta e outras funcionalidades.</p>
                     <button onClick={onUpgradeClick} className="mt-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-2 px-6 rounded-lg">
@@ -234,8 +223,7 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
 }
 
 interface RequestListProps {
-    requests: AlbumAccessRequest[];
-    loading: boolean;
+    requests: AlbumAccessRequest[]; loading: boolean;
     onRespond: (requestId: number, status: 'granted' | 'denied') => void;
 }
 const RequestList: React.FC<RequestListProps> = ({ requests, loading, onRespond }) => {
@@ -254,8 +242,8 @@ const RequestList: React.FC<RequestListProps> = ({ requests, loading, onRespond 
                         <span className="text-xs text-gray-500">{formatDistanceToNow(new Date(req.created_at), { addSuffix: true, locale: ptBR })}</span>
                     </div>
                     <div className="flex gap-3">
-                        <button onClick={() => onRespond(req.id, 'denied')} className="p-2.5 bg-gray-700 text-gray-300 rounded-full hover:bg-gray-600"><XIcon className="w-5 h-5"/></button>
-                        <button onClick={() => onRespond(req.id, 'granted')} className="p-2.5 bg-gray-700 text-gray-300 rounded-full hover:bg-gray-600"><CheckIcon className="w-5 h-5"/></button>
+                        <button onClick={() => onRespond(req.id, 'denied')} className="p-2.5 bg-gray-700 text-gray-300 rounded-full hover:bg-gray-600"><span className="material-symbols-outlined">close</span></button>
+                        <button onClick={() => onRespond(req.id, 'granted')} className="p-2.5 bg-gray-700 text-gray-300 rounded-full hover:bg-gray-600"><span className="material-symbols-outlined">check</span></button>
                     </div>
                 </div>
             ))}

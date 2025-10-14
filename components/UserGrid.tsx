@@ -4,7 +4,6 @@ import { useAgoraStore } from '../stores/agoraStore';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 import { User } from '../types';
-import { FlameIcon, SparklesIcon } from './icons';
 
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();
@@ -57,13 +56,12 @@ export const UserGrid: React.FC = () => {
     const PremiumFilterButton = ({ label }: { label: string }) => (
         <button onClick={handlePremiumFilterClick} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-700 text-gray-300 whitespace-nowrap hover:bg-gray-600 transition-colors">
             {label}
-            <SparklesIcon className="w-3.5 h-3.5 text-yellow-400" />
+            <span className="material-symbols-outlined !text-[14px] text-yellow-400">auto_awesome</span>
         </button>
     );
 
     return (
         <div className="h-full flex flex-col bg-gray-900">
-            {/* Nova barra de filtros */}
             <div className="p-2 flex items-center space-x-2 overflow-x-auto">
                 <button
                     onClick={toggleOnlineOnly}
@@ -116,7 +114,7 @@ export const UserGrid: React.FC = () => {
                                 </div>
                                 {isAgora && (
                                     <div className="absolute top-1 right-1 bg-red-600/80 rounded-full p-1 shadow-lg">
-                                        <FlameIcon className="w-4 h-4 text-white"/>
+                                        <span className="material-symbols-outlined text-white !text-[16px]">local_fire_department</span>
                                     </div>
                                 )}
                             </div>

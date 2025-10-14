@@ -1,5 +1,4 @@
 import React from 'react';
-import { AlertTriangleIcon } from './icons';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -29,7 +28,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-pink-900/50 mb-4">
-          <AlertTriangleIcon className="h-6 w-6 text-pink-400" />
+          <span className="material-symbols-outlined text-pink-400">warning</span>
         </div>
         <h3 className="text-lg font-bold text-white">{title}</h3>
         <div className="mt-2">

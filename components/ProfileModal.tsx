@@ -4,9 +4,8 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAlbumStore } from '../stores/albumStore';
-import { useAgoraStore } from '../stores/agoraStore'; // Import do novo store
+import { useAgoraStore } from '../stores/agoraStore';
 import { useUiStore } from '../stores/uiStore';
-import { XIcon, MessageCircleIcon, HeartIcon, RulerIcon, ScaleIcon, UsersIcon, ShieldCheckIcon, ChevronLeftIcon, ChevronRightIcon, LockIcon, FlameIcon } from './icons';
 import toast from 'react-hot-toast';
 import { formatLastSeen } from '../lib/utils';
 import { AlbumGalleryModal } from './AlbumGalleryModal';
@@ -21,7 +20,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
   const currentUser = useAuthStore((state) => state.user);
   const onlineUsers = useMapStore((state) => state.onlineUsers);
   const { setSubscriptionModalOpen } = useUiStore();
-  // Fix: The state in `useAgoraStore` is named `posts`, not `agoraPosts`.
   const { posts, fetchAgoraPosts } = useAgoraStore();
   const { 
     viewedUserAlbums, 
@@ -65,7 +63,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
       case 'success_plus':
       case 'success_free':
         toast.success('Chamado enviado com sucesso!');
-        // Dispara a notificação push
         const { session } = (await supabase.auth.getSession()).data;
         if (session) {
           fetch('/api/send-wink-push', {
@@ -92,7 +89,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
   
   const handleChatClick = () => {
     onStartChat(user);
-    onClose(); // Close modal after starting chat
+    onClose();
   }
   
   const handleRequestAccess = () => {
@@ -105,13 +102,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
 
   const allPhotos = [user.avatar_url, ...(user.public_photos || [])];
 
-  const nextPhoto = () => {
-    setCurrentPhotoIndex((prevIndex) => (prevIndex + 1) % allPhotos.length);
-  };
-
-  const prevPhoto = () => {
-    setCurrentPhotoIndex((prevIndex) => (prevIndex - 1 + allPhotos.length) % allPhotos.length);
-  };
+  const nextPhoto = () => setCurrentPhotoIndex((prev) => (prev + 1) % allPhotos.length);
+  const prevPhoto = () => setCurrentPhotoIndex((prev) => (prev - 1 + allPhotos.length) % allPhotos.length);
 
   const renderAccessButton = () => {
       switch (viewedUserAccessStatus) {
@@ -131,22 +123,21 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50 animate-fade-in" onClick={onClose}>
       <div className="bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-[95vh] sm:h-auto sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         
-        {/* Photo Carousel */}
         <div className={`relative w-full aspect-square flex-shrink-0 ${agoraPost ? 'border-b-4 border-red-600 animate-pulse-fire' : ''}`}>
           <img src={allPhotos[currentPhotoIndex]} alt={user.username} className="w-full h-full object-cover sm:rounded-t-2xl" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
           
           <button onClick={onClose} className="absolute top-4 right-4 text-white bg-black/30 p-2 rounded-full hover:bg-black/50 transition-colors z-10">
-            <XIcon className="w-6 h-6" />
+            <span className="material-symbols-outlined">close</span>
           </button>
           
           {allPhotos.length > 1 && (
             <>
               <button onClick={prevPhoto} className="absolute left-2 top-1/2 -translate-y-1/2 text-white bg-black/30 p-2 rounded-full hover:bg-black/50 transition-colors z-10">
-                <ChevronLeftIcon className="w-6 h-6" />
+                <span className="material-symbols-outlined">chevron_left</span>
               </button>
               <button onClick={nextPhoto} className="absolute right-2 top-1/2 -translate-y-1/2 text-white bg-black/30 p-2 rounded-full hover:bg-black/50 transition-colors z-10">
-                <ChevronRightIcon className="w-6 h-6" />
+                <span className="material-symbols-outlined">chevron_right</span>
               </button>
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-1.5 z-10">
                 {allPhotos.map((_, index) => (
@@ -165,13 +156,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
           </div>
         </div>
 
-        {/* User Info */}
         <div className="p-6 overflow-y-auto space-y-6">
           
           {agoraPost && (
             <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-4 text-center">
               <div className="flex items-center justify-center gap-2 text-red-400 font-bold mb-2">
-                <FlameIcon className="w-5 h-5"/>
+                <span className="material-symbols-outlined text-xl">local_fire_department</span>
                 <span>AGORA</span>
               </div>
               <img src={agoraPost.photo_url} alt="Status Agora" className="w-full rounded-lg mb-3 max-h-60 object-cover" />
@@ -179,20 +169,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
             </div>
           )}
 
-          {user.status_text && (
-            <p className="text-gray-300 italic">"{user.status_text}"</p>
-          )}
+          {user.status_text && <p className="text-gray-300 italic">"{user.status_text}"</p>}
           
           <div className="grid grid-cols-2 gap-4 text-sm">
-            {user.height_cm && <InfoItem icon={<RulerIcon className="w-5 h-5 text-pink-400" />} label="Altura" value={`${user.height_cm} cm`} />}
-            {user.weight_kg && <InfoItem icon={<ScaleIcon className="w-5 h-5 text-pink-400" />} label="Peso" value={`${user.weight_kg} kg`} />}
-            {user.position && <InfoItem icon={<HeartIcon className="w-5 h-5 text-pink-400" />} label="Posição" value={user.position} />}
-            {user.hiv_status && <InfoItem icon={<ShieldCheckIcon className="w-5 h-5 text-pink-400" />} label="Status HIV" value={user.hiv_status} />}
+            {user.height_cm && <InfoItem icon="straighten" label="Altura" value={`${user.height_cm} cm`} />}
+            {user.weight_kg && <InfoItem icon="scale" label="Peso" value={`${user.weight_kg} kg`} />}
+            {user.position && <InfoItem icon="favorite" label="Posição" value={user.position} />}
+            {user.hiv_status && <InfoItem icon="verified_user" label="Status HIV" value={user.hiv_status} />}
           </div>
           
           {user.tribes && user.tribes.length > 0 && (
             <div>
-              <h3 className="font-semibold text-gray-200 mb-2 flex items-center gap-2"><UsersIcon className="w-5 h-5" /> Tribos</h3>
+              <h3 className="font-semibold text-gray-200 mb-2 flex items-center gap-2"><span className="material-symbols-outlined text-xl">groups</span> Tribos</h3>
               <div className="flex flex-wrap gap-2">
                 {user.tribes.map(tribe => (
                   <span key={tribe} className="bg-gray-700 text-pink-300 text-xs font-bold px-2.5 py-1 rounded-full">{tribe}</span>
@@ -201,10 +189,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
             </div>
           )}
 
-            {/* Private Albums Section */}
             <div>
                 <h3 className="font-semibold text-gray-200 mb-2 flex items-center gap-2">
-                    <LockIcon className="w-5 h-5" /> Álbuns Privados
+                    <span className="material-symbols-outlined text-xl">lock</span> Álbuns Privados
                 </h3>
                 {isFetchingViewedUserAlbums ? (
                     <p className="text-sm text-gray-400">Verificando acesso...</p>
@@ -235,17 +222,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
                     </div>
                 )}
             </div>
-
         </div>
         
-        {/* Action Buttons */}
         <div className="p-4 border-t border-gray-700 flex-shrink-0 flex gap-4">
           <button onClick={handleWink} className="w-full bg-gray-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-600 transition-colors">
-            <HeartIcon className="w-5 h-5 text-pink-400" />
+            <span className="material-symbols-outlined text-xl text-pink-400">favorite</span>
             <span>Chamar</span>
           </button>
           <button onClick={handleChatClick} className="w-full bg-pink-600 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-pink-700 transition-colors">
-            <MessageCircleIcon className="w-5 h-5" />
+            <span className="material-symbols-outlined text-xl">chat</span>
             <span>Mensagem</span>
           </button>
         </div>
@@ -258,10 +243,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
   );
 };
 
-// Sub-component for info items
-const InfoItem = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) => (
+const InfoItem = ({ icon, label, value }: { icon: string, label: string, value: string }) => (
     <div className="flex items-center space-x-2">
-        {icon}
+        <span className="material-symbols-outlined text-xl text-pink-400">{icon}</span>
         <div>
             <p className="text-gray-400">{label}</p>
             <p className="font-semibold text-white">{value}</p>

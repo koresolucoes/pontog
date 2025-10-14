@@ -14,8 +14,11 @@
   <!-- Basic SEO and App Info -->
   <meta name="description" content="Um aplicativo de encontros para a comunidade gay, focado em geolocalização para encontrar conexões rápidas e diretas ao seu redor." />
   
-  <!-- CRITICAL FIX: Include Tailwind CSS Play CDN -->
+  <!-- Tailwind CSS Play CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Material Symbols -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
   <!-- Import Map for dependencies -->
   <script type="importmap">
@@ -52,10 +55,18 @@
         sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      /* Background and color are now handled by Tailwind on the body/html or root div */
+    }
+    
+    /* Google Material Symbols default style */
+    .material-symbols-outlined {
+      font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24
     }
 
-    /* Leaflet popup customization to match app theme */
+    /* Leaflet popup customization */
     .leaflet-popup-content-wrapper {
         background: #1f2937; /* bg-gray-800 */
         color: #f9fafb; /* text-gray-50 */
@@ -67,10 +78,10 @@
         line-height: 1.5;
     }
     .leaflet-popup-tip-container {
-        display: none; /* Hiding the default tip for a cleaner look */
+        display: none;
     }
     
-    /* Animation classes used in React components */
+    /* Animation classes */
     @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
@@ -101,7 +112,7 @@
         animation: fadeInUp 0.3s ease-out forwards;
     }
 
-    /* Nova animação para o modo 'Agora' */
+    /* Animação para o modo 'Agora' */
     @keyframes pulse-fire {
       0%, 100% {
         box-shadow: 0 0 5px rgba(220, 38, 38, 0.6), 0 0 10px rgba(220, 38, 38, 0.5);
@@ -114,7 +125,7 @@
       animation: pulse-fire 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
     }
     
-    /* Scrollbar styling for a modern look */
+    /* Scrollbar styling */
     ::-webkit-scrollbar {
         width: 8px;
         height: 8px;

@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { User, Message as MessageType } from '../types';
-import { SendIcon, XIcon, CheckIcon, CheckCheckIcon, TrashIcon } from './icons';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import { useMapStore } from '../stores/mapStore';
@@ -137,7 +136,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
     } else {
       setNewMessage('');
       
-      // Fire and forget: Chamar a API para enviar a notificação push
       const { session } = (await supabase.auth.getSession()).data;
       if (session) {
         fetch('/api/send-push', {
@@ -204,17 +202,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
           {msg.updated_at && <span className="text-xs text-gray-500">(editado)</span>}
           <span className="text-xs text-gray-400">{format(new Date(msg.created_at), 'HH:mm')}</span>
           {msg.read_at ? (
-              <CheckCheckIcon className="w-4 h-4 text-blue-400" />
+              <span className="material-symbols-outlined !text-[16px] text-blue-400">done_all</span>
           ) : (
-              <CheckIcon className="w-4 h-4 text-gray-400" />
+              <span className="material-symbols-outlined !text-[16px] text-gray-400">check</span>
           )}
       </div>
     );
   };
   
   const statusText = formatLastSeen(user.last_seen);
-  // Considera o usuário online se ele estiver no canal de presença OU se sua última atividade foi muito recente.
-  // Isso garante consistência entre o indicador visual (ponto verde) e o texto de status.
   const isOnline = onlineUsers.includes(user.id) || statusText === 'Online';
 
   return (
@@ -226,19 +222,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
           <div>
             <h3 className="font-bold">{user.name}</h3>
             <div className="flex items-center space-x-1.5">
-              {isOnline && (
-                  <div className="w-2 h-2 rounded-full bg-green-400"></div>
-              )}
+              {isOnline && <div className="w-2 h-2 rounded-full bg-green-400"></div>}
               <span className="text-xs text-gray-400">{isOnline ? 'Online' : statusText}</span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
             <button onClick={() => setConfirmDeleteConvo(true)} className="text-gray-400 hover:text-white">
-                <TrashIcon className="w-5 h-5" />
+                <span className="material-symbols-outlined text-xl">delete</span>
             </button>
             <button onClick={onClose} className="text-gray-400 hover:text-white">
-                <XIcon className="w-6 h-6" />
+                <span className="material-symbols-outlined">close</span>
             </button>
         </div>
       </header>
@@ -296,7 +290,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                 className="w-full bg-gray-700 rounded-full py-2.5 pl-4 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
             />
             <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-pink-600 text-white rounded-full p-2 hover:bg-pink-700 transition-colors">
-                <SendIcon className="w-5 h-5" />
+                <span className="material-symbols-outlined text-xl">send</span>
             </button>
             </div>
         </form>

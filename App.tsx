@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Toaster } from 'react-hot-toast';
+import React, { useEffect } from 'react';
+import { Toaster, toast } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
 import { useUiStore, View } from './stores/uiStore';
 import { useMapStore } from './stores/mapStore';
@@ -12,16 +12,14 @@ import { ProfileView } from './components/ProfileView';
 import { ProfileModal } from './components/ProfileModal';
 import { ChatWindow } from './components/ChatWindow';
 import { AgoraView } from './components/AgoraView';
-import { PwaInstallButton } from './components/PwaInstallButton'; // Importa o novo botão
-import { SearchIcon, MessageCircleIcon, MapPinIcon, UserIcon, FlameIcon, HomeIcon } from './components/icons';
-// Fix: Import 'usePwaStore' to resolve the undefined reference.
+import { PwaInstallButton } from './components/PwaInstallButton';
 import { usePwaStore } from './stores/pwaStore';
 import { SubscriptionModal } from './components/SubscriptionModal';
 
 const App: React.FC = () => {
-    const { session, user, loading } = useAuthStore();
+    const { session, user, loading, fetchProfile } = useAuthStore();
     const { activeView, setActiveView, chatUser, setChatUser, isSubscriptionModalOpen } = useUiStore();
-    const { setInstallPromptEvent } = usePwaStore(); // Movido de volta para App.tsx para escopo global
+    const { setInstallPromptEvent } = usePwaStore();
     const { 
         selectedUser, 
         setSelectedUser, 
@@ -30,22 +28,15 @@ const App: React.FC = () => {
         cleanupRealtime 
     } = useMapStore();
 
-    // CRITICAL FIX: Registra o Service Worker e escuta pelo evento de instalação.
     useEffect(() => {
-        // 1. Registra o Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/service-worker.js')
-                    .then(registration => {
-                        console.log('Service Worker registrado com sucesso:', registration.scope);
-                    })
-                    .catch(err => {
-                        console.error('Falha ao registrar o Service Worker:', err);
-                    });
+                    .then(registration => console.log('Service Worker registrado:', registration.scope))
+                    .catch(err => console.error('Falha ao registrar Service Worker:', err));
             });
         }
 
-        // 2. Escuta pelo evento de instalação do PWA
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault();
             setInstallPromptEvent(e as any);
@@ -53,11 +44,24 @@ const App: React.FC = () => {
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-        return () => {
-            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        };
+        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     }, [setInstallPromptEvent]);
 
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentStatus = urlParams.get('payment');
+        if (paymentStatus) {
+            if (paymentStatus === 'success') {
+                toast.success('Pagamento aprovado! Seu plano Plus está ativo.');
+                // Atualiza o perfil para refletir o novo status de assinatura
+                if(session?.user) fetchProfile(session.user);
+            } else if (paymentStatus === 'failure') {
+                toast.error('O pagamento falhou. Tente novamente.');
+            }
+            // Limpa os parâmetros da URL para evitar que o toast apareça novamente
+            window.history.replaceState({}, document.title, "/");
+        }
+    }, [session, fetchProfile]);
 
     useEffect(() => {
         if (session) {
@@ -83,20 +87,13 @@ const App: React.FC = () => {
 
     const renderActiveView = () => {
         switch (activeView) {
-            case 'home':
-                return <HomeView />;
-            case 'grid':
-                return <UserGrid />;
-            case 'map':
-                return <Map />;
-            case 'agora':
-                return <AgoraView />;
-            case 'inbox':
-                return <Inbox />;
-            case 'profile':
-                return <ProfileView />;
-            default:
-                return <HomeView />;
+            case 'home': return <HomeView />;
+            case 'grid': return <UserGrid />;
+            case 'map': return <Map />;
+            case 'agora': return <AgoraView />;
+            case 'inbox': return <Inbox />;
+            case 'profile': return <ProfileView />;
+            default: return <HomeView />;
         }
     };
 
@@ -113,9 +110,7 @@ const App: React.FC = () => {
                 }}
             />
             
-            <main className="flex-1 overflow-hidden pb-20 z-10">
-                {renderActiveView()}
-            </main>
+            <main className="flex-1 overflow-hidden pb-20 z-10">{renderActiveView()}</main>
             
             {selectedUser && (
                 <ProfileModal 
@@ -139,48 +134,16 @@ const App: React.FC = () => {
             
             {isSubscriptionModalOpen && <SubscriptionModal />}
 
-            {/* Novo Botão de Instalação Flutuante */}
             <PwaInstallButton />
 
-            {/* Barra de Navegação Inferior */}
             <nav className="fixed bottom-0 left-0 right-0 bg-gray-800/90 backdrop-blur-sm border-t border-gray-700 z-20">
                 <div className="max-w-md mx-auto grid grid-cols-6">
-                   <NavButton 
-                        icon={HomeIcon} 
-                        label="Início" 
-                        isActive={activeView === 'home'} 
-                        onClick={() => setActiveView('home')}
-                    />
-                   <NavButton 
-                        icon={SearchIcon} 
-                        label="Buscar" 
-                        isActive={activeView === 'grid'} 
-                        onClick={() => setActiveView('grid')}
-                    />
-                    <NavButton 
-                        icon={MapPinIcon} 
-                        label="Mapa" 
-                        isActive={activeView === 'map'} 
-                        onClick={() => setActiveView('map')}
-                    />
-                    <NavButton 
-                        icon={FlameIcon} 
-                        label="Agora" 
-                        isActive={activeView === 'agora'} 
-                        onClick={() => setActiveView('agora')}
-                    />
-                    <NavButton 
-                        icon={MessageCircleIcon} 
-                        label="Entrada" 
-                        isActive={activeView === 'inbox'} 
-                        onClick={() => setActiveView('inbox')}
-                    />
-                    <NavButton 
-                        icon={UserIcon} 
-                        label="Perfil" 
-                        isActive={activeView === 'profile'} 
-                        onClick={() => setActiveView('profile')}
-                    />
+                   <NavButton icon="home" label="Início" isActive={activeView === 'home'} onClick={() => setActiveView('home')} />
+                   <NavButton icon="search" label="Buscar" isActive={activeView === 'grid'} onClick={() => setActiveView('grid')} />
+                   <NavButton icon="travel_explore" label="Mapa" isActive={activeView === 'map'} onClick={() => setActiveView('map')} />
+                   <NavButton icon="local_fire_department" label="Agora" isActive={activeView === 'agora'} onClick={() => setActiveView('agora')} />
+                   <NavButton icon="inbox" label="Entrada" isActive={activeView === 'inbox'} onClick={() => setActiveView('inbox')} />
+                   <NavButton icon="person" label="Perfil" isActive={activeView === 'profile'} onClick={() => setActiveView('profile')} />
                 </div>
             </nav>
         </div>
@@ -188,25 +151,21 @@ const App: React.FC = () => {
 };
 
 interface NavButtonProps {
-    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+    icon: string;
     label: string;
     isActive: boolean;
     onClick: () => void;
 }
 
-const NavButton: React.FC<NavButtonProps> = ({ icon: Icon, label, isActive, onClick }) => {
-    return (
-        <button
-            onClick={onClick}
-            className={`flex flex-col items-center justify-center pt-2 pb-1 transition-colors ${
-                isActive ? 'text-pink-500' : 'text-gray-400 hover:text-white'
-            }`}
-            aria-label={label}
-        >
-            <Icon className="w-7 h-7" />
-            <span className="text-[10px] mt-0.5">{label}</span>
-        </button>
-    );
-};
+const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick }) => (
+    <button
+        onClick={onClick}
+        className={`flex flex-col items-center justify-center pt-2 pb-1 transition-colors ${isActive ? 'text-pink-500' : 'text-gray-400 hover:text-white'}`}
+        aria-label={label}
+    >
+        <span className="material-symbols-outlined text-2xl">{icon}</span>
+        <span className="text-[10px] mt-0.5">{label}</span>
+    </button>
+);
 
 export default App;

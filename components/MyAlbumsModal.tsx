@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAlbumStore } from '../stores/albumStore';
 import { PrivateAlbum } from '../types';
-import { XIcon, PlusCircleIcon, UploadCloudIcon, TrashIcon, ChevronLeftIcon } from './icons';
 
 interface MyAlbumsModalProps {
   onClose: () => void;
@@ -42,7 +41,7 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
     <>
       <div className="p-6 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
         <h2 className="text-xl font-bold text-white">Meus Álbuns Privados</h2>
-        <button type="button" onClick={onClose} className="text-gray-400 hover:text-white"><XIcon className="w-6 h-6" /></button>
+        <button type="button" onClick={onClose} className="text-gray-400 hover:text-white"><span className="material-symbols-outlined">close</span></button>
       </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         <form onSubmit={handleCreateAlbum} className="flex gap-2">
@@ -53,7 +52,7 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
             placeholder="Nome do novo álbum"
             className="flex-1 bg-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
           />
-          <button type="submit" className="bg-pink-600 text-white font-semibold p-2 rounded-lg hover:bg-pink-700"><PlusCircleIcon className="w-6 h-6"/></button>
+          <button type="submit" className="bg-pink-600 text-white font-semibold p-2 rounded-lg hover:bg-pink-700"><span className="material-symbols-outlined">add_circle</span></button>
         </form>
         {isLoading ? (
           <p className="text-gray-400 text-center">Carregando álbuns...</p>
@@ -83,10 +82,10 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
      <>
       <div className="p-6 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
         <div className="flex items-center gap-4">
-            <button onClick={() => setSelectedAlbum(null)} className="text-gray-400 hover:text-white"><ChevronLeftIcon className="w-6 h-6"/></button>
+            <button onClick={() => setSelectedAlbum(null)} className="text-gray-400 hover:text-white"><span className="material-symbols-outlined">arrow_back_ios_new</span></button>
             <h2 className="text-xl font-bold text-white">{selectedAlbum.name}</h2>
         </div>
-        <button type="button" onClick={() => deleteAlbum(selectedAlbum.id).then(() => setSelectedAlbum(null))} className="text-red-400 hover:text-red-300"><TrashIcon className="w-5 h-5" /></button>
+        <button type="button" onClick={() => deleteAlbum(selectedAlbum.id).then(() => setSelectedAlbum(null))} className="text-red-400 hover:text-red-300"><span className="material-symbols-outlined text-xl">delete</span></button>
       </div>
        <div className="flex-1 overflow-y-auto p-6">
            <input type="file" accept="image/*" onChange={handleFileSelect} ref={fileInputRef} className="hidden" disabled={isUploading} />
@@ -95,7 +94,7 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
                     <div key={photo.id} className="relative group aspect-square">
                         <img src={photo.photo_path} alt="foto do álbum" className="w-full h-full object-cover rounded-lg" />
                         <button type="button" onClick={() => deletePhotoFromAlbum(photo.id)} className="absolute top-1 right-1 bg-red-600/70 p-1 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                            <TrashIcon className="w-4 h-4" />
+                            <span className="material-symbols-outlined !text-sm">delete</span>
                         </button>
                     </div>
                 ))}
@@ -112,7 +111,7 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
                         </>
                     ) : (
                         <>
-                          <UploadCloudIcon className="w-8 h-8"/>
+                          <span className="material-symbols-outlined text-4xl">cloud_upload</span>
                           <span className="text-sm mt-2">Adicionar Foto</span>
                         </>
                     )}

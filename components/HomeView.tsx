@@ -1,10 +1,8 @@
-// components/HomeView.tsx
 import React, { useEffect, useMemo } from 'react';
 import { useHomeStore } from '../stores/homeStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
 import { User } from '../types';
-import { FlameIcon } from './icons';
 
 export const HomeView: React.FC = () => {
     const { popularUsers, loading, error, fetchPopularUsers } = useHomeStore();
@@ -12,7 +10,6 @@ export const HomeView: React.FC = () => {
     const { agoraUserIds } = useAgoraStore();
 
     useEffect(() => {
-        // Fetch users when location is available
         if (myLocation) {
             fetchPopularUsers();
         }
@@ -103,7 +100,7 @@ export const HomeView: React.FC = () => {
                             </div>
                             {isAgora && (
                                 <div className="absolute top-1 right-1 bg-red-600/80 rounded-full p-1 shadow-lg">
-                                    <FlameIcon className="w-4 h-4 text-white"/>
+                                    <span className="material-symbols-outlined !text-[16px] text-white">local_fire_department</span>
                                 </div>
                             )}
                         </div>

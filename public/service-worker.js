@@ -1,30 +1,30 @@
 // public/service-worker.js
 
-const CACHE_NAME = 'ponto-g-cache-v2'; // Bumped version to ensure new SW is installed
-// It's a single page app, caching the main entry points is crucial.
-// Other assets are loaded via importmap and will be cached by the browser or this SW fetch handler.
+const CACHE_NAME = 'ponto-g-cache-v3'; // Versão incrementada para forçar a atualização
+// FIX: Removido os ícones da lista de pré-cache.
+// Se os ícones não forem encontrados, a instalação do Service Worker falha,
+// fazendo com que `navigator.serviceWorker.ready` nunca resolva, o que causa o
+// estado de carregamento infinito ao tentar se inscrever para notificações.
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  '/manifest.json'
 ];
 
-// Install event: opens a cache and adds core files to it.
+// Evento de instalação: força a ativação do novo SW.
 self.addEventListener('install', event => {
+  self.skipWaiting(); // Força o novo Service Worker a se tornar ativo imediatamente.
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache and caching core assets');
+        console.log('Cache aberto e ativos principais sendo cacheados');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
-// Fetch event: serves cached content when offline.
+// Evento de fetch: serve conteúdo do cache quando offline.
 self.addEventListener('fetch', event => {
-  // We only want to cache GET requests.
   if (event.request.method !== 'GET') {
     return;
   }
@@ -32,28 +32,19 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Cache hit - return response
         if (response) {
           return response;
         }
 
-        // Not in cache - fetch from network, then cache it for next time
         return fetch(event.request).then(
           networkResponse => {
-            // Check if we received a valid response
             if(!networkResponse || networkResponse.status !== 200) {
               return networkResponse;
             }
 
-            // IMPORTANT: Clone the response. A response is a stream
-            // and because we want the browser to consume the response
-            // as well as the cache consuming the response, we need
-            // to clone it so we have two streams.
             const responseToCache = networkResponse.clone();
-
             caches.open(CACHE_NAME)
               .then(cache => {
-                // We don't cache API calls
                 if (!event.request.url.includes('/api/')) {
                     cache.put(event.request, responseToCache);
                 }
@@ -62,15 +53,13 @@ self.addEventListener('fetch', event => {
             return networkResponse;
           }
         ).catch(error => {
-            // This is a simplified offline fallback. 
-            // For a SPA, returning the index.html for navigation requests might be better.
-            console.log('Fetch failed; returning offline page instead.', error);
+            console.log('Falha no fetch; retornando página offline.', error);
         });
       })
   );
 });
 
-// Activate event: cleans up old caches.
+// Evento de ativação: limpa caches antigos e assume o controle.
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
@@ -78,16 +67,16 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
-            console.log('Deleting old cache:', cacheName);
+            console.log('Deletando cache antigo:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim()) // Garante que o SW atualizado controle a página imediatamente.
   );
 });
 
-// Push event: handles incoming push messages.
+// Evento de push: manipula as mensagens push recebidas.
 self.addEventListener('push', event => {
   const data = event.data.json();
   const options = {
@@ -100,7 +89,7 @@ self.addEventListener('push', event => {
   );
 });
 
-// Notification click event: focuses the app window or opens it.
+// Evento de clique na notificação: foca na janela do app ou abre uma nova.
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(

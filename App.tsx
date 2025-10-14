@@ -5,12 +5,13 @@ import { useUiStore, View } from './stores/uiStore';
 import { useMapStore } from './stores/mapStore';
 import { Auth } from './components/Auth';
 import { UserGrid } from './components/UserGrid';
+import { Map } from './components/Map'; // Importa o componente de Mapa
 import { Inbox } from './components/Inbox';
 import { ProfileView } from './components/ProfileView';
 import { ProfileModal } from './components/ProfileModal';
 import { ChatWindow } from './components/ChatWindow';
-import { AgoraView } from './components/AgoraView'; // Nova tela Agora
-import { SearchIcon, MessageCircleIcon, HeartIcon, UserIcon, FlameIcon } from './components/icons';
+import { AgoraView } from './components/AgoraView';
+import { SearchIcon, MessageCircleIcon, MapPinIcon, UserIcon, FlameIcon } from './components/icons';
 
 const App: React.FC = () => {
     const { session, user, loading } = useAuthStore();
@@ -49,14 +50,14 @@ const App: React.FC = () => {
         switch (activeView) {
             case 'grid':
                 return <UserGrid />;
+            case 'map':
+                return <Map />;
             case 'agora':
                 return <AgoraView />;
             case 'inbox':
                 return <Inbox />;
             case 'profile':
                 return <ProfileView />;
-            case 'interest':
-                return <Inbox initialTab="winks" />;
             default:
                 return <UserGrid />;
         }
@@ -75,7 +76,7 @@ const App: React.FC = () => {
                 }}
             />
             
-            <main className="flex-1 overflow-y-auto pb-20">
+            <main className="flex-1 overflow-hidden pb-20">
                 {renderActiveView()}
             </main>
             
@@ -109,16 +110,16 @@ const App: React.FC = () => {
                         onClick={() => setActiveView('grid')}
                     />
                     <NavButton 
+                        icon={MapPinIcon} 
+                        label="Mapa" 
+                        isActive={activeView === 'map'} 
+                        onClick={() => setActiveView('map')}
+                    />
+                    <NavButton 
                         icon={FlameIcon} 
                         label="Agora" 
                         isActive={activeView === 'agora'} 
                         onClick={() => setActiveView('agora')}
-                    />
-                     <NavButton 
-                        icon={HeartIcon} 
-                        label="Interesse" 
-                        isActive={activeView === 'interest'} 
-                        onClick={() => setActiveView('interest')}
                     />
                     <NavButton 
                         icon={MessageCircleIcon} 

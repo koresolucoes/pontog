@@ -212,8 +212,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
     );
   };
   
-  const isOnline = onlineUsers.includes(user.id);
-  const userStatus = isOnline ? 'Online' : formatLastSeen(user.last_seen);
+  const statusText = formatLastSeen(user.last_seen);
+  // Considera o usuário online se ele estiver no canal de presença OU se sua última atividade foi muito recente.
+  // Isso garante consistência entre o indicador visual (ponto verde) e o texto de status.
+  const isOnline = onlineUsers.includes(user.id) || statusText === 'Online';
 
   return (
     <>
@@ -227,7 +229,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
               {isOnline && (
                   <div className="w-2 h-2 rounded-full bg-green-400"></div>
               )}
-              <span className="text-xs text-gray-400">{userStatus}</span>
+              <span className="text-xs text-gray-400">{isOnline ? 'Online' : statusText}</span>
             </div>
           </div>
         </div>

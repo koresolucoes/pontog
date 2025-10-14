@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { GoogleIcon } from './icons';
 
 export const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -34,6 +35,24 @@ export const Auth: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        // Redireciona o usuário de volta para a página principal após o login
+        redirectTo: window.location.origin,
+      },
+    });
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    }
+    // Se o login for bem-sucedido, o Supabase cuida do redirecionamento,
+    // então não precisamos desativar o 'loading' aqui.
   };
 
   return (
@@ -80,6 +99,27 @@ export const Auth: React.FC = () => {
 
         {error && <p className="mt-4 text-center text-red-400">{error}</p>}
         {message && <p className="mt-4 text-center text-green-400">{message}</p>}
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-600"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-gray-800 text-gray-500">OU</span>
+          </div>
+        </div>
+
+        <div>
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 bg-white text-gray-700 font-semibold py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            <GoogleIcon className="w-5 h-5" />
+            <span>Entrar com Google</span>
+          </button>
+        </div>
 
         <p className="mt-6 text-center text-sm text-gray-400">
           {isLogin ? "Não tem uma conta?" : "Já tem uma conta?"}

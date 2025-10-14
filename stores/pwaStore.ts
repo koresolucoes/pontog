@@ -37,7 +37,7 @@ interface PwaState {
   pushState: 'unsupported' | 'denied' | 'prompt' | 'granted';
   isSubscribing: boolean;
   checkPushSupport: () => Promise<void>;
-  subscribeToPushNotifications: () => Promise<void>;
+  subscribeToPushNotifications: () => void; // A função agora não é async aqui, ela gerencia suas próprias promessas
   unlinkSubscriptionOnLogout: () => Promise<void>;
   relinkSubscriptionOnLogin: () => Promise<void>;
 }
@@ -92,7 +92,7 @@ export const usePwaStore = create<PwaState>((set, get) => ({
     }
   },
 
-  subscribeToPushNotifications: async () => {
+  subscribeToPushNotifications: () => {
     const vapidPublicKey = (import.meta as any).env.VITE_VAPID_PUBLIC_KEY;
     if (!vapidPublicKey) {
         console.error('VAPID public key not found.');
@@ -107,55 +107,50 @@ export const usePwaStore = create<PwaState>((set, get) => ({
 
     set({ isSubscribing: true });
 
-    try {
-        const permission = await Notification.requestPermission();
+    // FIX: Refatorado para usar .then() para maior clareza e robustez na cadeia de promessas.
+    // Isso evita potenciais problemas de suspensão de 'async/await' e garante que o estado de 'isSubscribing'
+    // seja sempre redefinido no bloco 'finally'.
+    Notification.requestPermission().then(permission => {
         if (permission !== 'granted') {
             throw new Error('Permission not granted for Notifications');
         }
-
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.subscribe({
+        return navigator.serviceWorker.ready;
+    }).then(registration => {
+        return registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
         });
-
-        // FIX: Converte explicitamente o objeto PushSubscription para um objeto JSON puro.
-        // Isso evita possíveis problemas de serialização ao enviá-lo para o backend.
+    }).then(subscription => {
         const subscriptionObject = subscription.toJSON();
-
-        // Envia a inscrição para o backend
-        const { session } = (await supabase.auth.getSession()).data;
-        if (!session) throw new Error("User not authenticated");
-
-        const response = await fetch('/api/store-push-subscription', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({ subscription_object: subscriptionObject }),
+        return supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!session) throw new Error("User not authenticated");
+            return fetch('/api/store-push-subscription', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ subscription_object: subscriptionObject }),
+            });
         });
-
+    }).then(async (response) => {
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || 'Failed to store push subscription on server.');
         }
-
         toast.success('Notificações ativadas com sucesso!');
         set({ pushState: 'granted' });
-
-    } catch (error) {
+    }).catch(error => {
         console.error('Failed to subscribe to push notifications:', error);
-        
         if (Notification.permission === 'denied') {
             set({ pushState: 'denied' });
             toast.error('Você bloqueou as notificações. Altere nas configurações do navegador.');
         } else {
             toast.error('Não foi possível ativar as notificações.');
         }
-    } finally {
+    }).finally(() => {
         set({ isSubscribing: false });
-    }
+    });
   },
 
   unlinkSubscriptionOnLogout: async () => {

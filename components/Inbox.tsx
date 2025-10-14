@@ -45,38 +45,12 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const { 
         conversations, winks, accessRequests, profileViews,
         loadingConversations, loadingWinks, loadingRequests, loadingProfileViews,
-        fetchConversations, fetchWinks, fetchAccessRequests, fetchProfileViews,
         respondToRequest, deleteConversation
     } = useInboxStore();
     const { setChatUser, setSubscriptionModalOpen } = useUiStore();
     const { setSelectedUser } = useMapStore();
     const { user: currentUser } = useAuthStore();
     const [confirmDelete, setConfirmDelete] = useState<ConversationPreview | null>(null);
-
-    useEffect(() => {
-        switch (activeTab) {
-            case 'messages': fetchConversations(); break;
-            case 'winks': 
-                if (currentUser?.subscription_tier !== 'plus') {
-                    // Pre-fetch a small number for the blurred grid for free users
-                    fetchWinks(); 
-                } else {
-                    toast('Benefício Plus: Veja quem te chamou!', { icon: '✨', duration: 4000 });
-                    fetchWinks();
-                }
-                break;
-            case 'requests': fetchAccessRequests(); break;
-            case 'views':
-                 if (currentUser?.subscription_tier !== 'plus') {
-                    // Pre-fetch a small number for the blurred grid for free users
-                    fetchProfileViews();
-                } else {
-                    toast('Benefício Plus: Veja quem visitou seu perfil!', { icon: '✨', duration: 4000 });
-                    fetchProfileViews();
-                }
-                break;
-        }
-    }, [activeTab, fetchConversations, fetchWinks, fetchAccessRequests, fetchProfileViews, currentUser]);
     
     const handleConversationClick = (convo: ConversationPreview) => {
         const chatPartner: User = {
@@ -112,7 +86,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const TabButton = ({ label, tabName, isPremium = false }: { label: string, tabName: ActiveTab, isPremium?: boolean }) => (
          <button 
             onClick={() => setActiveTab(tabName)}
-            className={`flex items-center gap-1.5 py-2 px-1 text-sm font-semibold transition-colors border-b-2 ${activeTab === tabName ? 'text-pink-500 border-pink-500' : 'text-slate-400 border-transparent hover:text-white'}`}
+            className={`flex items-center gap-1.5 py-2 px-2 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${activeTab === tabName ? 'text-pink-500 border-pink-500' : 'text-slate-400 border-transparent hover:text-white'}`}
         >
             {label}
             {isPremium && <span className="material-symbols-outlined !text-[16px] text-yellow-400">auto_awesome</span>}
@@ -124,7 +98,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         <div className="flex flex-col h-full bg-slate-900 text-white">
             <header className="p-4">
                 <h1 className="text-xl font-bold">Caixa de Entrada</h1>
-                <div className="mt-4 flex space-x-6 border-b border-slate-700">
+                <div className="mt-4 flex justify-around border-b border-slate-700">
                     <TabButton label="Mensagens" tabName="messages" />
                     <TabButton label="Te Chamaram" tabName="winks" isPremium />
                     <TabButton label="Quem Me Viu" tabName="views" isPremium />
@@ -269,7 +243,7 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
     if (winks.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém te chamou ainda.</p>;
 
     return (
-        <div className="p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
+        <div className="p-1 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1">
             {winks.map(wink => (
                 <div key={wink.id} onClick={() => onWinkClick(wink)} className="relative aspect-square cursor-pointer group">
                      <img src={wink.avatar_url} alt={wink.username} className="w-full h-full object-cover" />
@@ -317,7 +291,7 @@ const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlu
     if (views.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém visitou seu perfil ainda.</p>;
 
     return (
-        <div className="p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
+        <div className="p-1 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1">
             {views.map(view => (
                 <div key={view.id} onClick={() => onViewClick(view)} className="relative aspect-square cursor-pointer group">
                      <img src={view.avatar_url} alt={view.username} className="w-full h-full object-cover" />

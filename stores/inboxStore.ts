@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { ConversationPreview, WinkWithProfile, User, AlbumAccessRequest, ProfileViewWithProfile } from '../types';
 import { getPublicImageUrl } from '../lib/supabase';
 import toast from 'react-hot-toast';
+import { useAuthStore } from './authStore';
 
 const calculateAge = (dob: string | null): number => {
     if (!dob) return 0;
@@ -22,22 +23,24 @@ interface InboxState {
   winks: WinkWithProfile[];
   accessRequests: AlbumAccessRequest[];
   profileViews: ProfileViewWithProfile[];
-  totalUnreadCount: number; // Novo estado para a contagem total
+  totalUnreadCount: number;
   loadingConversations: boolean;
   loadingWinks: boolean;
   loadingRequests: boolean;
   loadingProfileViews: boolean;
+  realtimeChannel: any | null; // Adicionado para a inscrição realtime
   fetchConversations: () => Promise<void>;
   fetchWinks: () => Promise<void>;
   fetchAccessRequests: () => Promise<void>;
   fetchProfileViews: () => Promise<void>;
   respondToRequest: (requestId: number, status: 'granted' | 'denied') => Promise<void>;
   deleteConversation: (conversationId: number) => Promise<void>;
+  subscribeToInboxChanges: () => void; // Adicionado
+  cleanupRealtime: () => void; // Adicionado
 }
 
 export const useInboxStore = create<InboxState>((set, get) => {
     
-    // Helper para recalcular a contagem total de notificações
     const updateTotalUnreadCount = () => {
         const { conversations, winks, accessRequests } = get();
         const unreadMessages = conversations.reduce((sum, convo) => sum + (convo.unread_count || 0), 0);
@@ -56,6 +59,7 @@ export const useInboxStore = create<InboxState>((set, get) => {
         loadingWinks: false,
         loadingRequests: false,
         loadingProfileViews: false,
+        realtimeChannel: null,
 
         fetchConversations: async () => {
             set({ loadingConversations: true });
@@ -181,6 +185,48 @@ export const useInboxStore = create<InboxState>((set, get) => {
                 get().fetchConversations(); // Re-fetch para reverter
             } else {
                 toast.success('Conversa apagada.');
+            }
+        },
+
+        subscribeToInboxChanges: () => {
+            if (get().realtimeChannel) {
+                return;
+            }
+
+            const user = useAuthStore.getState().user;
+            if (!user) {
+                console.error("Cannot subscribe to inbox changes without a user.");
+                return;
+            }
+
+            const channel = supabase
+                .channel(`inbox:${user.id}`)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
+                    get().fetchConversations();
+                })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'winks', filter: `receiver_id=eq.${user.id}` }, payload => {
+                    get().fetchWinks();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'private_album_access', filter: `owner_id=eq.${user.id}` }, payload => {
+                    get().fetchAccessRequests();
+                })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profile_views', filter: `viewed_id=eq.${user.id}` }, payload => {
+                    get().fetchProfileViews();
+                })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log(`Subscribed to inbox channel for user ${user.id}`);
+                    }
+                });
+            
+            set({ realtimeChannel: channel });
+        },
+
+        cleanupRealtime: () => {
+            const { realtimeChannel } = get();
+            if (realtimeChannel) {
+                supabase.removeChannel(realtimeChannel);
+                set({ realtimeChannel: null });
             }
         },
     }

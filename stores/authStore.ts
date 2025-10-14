@@ -105,6 +105,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         };
         set({ profile: profileData, user: userData });
         
+        // Inicia a escuta por eventos da caixa de entrada assim que o perfil é carregado
+        (await import('./inboxStore')).useInboxStore.getState().subscribeToInboxChanges();
+
         // Trigger onboarding if the flag is false
         if (!profileData.has_completed_onboarding) {
             set({ showOnboarding: true });
@@ -201,6 +204,7 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
   } else {
     useAuthStore.setState({ session: null, user: null, profile: null, loading: false, showOnboarding: false });
     (await import('./pwaStore')).usePwaStore.getState().unlinkSubscriptionOnLogout();
+    (await import('./inboxStore')).useInboxStore.getState().cleanupRealtime(); // Limpa a inscrição realtime
     (await import('./inboxStore')).useInboxStore.setState({ conversations: [], winks: [], accessRequests: [], profileViews: [], loadingConversations: false, loadingWinks: false, loadingRequests: false, loadingProfileViews: false });
     (await import('./albumStore')).useAlbumStore.setState({ myAlbums: [], viewedUserAlbums: [], viewedUserAccessStatus: null, isUploading: false, isLoading: false, isFetchingViewedUserAlbums: false });
     (await import('./notificationStore')).useNotificationStore.setState({ preferences: [], loading: false });

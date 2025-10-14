@@ -68,7 +68,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
   const handleWink = async () => {
     if (!currentUser) return;
 
-    const { data: result, error } = await supabase.rpc('send_wink', { p_receiver_id: user.id });
+    // FIX: A chamada RPC estava faltando o p_sender_id. Adicionado para garantir
+    // que o banco de dados saiba quem está enviando o "chamado".
+    const { data: result, error } = await supabase.rpc('send_wink', { 
+        p_sender_id: currentUser.id,
+        p_receiver_id: user.id 
+    });
 
     if (error) {
       toast.error('Erro ao chamar o perfil.');
@@ -97,7 +102,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
     }
     
     // Send push notification regardless of success type (if not an error)
-    if (result.startsWith('success')) {
+    if (result && result.startsWith('success')) {
         const { session } = (await supabase.auth.getSession()).data;
         if (session) {
           fetch('/api/send-wink-push', {

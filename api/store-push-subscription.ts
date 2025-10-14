@@ -49,6 +49,18 @@ export default async function handler(
 
     if (error) throw error;
 
+    // FIX: Garante que as preferências de notificação padrão sejam criadas para o usuário
+    // na primeira vez que ele se inscreve. Isso corrige o bug onde as notificações não eram
+    // enviadas porque as permissões não existiam no banco de dados.
+    const { error: prefError } = await supabaseAdmin.rpc('ensure_default_notification_preferences', { 
+        p_user_id: user.id 
+    });
+
+    if (prefError) {
+        console.error('Error ensuring default notification preferences:', prefError);
+        // Não falha a requisição inteira, mas registra o erro.
+    }
+
     return res.status(200).json({ success: true });
 
   } catch (error: any) {

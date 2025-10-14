@@ -84,7 +84,7 @@ const App: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
                 <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-pink-500"></div>
             </div>
         );
@@ -107,14 +107,14 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="h-screen w-screen bg-gray-900 text-white flex flex-col antialiased overflow-hidden">
+        <div className="h-screen w-screen bg-slate-900 text-white flex flex-col antialiased overflow-hidden">
             <Toaster
                 position="top-center"
                 toastOptions={{
                     style: {
-                        background: '#1f2937', // gray-800
+                        background: '#1e293b', // slate-800
                         color: '#fff',
-                        border: '1px solid #374151' // gray-700
+                        border: '1px solid #334155' // slate-700
                     },
                 }}
             />
@@ -147,7 +147,7 @@ const App: React.FC = () => {
 
             <PwaInstallButton />
 
-            <nav className="fixed bottom-0 left-0 right-0 bg-gray-800/90 backdrop-blur-sm border-t border-gray-700 z-20">
+            <nav className="fixed bottom-0 left-0 right-0 bg-slate-800/90 backdrop-blur-sm border-t border-slate-700 z-20">
                 <div className="max-w-md mx-auto grid grid-cols-6">
                    <NavButton icon="home" label="Início" isActive={activeView === 'home'} onClick={() => setActiveView('home')} />
                    <NavButton icon="search" label="Buscar" isActive={activeView === 'grid'} onClick={() => setActiveView('grid')} />
@@ -172,15 +172,19 @@ interface NavButtonProps {
 const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, isPlus = false }) => (
     <button
         onClick={onClick}
-        className={`relative flex flex-col items-center justify-center pt-2 pb-1 transition-colors ${isActive ? 'text-pink-500' : 'text-gray-400 hover:text-white'}`}
+        className={`relative flex flex-col items-center justify-center h-16 transition-colors group ${isActive ? 'text-pink-500' : 'text-slate-400 hover:text-white'}`}
         aria-label={label}
     >
-        <span className="material-symbols-outlined text-2xl">{icon}</span>
-        <span className="text-[10px] mt-0.5">{label}</span>
+        <div className="relative">
+             <div className={`absolute -inset-2.5 rounded-full transition-colors ${isActive ? 'bg-pink-500/10' : 'group-hover:bg-slate-700/50'}`}></div>
+             <span className="material-symbols-outlined text-2xl relative z-10">{icon}</span>
+        </div>
+        <span className="text-[10px] mt-1 relative z-10">{label}</span>
         {isPlus && (
-            <span className="absolute top-1 right-2 material-symbols-outlined !text-[12px] text-yellow-400">auto_awesome</span>
+            <span className="absolute top-3 right-3 material-symbols-outlined !text-[12px] text-yellow-400">auto_awesome</span>
         )}
     </button>
 );
+
 
 export default App;

@@ -5,7 +5,8 @@ import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
 import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest, ProfileViewWithProfile } from '../types';
 import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+// Fix: Correctly import the pt-BR locale from its specific module path.
+import { ptBR } from 'date-fns/locale/pt-BR';
 import { ConfirmationModal } from './ConfirmationModal';
 import toast from 'react-hot-toast';
 
@@ -84,7 +85,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const TabButton = ({ label, tabName, isPremium = false }: { label: string, tabName: ActiveTab, isPremium?: boolean }) => (
          <button 
             onClick={() => setActiveTab(tabName)}
-            className={`flex items-center gap-1.5 py-2 px-1 text-sm font-semibold transition-colors border-b-2 ${activeTab === tabName ? 'text-pink-500 border-pink-500' : 'text-gray-400 border-transparent hover:text-white'}`}
+            className={`flex items-center gap-1.5 py-2 px-1 text-sm font-semibold transition-colors border-b-2 ${activeTab === tabName ? 'text-pink-500 border-pink-500' : 'text-slate-400 border-transparent hover:text-white'}`}
         >
             {label}
             {isPremium && <span className="material-symbols-outlined !text-[16px] text-yellow-400">auto_awesome</span>}
@@ -93,10 +94,10 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
 
     return (
         <>
-        <div className="flex flex-col h-full bg-gray-900 text-white">
+        <div className="flex flex-col h-full bg-slate-900 text-white">
             <header className="p-4">
                 <h1 className="text-xl font-bold">Caixa de Entrada</h1>
-                <div className="mt-4 flex space-x-6 border-b border-gray-700">
+                <div className="mt-4 flex space-x-6 border-b border-slate-700">
                     <TabButton label="Mensagens" tabName="messages" />
                     <TabButton label="Te Chamaram" tabName="winks" isPremium />
                     <TabButton label="Quem Me Viu" tabName="views" isPremium />
@@ -166,20 +167,20 @@ interface ConversationListProps {
 const ConversationList: React.FC<ConversationListProps> = ({ conversations, loading, onConversationClick, onDeleteClick, currentUserId }) => {
     const onlineUsers = useMapStore((state) => state.onlineUsers);
 
-    if (loading) return <p className="text-center p-8 text-gray-400">Carregando conversas...</p>;
-    if (conversations.length === 0) return <p className="text-center p-8 text-gray-400">Nenhuma conversa iniciada.</p>;
+    if (loading) return <p className="text-center p-8 text-slate-400">Carregando conversas...</p>;
+    if (conversations.length === 0) return <p className="text-center p-8 text-slate-400">Nenhuma conversa iniciada.</p>;
     
     return (
-        <div className="divide-y divide-gray-800">
+        <div className="divide-y divide-slate-800">
             {conversations.map(convo => {
                 const isOnline = onlineUsers.includes(convo.other_participant_id);
                 return (
-                    <div key={convo.conversation_id} className="p-4 flex items-center space-x-3 group hover:bg-gray-800">
+                    <div key={convo.conversation_id} className="p-4 flex items-center space-x-3 group hover:bg-slate-800">
                         <div onClick={() => onConversationClick(convo)} className="flex-1 flex items-center space-x-3 cursor-pointer">
                             <div className="relative flex-shrink-0">
                                 <img src={convo.other_participant_avatar_url} alt={convo.other_participant_username} className="w-12 h-12 rounded-full object-cover" />
                                 {convo.unread_count > 0 && (
-                                    <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-pink-500 text-white text-xs flex items-center justify-center font-bold ring-2 ring-gray-900">
+                                    <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-pink-500 text-white text-xs flex items-center justify-center font-bold ring-2 ring-slate-900">
                                         {convo.unread_count > 9 ? '9+' : convo.unread_count}
                                     </span>
                                 )}
@@ -190,15 +191,15 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
                                         {isOnline && <div className="w-2 h-2 rounded-full bg-green-400"></div>}
                                         <h3 className="font-bold truncate text-base">{convo.other_participant_username}</h3>
                                     </div>
-                                    <span className="text-xs text-gray-500 flex-shrink-0 ml-2">{formatDistanceToNow(new Date(convo.last_message_created_at), { addSuffix: true, locale: ptBR })}</span>
+                                    <span className="text-xs text-slate-500 flex-shrink-0 ml-2">{formatDistanceToNow(new Date(convo.last_message_created_at), { addSuffix: true, locale: ptBR })}</span>
                                 </div>
-                                <p className={`text-sm truncate ${convo.unread_count > 0 ? 'text-white' : 'text-gray-400'}`}>
+                                <p className={`text-sm truncate ${convo.unread_count > 0 ? 'text-white' : 'text-slate-400'}`}>
                                     {convo.last_message_sender_id === currentUserId && "Você: "}
                                     {convo.last_message_content}
                                 </p>
                             </div>
                         </div>
-                        <button onClick={(e) => { e.stopPropagation(); onDeleteClick(convo); }} className="p-2 text-gray-500 rounded-full hover:bg-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={(e) => { e.stopPropagation(); onDeleteClick(convo); }} className="p-2 text-slate-500 rounded-full hover:bg-slate-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
                             <span className="material-symbols-outlined text-xl">delete</span>
                         </button>
                     </div>
@@ -214,8 +215,8 @@ interface WinkListProps {
     onUpgradeClick: () => void;
 }
 const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick, onUpgradeClick }) => {
-    if (loading) return <p className="text-center p-8 text-gray-400">Carregando chamados...</p>;
-    if (!isPlus && winks.length === 0) return <p className="text-center p-8 text-gray-400">Ninguém te chamou ainda.</p>;
+    if (loading) return <p className="text-center p-8 text-slate-400">Carregando chamados...</p>;
+    if (!isPlus && winks.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém te chamou ainda.</p>;
 
     if (!isPlus) {
         return (
@@ -225,10 +226,10 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
                         <img src={wink.avatar_url} alt="Perfil ofuscado" className="w-full h-full object-cover filter blur-md" />
                     </div>
                 ))}
-                <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
+                <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
                     <span className="material-symbols-outlined text-5xl text-pink-400 mb-4">lock</span>
                     <h3 className="text-lg font-bold text-white">Veja quem te chamou</h3>
-                    <p className="text-gray-300 my-2">Assine o Ponto G Plus para desbloquear esta e outras funcionalidades.</p>
+                    <p className="text-slate-300 my-2">Assine o Ponto G Plus para desbloquear esta e outras funcionalidades.</p>
                     <button onClick={onUpgradeClick} className="mt-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-2 px-6 rounded-lg">
                         Fazer Upgrade
                     </button>
@@ -237,7 +238,7 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
         );
     }
     
-    if (winks.length === 0) return <p className="text-center p-8 text-gray-400">Ninguém te chamou ainda.</p>;
+    if (winks.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém te chamou ainda.</p>;
 
     return (
         <div className="p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
@@ -247,7 +248,7 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                     <div className="absolute bottom-2 left-2 right-2 text-white">
                         <h3 className="font-semibold text-sm truncate">{wink.username}</h3>
-                        <p className="text-xs text-gray-300">{formatDistanceToNow(new Date(wink.wink_created_at), { addSuffix: true, locale: ptBR })}</p>
+                        <p className="text-xs text-slate-300">{formatDistanceToNow(new Date(wink.wink_created_at), { addSuffix: true, locale: ptBR })}</p>
                     </div>
                 </div>
             ))}
@@ -261,8 +262,8 @@ interface ProfileViewListProps {
     onUpgradeClick: () => void;
 }
 const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlus, onViewClick, onUpgradeClick }) => {
-    if (loading) return <p className="text-center p-8 text-gray-400">Carregando visitantes...</p>;
-    if (!isPlus && views.length === 0) return <p className="text-center p-8 text-gray-400">Ninguém visitou seu perfil ainda.</p>;
+    if (loading) return <p className="text-center p-8 text-slate-400">Carregando visitantes...</p>;
+    if (!isPlus && views.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém visitou seu perfil ainda.</p>;
 
     if (!isPlus) {
         return (
@@ -272,10 +273,10 @@ const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlu
                         <img src={view.avatar_url} alt="Perfil ofuscado" className="w-full h-full object-cover filter blur-md" />
                     </div>
                 ))}
-                <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
+                <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
                     <span className="material-symbols-outlined text-5xl text-pink-400 mb-4">visibility</span>
                     <h3 className="text-lg font-bold text-white">Descubra quem te viu</h3>
-                    <p className="text-gray-300 my-2">Veja todos que visitaram seu perfil com o Ponto G Plus.</p>
+                    <p className="text-slate-300 my-2">Veja todos que visitaram seu perfil com o Ponto G Plus.</p>
                     <button onClick={onUpgradeClick} className="mt-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-2 px-6 rounded-lg">
                         Fazer Upgrade
                     </button>
@@ -284,7 +285,7 @@ const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlu
         );
     }
     
-    if (views.length === 0) return <p className="text-center p-8 text-gray-400">Ninguém visitou seu perfil ainda.</p>;
+    if (views.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém visitou seu perfil ainda.</p>;
 
     return (
         <div className="p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
@@ -294,7 +295,7 @@ const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlu
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                     <div className="absolute bottom-2 left-2 right-2 text-white">
                         <h3 className="font-semibold text-sm truncate">{view.username}</h3>
-                         <p className="text-xs text-gray-300">{formatDistanceToNow(new Date(view.viewed_at), { addSuffix: true, locale: ptBR })}</p>
+                         <p className="text-xs text-slate-300">{formatDistanceToNow(new Date(view.viewed_at), { addSuffix: true, locale: ptBR })}</p>
                     </div>
                 </div>
             ))}
@@ -307,11 +308,11 @@ interface RequestListProps {
     onRespond: (requestId: number, status: 'granted' | 'denied') => void;
 }
 const RequestList: React.FC<RequestListProps> = ({ requests, loading, onRespond }) => {
-    if (loading) return <p className="text-center p-8 text-gray-400">Carregando solicitações...</p>;
-    if (requests.length === 0) return <p className="text-center p-8 text-gray-400">Nenhuma solicitação pendente.</p>;
+    if (loading) return <p className="text-center p-8 text-slate-400">Carregando solicitações...</p>;
+    if (requests.length === 0) return <p className="text-center p-8 text-slate-400">Nenhuma solicitação pendente.</p>;
 
     return (
-        <div className="divide-y divide-gray-800">
+        <div className="divide-y divide-slate-800">
             {requests.map(req => (
                 <div key={req.id} className="p-4 flex items-center space-x-4">
                     <img src={req.avatar_url} alt={req.username} className="w-12 h-12 rounded-full object-cover" />
@@ -319,11 +320,11 @@ const RequestList: React.FC<RequestListProps> = ({ requests, loading, onRespond 
                         <p className="text-sm">
                             <span className="font-bold">{req.username}</span> solicitou acesso aos seus álbuns.
                         </p>
-                        <span className="text-xs text-gray-500">{formatDistanceToNow(new Date(req.created_at), { addSuffix: true, locale: ptBR })}</span>
+                        <span className="text-xs text-slate-500">{formatDistanceToNow(new Date(req.created_at), { addSuffix: true, locale: ptBR })}</span>
                     </div>
                     <div className="flex gap-3">
-                        <button onClick={() => onRespond(req.id, 'denied')} className="p-2.5 bg-gray-700 text-gray-300 rounded-full hover:bg-gray-600"><span className="material-symbols-outlined">close</span></button>
-                        <button onClick={() => onRespond(req.id, 'granted')} className="p-2.5 bg-gray-700 text-gray-300 rounded-full hover:bg-gray-600"><span className="material-symbols-outlined">check</span></button>
+                        <button onClick={() => onRespond(req.id, 'denied')} className="p-2.5 bg-slate-700 text-slate-300 rounded-full hover:bg-slate-600"><span className="material-symbols-outlined">close</span></button>
+                        <button onClick={() => onRespond(req.id, 'granted')} className="p-2.5 bg-slate-700 text-slate-300 rounded-full hover:bg-slate-600"><span className="material-symbols-outlined">check</span></button>
                     </div>
                 </div>
             ))}

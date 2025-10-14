@@ -1,6 +1,7 @@
 // lib/utils.ts
 import { format, formatDistanceToNow, isToday, isYesterday, differenceInMinutes } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+// Fix: Correctly import the pt-BR locale from its specific module path.
+import { ptBR } from 'date-fns/locale/pt-BR';
 import { getPublicImageUrl } from './supabase';
 import { User } from '../types';
 

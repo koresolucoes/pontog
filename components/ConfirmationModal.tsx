@@ -24,7 +24,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 animate-fade-in" onClick={onCancel}>
       <div 
-        className="bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 text-center animate-fade-in-up" 
+        className="bg-slate-800 rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 text-center animate-fade-in-up" 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-pink-900/50 mb-4">
@@ -32,12 +32,12 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         </div>
         <h3 className="text-lg font-bold text-white">{title}</h3>
         <div className="mt-2">
-          <p className="text-sm text-gray-400">{message}</p>
+          <p className="text-sm text-slate-400">{message}</p>
         </div>
         <div className="mt-6 flex justify-center gap-4">
           <button
             type="button"
-            className="w-full inline-flex justify-center rounded-lg px-4 py-2 bg-gray-700 text-base font-medium text-white hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:w-auto sm:text-sm transition-colors"
+            className="w-full inline-flex justify-center rounded-lg px-4 py-2 bg-slate-700 text-base font-medium text-white hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 sm:w-auto sm:text-sm transition-colors"
             onClick={onCancel}
           >
             {cancelText}

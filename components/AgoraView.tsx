@@ -22,14 +22,14 @@ export const AgoraView: React.FC = () => {
     };
 
     const renderHeader = () => (
-        <div className="p-4 bg-gray-900 border-b border-gray-700">
+        <div className="p-4 bg-slate-900 border-b border-slate-700">
             <div className="flex justify-between items-center">
                 <h1 className="text-xl font-bold flex items-center gap-2">
                     <span className="material-symbols-outlined text-2xl text-red-500">local_fire_department</span>
                     <span>Agora</span>
                 </h1>
                 {userIsAgora ? (
-                    <button onClick={handleDeactivateClick} className="bg-gray-700 text-sm text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors">
+                    <button onClick={handleDeactivateClick} className="bg-slate-700 text-sm text-white font-semibold py-2 px-4 rounded-lg hover:bg-slate-600 transition-colors">
                         Desativar
                     </button>
                 ) : (
@@ -38,7 +38,7 @@ export const AgoraView: React.FC = () => {
                     </button>
                 )}
             </div>
-            <p className="text-sm text-gray-400 mt-2">
+            <p className="text-sm text-slate-400 mt-2">
                 Publique uma foto e apareça aqui por 1 hora para encontrar alguém pra agora.
             </p>
         </div>
@@ -48,7 +48,7 @@ export const AgoraView: React.FC = () => {
         return (
             <div className="h-full flex flex-col">
                 {renderHeader()}
-                <div className="flex-1 flex items-center justify-center text-gray-400">Carregando...</div>
+                <div className="flex-1 flex items-center justify-center text-slate-400">Carregando...</div>
             </div>
         );
     }
@@ -58,7 +58,7 @@ export const AgoraView: React.FC = () => {
             <>
                 <div className="h-full flex flex-col">
                     {renderHeader()}
-                    <div className="flex-1 flex flex-col items-center justify-center text-center text-gray-500 p-8">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-500 p-8">
                         <h2 className="text-xl font-bold">Ninguém no modo Agora.</h2>
                         <p className="mt-2">Seja o primeiro a ativar e se destacar!</p>
                     </div>
@@ -70,16 +70,16 @@ export const AgoraView: React.FC = () => {
     
     return (
         <>
-            <div className="h-full flex flex-col bg-gray-800">
+            <div className="h-full flex flex-col bg-slate-800">
                 {renderHeader()}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {posts.map(post => (
-                        <div key={post.id} className="bg-gray-900 rounded-2xl shadow-lg overflow-hidden">
+                        <div key={post.id} className="bg-slate-900 rounded-2xl shadow-lg overflow-hidden">
                             <div className="p-4 flex items-center space-x-3">
                                 <img src={post.avatar_url} alt={post.username} className="w-12 h-12 rounded-full object-cover" />
                                 <div>
                                     <h3 className="font-bold text-white">{post.username}, {post.age}</h3>
-                                    <p className="text-sm text-gray-400">buscando agora</p>
+                                    <p className="text-sm text-slate-400">buscando agora</p>
                                 </div>
                             </div>
                             <img 
@@ -89,9 +89,9 @@ export const AgoraView: React.FC = () => {
                                 onClick={() => setSelectedPost(post)}
                             />
                             {post.status_text && (
-                                <p className="p-4 text-gray-300 italic">"{post.status_text}"</p>
+                                <p className="p-4 text-slate-300 italic">"{post.status_text}"</p>
                             )}
-                            <div className="p-4 flex items-center justify-between text-gray-400 border-t border-gray-700">
+                            <div className="p-4 flex items-center justify-between text-slate-400 border-t border-slate-700">
                                 <button onClick={() => toggleLikePost(post.id)} className="flex items-center gap-2 hover:text-white transition-colors">
                                     <span className={`material-symbols-outlined ${post.user_has_liked ? 'text-pink-500' : ''}`} style={post.user_has_liked ? { fontVariationSettings: "'FILL' 1" } : {}}>
                                         favorite

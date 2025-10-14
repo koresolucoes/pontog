@@ -38,7 +38,7 @@ export const HomeView: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 p-8">
+            <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
                 <div className="w-12 h-12 border-4 border-dashed rounded-full animate-spin border-pink-500"></div>
                 <h2 className="text-lg font-bold mt-4">Buscando perfis...</h2>
             </div>
@@ -56,7 +56,7 @@ export const HomeView: React.FC = () => {
 
     if (sortedUsers.length === 0) {
         return (
-             <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 p-8">
+             <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
                 <h2 className="text-xl font-bold">Nenhum perfil popular encontrado.</h2>
                 <p className="mt-2">Explore o mapa ou a busca para encontrar pessoas perto de você.</p>
             </div>
@@ -64,10 +64,10 @@ export const HomeView: React.FC = () => {
     }
 
     return (
-        <div className="h-full flex flex-col bg-gray-900">
+        <div className="h-full flex flex-col bg-slate-900">
             <header className="p-4">
                 <h1 className="text-xl font-bold">Destaques</h1>
-                <p className="text-sm text-gray-400">Perfis populares na sua região.</p>
+                <p className="text-sm text-slate-400">Perfis populares na sua região.</p>
             </header>
             
             <div className="p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 flex-1 overflow-y-auto">
@@ -90,7 +90,7 @@ export const HomeView: React.FC = () => {
                                     )}
                                     <h3 className="font-bold text-sm truncate">{user.username}</h3>
                                 </div>
-                                <div className="flex items-center gap-2 text-xs text-gray-300 truncate">
+                                <div className="flex items-center gap-2 text-xs text-slate-300 truncate">
                                     <span>{user.age} anos</span>
                                     {user.distance_km != null && (
                                         <>
@@ -102,7 +102,7 @@ export const HomeView: React.FC = () => {
                             </div>
                             {isAgora && (
                                 <div className="absolute top-1 right-1 bg-red-600/80 rounded-full p-1 shadow-lg">
-                                    <span className="material-symbols-outlined !text-[16px] text-white">local_fire_department</span>
+                                    <span className="material-symbols-outlined text-white !text-[16px]">local_fire_department</span>
                                 </div>
                             )}
                         </div>

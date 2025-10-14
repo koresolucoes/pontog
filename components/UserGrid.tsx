@@ -54,21 +54,21 @@ export const UserGrid: React.FC = () => {
     }, [users, onlineUsers, filters.onlineOnly, agoraUserIds]);
 
     const PremiumFilterButton = ({ label }: { label: string }) => (
-        <button onClick={handlePremiumFilterClick} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-700 text-gray-300 whitespace-nowrap hover:bg-gray-600 transition-colors">
+        <button onClick={handlePremiumFilterClick} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-700 text-slate-300 whitespace-nowrap hover:bg-slate-600 transition-colors">
             {label}
             <span className="material-symbols-outlined !text-[14px] text-yellow-400">auto_awesome</span>
         </button>
     );
 
     return (
-        <div className="h-full flex flex-col bg-gray-900">
+        <div className="h-full flex flex-col bg-slate-900">
             <div className="p-2 flex items-center space-x-2 overflow-x-auto">
                 <button
                     onClick={toggleOnlineOnly}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${
                         filters.onlineOnly 
                             ? 'bg-pink-600 text-white' 
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                 >
                     Online
@@ -79,7 +79,7 @@ export const UserGrid: React.FC = () => {
             </div>
             
             {filteredUsers.length === 0 ? (
-                 <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 p-8">
+                 <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
                     <h2 className="text-xl font-bold">Ninguém por perto...</h2>
                     <p className="mt-2">Tente voltar mais tarde.</p>
                 </div>
@@ -104,7 +104,7 @@ export const UserGrid: React.FC = () => {
                                         )}
                                         <h3 className="font-bold text-sm truncate">{user.username}</h3>
                                     </div>
-                                    <div className="flex items-center gap-2 text-xs text-gray-300 truncate">
+                                    <div className="flex items-center gap-2 text-xs text-slate-300 truncate">
                                         <span>{user.age} anos</span>
                                         {user.distance_km != null && (
                                             <>

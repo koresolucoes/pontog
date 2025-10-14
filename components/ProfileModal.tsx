@@ -133,9 +133,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
   const renderAccessButton = () => {
       switch (viewedUserAccessStatus) {
           case 'pending':
-              return <button disabled className="w-full bg-gray-600 text-gray-400 font-bold py-3 rounded-lg text-sm">Solicitação Enviada</button>;
+              return <button disabled className="w-full bg-slate-600 text-slate-400 font-bold py-3 rounded-lg text-sm">Solicitação Enviada</button>;
           case 'denied':
-              return <p className="text-sm text-center text-gray-400">Seu pedido de acesso foi recusado.</p>;
+              return <p className="text-sm text-center text-slate-400">Seu pedido de acesso foi recusado.</p>;
           case null:
               return <button onClick={handleRequestAccess} className="w-full bg-pink-600 text-white font-bold py-3 rounded-lg hover:bg-pink-700 transition-colors text-sm">Solicitar Acesso</button>;
           default:
@@ -146,7 +146,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
   return (
     <>
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50 animate-fade-in" onClick={onClose}>
-      <div className="bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-[95vh] sm:h-auto sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-[95vh] sm:h-auto sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         
         <div className={`relative w-full aspect-square flex-shrink-0 ${agoraPost ? 'border-b-4 border-red-600 animate-pulse-fire' : ''}`}>
           <img src={allPhotos[currentPhotoIndex]} alt={user.username} className="w-full h-full object-cover sm:rounded-t-2xl" />
@@ -184,7 +184,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
             </h2>
             <div className="flex items-center space-x-2 mt-1">
               {isOnline && <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse"></div>}
-              <p className="text-sm text-gray-300">{statusText}</p>
+              <p className="text-sm text-slate-300">{statusText}</p>
             </div>
           </div>
         </div>
@@ -202,7 +202,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
             </div>
           )}
 
-          {user.status_text && <p className="text-gray-300 italic">"{user.status_text}"</p>}
+          {user.status_text && <p className="text-slate-300 italic">"{user.status_text}"</p>}
           
           <div className="grid grid-cols-2 gap-4 text-sm">
             {user.height_cm && <InfoItem icon="straighten" label="Altura" value={`${user.height_cm} cm`} />}
@@ -213,27 +213,27 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
           
           {user.tribes && user.tribes.length > 0 && (
             <div>
-              <h3 className="font-semibold text-gray-200 mb-2 flex items-center gap-2"><span className="material-symbols-outlined text-xl">groups</span> Tribos</h3>
+              <h3 className="font-semibold text-slate-200 mb-2 flex items-center gap-2"><span className="material-symbols-outlined text-xl">groups</span> Tribos</h3>
               <div className="flex flex-wrap gap-2">
                 {user.tribes.map(tribe => (
-                  <span key={tribe} className="bg-gray-700 text-pink-300 text-xs font-bold px-2.5 py-1 rounded-full">{tribe}</span>
+                  <span key={tribe} className="bg-slate-700 text-pink-300 text-xs font-bold px-2.5 py-1 rounded-full">{tribe}</span>
                 ))}
               </div>
             </div>
           )}
 
             <div>
-                <h3 className="font-semibold text-gray-200 mb-2 flex items-center gap-2">
+                <h3 className="font-semibold text-slate-200 mb-2 flex items-center gap-2">
                     <span className="material-symbols-outlined text-xl">lock</span> Álbuns Privados
                 </h3>
                 {isFetchingViewedUserAlbums ? (
-                    <p className="text-sm text-gray-400">Verificando acesso...</p>
+                    <p className="text-sm text-slate-400">Verificando acesso...</p>
                 ) : viewedUserAccessStatus === 'granted' ? (
                     viewedUserAlbums.length > 0 ? (
                         <div className="grid grid-cols-3 gap-2">
                             {viewedUserAlbums.map(album => (
                                 <div key={album.id} className="relative aspect-square group cursor-pointer" onClick={() => setViewingAlbum(album)}>
-                                    <div className="absolute inset-0 bg-gray-700 rounded-lg flex items-center justify-center text-center p-1">
+                                    <div className="absolute inset-0 bg-slate-700 rounded-lg flex items-center justify-center text-center p-1">
                                         <span className="font-bold text-white text-xs">{album.name}</span>
                                     </div>
                                     {album.private_album_photos.length > 0 && (
@@ -246,20 +246,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
                             ))}
                         </div>
                     ) : (
-                        <p className="text-sm text-center text-gray-400 p-4 bg-gray-700 rounded-lg">Este usuário não possui álbuns privados.</p>
+                        <p className="text-sm text-center text-slate-400 p-4 bg-slate-700 rounded-lg">Este usuário não possui álbuns privados.</p>
                     )
                 ) : (
-                    <div className="p-4 bg-gray-700 rounded-lg text-center">
-                        <p className="text-sm text-gray-300 mb-3">Peça para ver as fotos privadas de {user.username}.</p>
+                    <div className="p-4 bg-slate-700 rounded-lg text-center">
+                        <p className="text-sm text-slate-300 mb-3">Peça para ver as fotos privadas de {user.username}.</p>
                         {renderAccessButton()}
                     </div>
                 )}
             </div>
         </div>
         
-        <div className="p-4 border-t border-gray-700 flex-shrink-0 flex flex-col gap-3">
+        <div className="p-4 border-t border-slate-700 flex-shrink-0 flex flex-col gap-3">
           {currentUser?.subscription_tier === 'free' && winkCount !== null && (
-              <div className="text-center text-sm text-gray-400">
+              <div className="text-center text-sm text-slate-400">
                   {10 - winkCount > 0 ? (
                       <p>Você tem <span className="font-bold text-white">{10 - winkCount} de 10</span> chamados restantes hoje.</p>
                   ) : (
@@ -277,7 +277,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
             <button 
               onClick={handleWink} 
               disabled={currentUser?.subscription_tier === 'free' && winkCount !== null && winkCount >= 10}
-              className="w-full bg-gray-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-slate-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="material-symbols-outlined text-xl text-pink-400">favorite</span>
               <span>Chamar</span>
@@ -301,7 +301,7 @@ const InfoItem = ({ icon, label, value }: { icon: string, label: string, value: 
     <div className="flex items-center space-x-2">
         <span className="material-symbols-outlined text-xl text-pink-400">{icon}</span>
         <div>
-            <p className="text-gray-400">{label}</p>
+            <p className="text-slate-400">{label}</p>
             <p className="font-semibold text-white">{value}</p>
         </div>
     </div>

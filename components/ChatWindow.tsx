@@ -39,18 +39,18 @@ const MessageContent: React.FC<{ message: MessageType }> = ({ message }) => {
                     const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
                     return (
                         <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="block text-left">
-                            <div className="p-2 rounded-lg bg-gray-600 hover:bg-gray-500 transition-colors">
+                            <div className="p-2 rounded-lg bg-slate-600 hover:bg-slate-500 transition-colors">
                                 <p className="font-bold text-sm text-white">Localização Compartilhada</p>
-                                <p className="text-xs text-gray-300">Clique para ver no mapa</p>
+                                <p className="text-xs text-slate-300">Clique para ver no mapa</p>
                             </div>
                         </a>
                     );
                 case 'album':
                     const { albumName } = parsedContent;
                     return (
-                         <div className="p-2 rounded-lg bg-gray-600 text-left">
+                         <div className="p-2 rounded-lg bg-slate-600 text-left">
                             <p className="font-bold text-sm text-white">Álbum Compartilhado</p>
-                            <p className="text-xs text-gray-300 italic">"{albumName}"</p>
+                            <p className="text-xs text-slate-300 italic">"{albumName}"</p>
                         </div>
                     );
             }
@@ -314,12 +314,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
 
     return (
       <div className="flex items-center space-x-1">
-          {msg.updated_at && <span className="text-xs text-gray-500">(editado)</span>}
-          <span className="text-xs text-gray-400">{format(new Date(msg.created_at), 'HH:mm')}</span>
+          {msg.updated_at && <span className="text-xs text-slate-500">(editado)</span>}
+          <span className="text-xs text-slate-400">{format(new Date(msg.created_at), 'HH:mm')}</span>
           {isRead ? (
               <span className="material-symbols-outlined !text-[16px] text-blue-400">done_all</span>
           ) : (
-              <span className="material-symbols-outlined !text-[16px] text-gray-400">check</span>
+              <span className="material-symbols-outlined !text-[16px] text-slate-400">check</span>
           )}
       </div>
     );
@@ -330,8 +330,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
 
   return (
     <>
-    <div className="fixed bottom-0 right-0 sm:right-4 md:right-8 w-full sm:w-96 h-full sm:h-[500px] bg-gray-900 shadow-2xl rounded-t-2xl sm:rounded-2xl z-40 flex flex-col animate-slide-in-up border border-gray-700">
-      <header className="flex items-center justify-between p-3 bg-gray-800 rounded-t-2xl sm:rounded-t-lg border-b border-gray-700 flex-shrink-0">
+    <div className="fixed bottom-0 right-0 sm:right-4 md:right-8 w-full sm:w-96 h-full sm:h-[500px] bg-slate-900 shadow-2xl rounded-t-2xl sm:rounded-2xl z-40 flex flex-col animate-slide-in-up border border-slate-700">
+      <header className="flex items-center justify-between p-3 bg-slate-800 rounded-t-2xl sm:rounded-t-lg border-b border-slate-700 flex-shrink-0">
         <div className="flex items-center space-x-3">
           <img src={user.imageUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
           <div>
@@ -345,21 +345,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
             </div>
             <div className="flex items-center space-x-1.5">
               {isOnline && <div className="w-2 h-2 rounded-full bg-green-400"></div>}
-              <span className="text-xs text-gray-400">{isOnline ? 'Online' : statusText}</span>
+              <span className="text-xs text-slate-400">{isOnline ? 'Online' : statusText}</span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-            <button onClick={() => setConfirmDeleteConvo(true)} className="text-gray-400 hover:text-white">
+            <button onClick={() => setConfirmDeleteConvo(true)} className="text-slate-400 hover:text-white">
                 <span className="material-symbols-outlined text-xl">delete</span>
             </button>
-            <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <button onClick={onClose} className="text-slate-400 hover:text-white">
                 <span className="material-symbols-outlined">close</span>
             </button>
         </div>
       </header>
 
-      <div className="flex-1 p-4 overflow-y-auto bg-gray-900">
+      <div className="flex-1 p-4 overflow-y-auto bg-slate-900">
         <div className="flex flex-col space-y-2">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex flex-col group ${msg.sender_id === currentUser.id ? 'items-end' : 'items-start'}`}>
@@ -372,7 +372,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                             value={editedContent}
                             onChange={(e) => setEditedContent(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSaveEdit(); } }}
-                            className="w-full bg-gray-600 rounded-lg py-2 px-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                            className="w-full bg-slate-600 rounded-lg py-2 px-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
                             rows={3}
                         />
                         <div className="flex justify-end gap-2 text-xs">
@@ -381,12 +381,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                         </div>
                      </div>
                  ) : (
-                    <div className={`px-4 py-2 rounded-2xl relative ${msg.sender_id === currentUser.id ? 'bg-pink-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'}`}>
+                    <div className={`px-4 py-2 rounded-2xl relative ${msg.sender_id === currentUser.id ? 'bg-pink-600 text-white rounded-br-none' : 'bg-slate-700 text-slate-200 rounded-bl-none'}`}>
                       <MessageContent message={msg} />
                        {msg.sender_id === currentUser.id && !msg.image_url && !msg.content?.includes('"type":') &&(
                            <div className="absolute top-0 -left-14 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                               <button onClick={() => handleStartEdit(msg)} className="text-xs bg-gray-700 text-white rounded-full px-2 py-0.5">Editar</button>
-                               <button onClick={() => setConfirmDeleteMessage(msg)} className="text-xs bg-gray-700 text-white rounded-full px-2 py-0.5">Excluir</button>
+                               <button onClick={() => handleStartEdit(msg)} className="text-xs bg-slate-700 text-white rounded-full px-2 py-0.5">Editar</button>
+                               <button onClick={() => setConfirmDeleteMessage(msg)} className="text-xs bg-slate-700 text-white rounded-full px-2 py-0.5">Excluir</button>
                            </div>
                        )}
                     </div>
@@ -402,23 +402,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       </div>
       
       {!editingMessage && (
-        <div className="p-2 border-t border-gray-700 bg-gray-800 relative">
+        <div className="p-2 border-t border-slate-700 bg-slate-800 relative">
              {isAttachmentMenuOpen && (
-                <div className="absolute bottom-full left-2 mb-2 w-48 bg-gray-700 rounded-lg shadow-lg p-2 animate-fade-in-up">
-                    <button onClick={() => { setAttachmentMenuOpen(false); imageInputRef.current?.click(); }} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-gray-600 text-white">
+                <div className="absolute bottom-full left-2 mb-2 w-48 bg-slate-700 rounded-lg shadow-lg p-2 animate-fade-in-up">
+                    <button onClick={() => { setAttachmentMenuOpen(false); imageInputRef.current?.click(); }} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-slate-600 text-white">
                         <span className="material-symbols-outlined text-xl">image</span> Foto
                     </button>
-                     <button onClick={handleSendLocation} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-gray-600 text-white">
+                     <button onClick={handleSendLocation} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-slate-600 text-white">
                         <span className="material-symbols-outlined text-xl">location_on</span> Localização
                     </button>
-                     <button onClick={() => { setAttachmentMenuOpen(false); setIsAlbumSelectorOpen(true); }} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-gray-600 text-white">
+                     <button onClick={() => { setAttachmentMenuOpen(false); setIsAlbumSelectorOpen(true); }} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-slate-600 text-white">
                         <span className="material-symbols-outlined text-xl">photo_album</span> Álbum Privado
                     </button>
                 </div>
             )}
             <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                 <input type="file" accept="image/*" className="hidden" ref={imageInputRef} onChange={handleSendImage}/>
-                 <button type="button" onClick={() => setAttachmentMenuOpen(prev => !prev)} className="text-gray-400 hover:text-white p-2.5 rounded-full hover:bg-gray-700 transition-colors">
+                 <button type="button" onClick={() => setAttachmentMenuOpen(prev => !prev)} className="text-slate-400 hover:text-white p-2.5 rounded-full hover:bg-slate-700 transition-colors">
                     <span className="material-symbols-outlined text-xl">add_circle</span>
                 </button>
                 <input
@@ -426,7 +426,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Digite uma mensagem..."
-                    className="flex-1 bg-gray-700 rounded-full py-2.5 pl-4 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    className="flex-1 bg-slate-700 rounded-full py-2.5 pl-4 pr-12 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
                 />
                 <button type="submit" className="bg-pink-600 text-white rounded-full p-2.5 hover:bg-pink-700 transition-colors">
                     <span className="material-symbols-outlined text-xl">send</span>

@@ -6,9 +6,10 @@ import { useMapStore } from './stores/mapStore';
 import { Auth } from './components/Auth';
 import { UserGrid } from './components/UserGrid';
 import { Inbox } from './components/Inbox';
-import { ProfileView } from './components/ProfileView'; // Nova tela de perfil
+import { ProfileView } from './components/ProfileView';
 import { ProfileModal } from './components/ProfileModal';
 import { ChatWindow } from './components/ChatWindow';
+import { AgoraView } from './components/AgoraView'; // Nova tela Agora
 import { SearchIcon, MessageCircleIcon, HeartIcon, UserIcon, FlameIcon } from './components/icons';
 
 const App: React.FC = () => {
@@ -48,11 +49,13 @@ const App: React.FC = () => {
         switch (activeView) {
             case 'grid':
                 return <UserGrid />;
+            case 'agora':
+                return <AgoraView />;
             case 'inbox':
                 return <Inbox />;
             case 'profile':
                 return <ProfileView />;
-            case 'interest': // Redireciona para a caixa de entrada por enquanto
+            case 'interest':
                 return <Inbox initialTab="winks" />;
             default:
                 return <UserGrid />;
@@ -107,10 +110,9 @@ const App: React.FC = () => {
                     />
                     <NavButton 
                         icon={FlameIcon} 
-                        label="Right Now" 
-                        isActive={activeView === 'right-now'} 
-                        onClick={() => { /* Placeholder */ }}
-                        isPlaceholder
+                        label="Agora" 
+                        isActive={activeView === 'agora'} 
+                        onClick={() => setActiveView('agora')}
                     />
                      <NavButton 
                         icon={HeartIcon} 
@@ -141,16 +143,15 @@ interface NavButtonProps {
     label: string;
     isActive: boolean;
     onClick: () => void;
-    isPlaceholder?: boolean;
 }
 
-const NavButton: React.FC<NavButtonProps> = ({ icon: Icon, label, isActive, onClick, isPlaceholder }) => {
+const NavButton: React.FC<NavButtonProps> = ({ icon: Icon, label, isActive, onClick }) => {
     return (
         <button
             onClick={onClick}
             className={`flex flex-col items-center justify-center pt-2 pb-1 transition-colors ${
                 isActive ? 'text-pink-500' : 'text-gray-400 hover:text-white'
-            } ${isPlaceholder ? 'opacity-50 cursor-not-allowed' : ''}`}
+            }`}
             aria-label={label}
         >
             <Icon className="w-7 h-7" />

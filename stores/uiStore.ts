@@ -3,7 +3,7 @@ import { User } from '../types';
 // Fix: Import useMapStore to resolve circular dependency with an ES module import.
 import { useMapStore } from './mapStore';
 
-export type View = 'map' | 'grid' | 'inbox' | 'profile' | 'interest' | 'right-now';
+export type View = 'map' | 'grid' | 'inbox' | 'profile' | 'interest' | 'agora';
 
 interface UiState {
   activeView: View;

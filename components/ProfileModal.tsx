@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAlbumStore } from '../stores/albumStore';
-import { XIcon, MessageCircleIcon, HeartIcon, RulerIcon, ScaleIcon, UsersIcon, ShieldCheckIcon, ChevronLeftIcon, ChevronRightIcon, LockIcon } from './icons';
+import { useAgoraStore } from '../stores/agoraStore'; // Import do novo store
+import { XIcon, MessageCircleIcon, HeartIcon, RulerIcon, ScaleIcon, UsersIcon, ShieldCheckIcon, ChevronLeftIcon, ChevronRightIcon, LockIcon, FlameIcon } from './icons';
 import toast from 'react-hot-toast';
 import { formatLastSeen } from '../lib/utils';
 import { AlbumGalleryModal } from './AlbumGalleryModal';
@@ -18,6 +19,8 @@ interface ProfileModalProps {
 export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onStartChat }) => {
   const currentUser = useAuthStore((state) => state.user);
   const onlineUsers = useMapStore((state) => state.onlineUsers);
+  // Fix: The state in `useAgoraStore` is named `posts`, not `agoraPosts`.
+  const { posts, fetchAgoraPosts } = useAgoraStore();
   const { 
     viewedUserAlbums, 
     viewedUserAccessStatus, 
@@ -30,14 +33,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [viewingAlbum, setViewingAlbum] = useState<PrivateAlbum | null>(null);
   
+  const agoraPost = posts.find(p => p.user_id === user.id);
+
   useEffect(() => {
+    fetchAgoraPosts();
     if (user) {
         fetchAlbumsAndAccessStatusForUser(user.id);
     }
     return () => {
         clearViewedUserData();
     }
-  }, [user, fetchAlbumsAndAccessStatusForUser, clearViewedUserData]);
+  }, [user, fetchAlbumsAndAccessStatusForUser, clearViewedUserData, fetchAgoraPosts]);
 
   const isOnline = onlineUsers.includes(user.id);
   const statusText = isOnline ? 'Online' : formatLastSeen(user.last_seen);
@@ -103,7 +109,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
       <div className="bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-[95vh] sm:h-auto sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         
         {/* Photo Carousel */}
-        <div className="relative w-full aspect-square flex-shrink-0">
+        <div className={`relative w-full aspect-square flex-shrink-0 ${agoraPost ? 'border-b-4 border-red-600 animate-pulse-fire' : ''}`}>
           <img src={allPhotos[currentPhotoIndex]} alt={user.username} className="w-full h-full object-cover sm:rounded-t-2xl" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
           
@@ -138,6 +144,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
 
         {/* User Info */}
         <div className="p-6 overflow-y-auto space-y-6">
+          
+          {agoraPost && (
+            <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center gap-2 text-red-400 font-bold mb-2">
+                <FlameIcon className="w-5 h-5"/>
+                <span>AGORA</span>
+              </div>
+              <img src={agoraPost.photo_url} alt="Status Agora" className="w-full rounded-lg mb-3 max-h-60 object-cover" />
+              {agoraPost.status_text && <p className="text-white italic">"{agoraPost.status_text}"</p>}
+            </div>
+          )}
+
           {user.status_text && (
             <p className="text-gray-300 italic">"{user.status_text}"</p>
           )}

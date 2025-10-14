@@ -92,3 +92,16 @@ export interface AlbumAccessRequest {
     username: string;
     avatar_url: string;
 }
+
+// Novo tipo para a funcionalidade 'Agora'
+export interface AgoraPost {
+    id: number;
+    user_id: string;
+    photo_url: string;
+    status_text: string | null;
+    expires_at: string;
+    // Campos do perfil do usuário, vindos do join
+    username: string;
+    avatar_url: string;
+    age: number;
+}

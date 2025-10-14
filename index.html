@@ -99,6 +99,19 @@
     .animate-fade-in-up {
         animation: fadeInUp 0.3s ease-out forwards;
     }
+
+    /* Nova animação para o modo 'Agora' */
+    @keyframes pulse-fire {
+      0%, 100% {
+        box-shadow: 0 0 5px rgba(220, 38, 38, 0.6), 0 0 10px rgba(220, 38, 38, 0.5);
+      }
+      50% {
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.8), 0 0 25px rgba(239, 68, 68, 0.7);
+      }
+    }
+    .animate-pulse-fire {
+      animation: pulse-fire 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+    }
     
     /* Scrollbar styling for a modern look */
     ::-webkit-scrollbar {

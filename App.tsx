@@ -76,7 +76,7 @@ const App: React.FC = () => {
                 }}
             />
             
-            <main className="flex-1 overflow-hidden pb-20">
+            <main className="flex-1 overflow-hidden pb-20 z-10">
                 {renderActiveView()}
             </main>
             

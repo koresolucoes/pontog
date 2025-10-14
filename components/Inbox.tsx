@@ -16,6 +16,30 @@ interface InboxProps {
     initialTab?: ActiveTab;
 }
 
+// Helper para formatar a pré-visualização de mensagens especiais
+const formatLastMessageContent = (content: string | null | undefined): string => {
+    if (content === null) return '📷 Foto';
+    if (content === '') return '';
+
+    try {
+        const parsed = JSON.parse(content);
+        if (parsed && typeof parsed === 'object' && parsed.type) {
+            switch (parsed.type) {
+                case 'location':
+                    return '📍 Localização compartilhada';
+                case 'album':
+                    return '📷 Álbum compartilhado';
+                default:
+                    return content; // JSON com tipo desconhecido
+            }
+        }
+        return content; // JSON válido, mas sem a propriedade 'type'
+    } catch (e) {
+        return content; // Não é JSON, então é texto normal
+    }
+};
+
+
 export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab);
     const { 
@@ -199,7 +223,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
                                 </div>
                                 <p className={`text-sm truncate ${convo.unread_count > 0 ? 'text-white' : 'text-slate-400'}`}>
                                     {convo.last_message_sender_id === currentUserId && "Você: "}
-                                    {convo.last_message_content}
+                                    {formatLastMessageContent(convo.last_message_content)}
                                 </p>
                             </div>
                         </div>

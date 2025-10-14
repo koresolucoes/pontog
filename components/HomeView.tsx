@@ -77,7 +77,7 @@ export const HomeView: React.FC = () => {
                     return (
                         <div 
                             key={user.id} 
-                            className={`relative aspect-square cursor-pointer group rounded-lg overflow-hidden ${isAgora ? 'border-2 border-red-600 animate-pulse-fire' : ''} ${isPlus && !isAgora ? 'border-2 border-yellow-400/80' : ''}`}
+                            className={`isolate relative aspect-square cursor-pointer group rounded-lg overflow-hidden ${isAgora ? 'border-2 border-red-600 animate-pulse-fire' : ''} ${isPlus && !isAgora ? 'border-2 border-yellow-400/80' : ''}`}
                             onClick={() => handleUserClick(user)}
                         >
                             <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />

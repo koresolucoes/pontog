@@ -16,10 +16,11 @@ import { PwaInstallButton } from './components/PwaInstallButton'; // Importa o n
 import { SearchIcon, MessageCircleIcon, MapPinIcon, UserIcon, FlameIcon, HomeIcon } from './components/icons';
 // Fix: Import 'usePwaStore' to resolve the undefined reference.
 import { usePwaStore } from './stores/pwaStore';
+import { SubscriptionModal } from './components/SubscriptionModal';
 
 const App: React.FC = () => {
     const { session, user, loading } = useAuthStore();
-    const { activeView, setActiveView, chatUser, setChatUser } = useUiStore();
+    const { activeView, setActiveView, chatUser, setChatUser, isSubscriptionModalOpen } = useUiStore();
     const { setInstallPromptEvent } = usePwaStore(); // Movido de volta para App.tsx para escopo global
     const { 
         selectedUser, 
@@ -135,6 +136,8 @@ const App: React.FC = () => {
                     onClose={() => setChatUser(null)}
                 />
             )}
+            
+            {isSubscriptionModalOpen && <SubscriptionModal />}
 
             {/* Novo Botão de Instalação Flutuante */}
             <PwaInstallButton />

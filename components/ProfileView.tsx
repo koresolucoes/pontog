@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { usePwaStore } from '../stores/pwaStore';
+import { useUiStore } from '../stores/uiStore';
 import { useNotificationStore } from '../stores/notificationStore';
 import { EditProfileModal } from './EditProfileModal';
 import { MyAlbumsModal } from './MyAlbumsModal';
-import { BellIcon } from './icons';
+import { BellIcon, SparklesIcon } from './icons';
 import { NotificationType } from '../types';
 
 const NotificationToggle: React.FC<{
@@ -29,6 +30,7 @@ const NotificationToggle: React.FC<{
 
 export const ProfileView: React.FC = () => {
     const { user, signOut } = useAuthStore();
+    const { setSubscriptionModalOpen } = useUiStore();
     const { 
         pushState, 
         checkPushSupport, 
@@ -56,6 +58,31 @@ export const ProfileView: React.FC = () => {
     }, [pushState, fetchPreferences]);
 
     if (!user) return null;
+
+    const renderSubscriptionSection = () => {
+        if (user.subscription_tier === 'plus') {
+            return (
+                <div className="p-4 rounded-lg bg-gray-800 border border-pink-500/30 text-center">
+                    <div className="flex items-center justify-center gap-2 text-yellow-400">
+                        <SparklesIcon className="w-5 h-5"/>
+                        <span className="font-bold">Você é um membro Plus!</span>
+                    </div>
+                    <p className="text-sm text-gray-400 mt-1">Sua assinatura está ativa.</p>
+                </div>
+            );
+        }
+        return (
+             <div onClick={() => setSubscriptionModalOpen(true)} className="p-4 rounded-lg bg-gradient-to-r from-pink-600/20 to-purple-600/20 cursor-pointer hover:opacity-90 transition-opacity">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-xl text-white">G+</div>
+                    <div>
+                        <h4 className="font-bold text-white">Upgrade para o Ponto G Plus</h4>
+                        <p className="text-sm text-gray-300">Chamados ilimitados, veja quem te chamou e mais!</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
     
     const renderPushSection = () => {
         switch (pushState) {
@@ -124,8 +151,16 @@ export const ProfileView: React.FC = () => {
 
                     {/* Menu Options */}
                      <div className="space-y-1 pt-4 border-t border-gray-700">
+                        
+                         <div className="space-y-2">
+                            <h3 className="text-xs font-bold uppercase text-gray-500 px-3 pt-2">Assinatura</h3>
+                            <div className="p-1">
+                                {renderSubscriptionSection()}
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
-                             <h3 className="text-xs font-bold uppercase text-gray-500 px-3 pt-2">Conta</h3>
+                             <h3 className="text-xs font-bold uppercase text-gray-500 px-3 pt-4">Conta</h3>
                              <button onClick={() => setIsEditProfileOpen(true)} className="w-full text-left p-3 rounded-lg hover:bg-gray-800 font-semibold">
                                 Editar Perfil
                             </button>

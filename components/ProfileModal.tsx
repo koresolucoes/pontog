@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAlbumStore } from '../stores/albumStore';
 import { useAgoraStore } from '../stores/agoraStore'; // Import do novo store
+import { useUiStore } from '../stores/uiStore';
 import { XIcon, MessageCircleIcon, HeartIcon, RulerIcon, ScaleIcon, UsersIcon, ShieldCheckIcon, ChevronLeftIcon, ChevronRightIcon, LockIcon, FlameIcon } from './icons';
 import toast from 'react-hot-toast';
 import { formatLastSeen } from '../lib/utils';
@@ -19,6 +20,7 @@ interface ProfileModalProps {
 export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onStartChat }) => {
   const currentUser = useAuthStore((state) => state.user);
   const onlineUsers = useMapStore((state) => state.onlineUsers);
+  const { setSubscriptionModalOpen } = useUiStore();
   // Fix: The state in `useAgoraStore` is named `posts`, not `agoraPosts`.
   const { posts, fetchAgoraPosts } = useAgoraStore();
   const { 
@@ -50,32 +52,41 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
 
   const handleWink = async () => {
     if (!currentUser) return;
-    const { error } = await supabase.from('winks').insert({
-      sender_id: currentUser.id,
-      receiver_id: user.id
-    });
+
+    const { data: result, error } = await supabase.rpc('send_wink', { p_receiver_id: user.id });
 
     if (error) {
-      if (error.code === '23505') { // unique constraint violation
+      toast.error('Erro ao chamar o perfil.');
+      console.error("Error sending wink:", error);
+      return;
+    }
+
+    switch (result) {
+      case 'success_plus':
+      case 'success_free':
+        toast.success('Chamado enviado com sucesso!');
+        // Dispara a notificação push
+        const { session } = (await supabase.auth.getSession()).data;
+        if (session) {
+          fetch('/api/send-wink-push', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ receiver_id: user.id })
+          }).catch(err => console.error("Error sending wink push notification:", err));
+        }
+        break;
+      case 'limit_reached':
+        toast.error('Você atingiu seu limite diário de chamados.');
+        setSubscriptionModalOpen(true);
+        break;
+      case 'already_winked':
         toast('Você já chamou este perfil!', { icon: '😉' });
-      } else {
-        toast.error('Erro ao chamar o perfil.');
-        console.error("Error sending wink:", error);
-      }
-    } else {
-      toast.success('Chamado enviado com sucesso!');
-      // Dispara a notificação push
-      const { session } = (await supabase.auth.getSession()).data;
-      if (session) {
-        fetch('/api/send-wink-push', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({ receiver_id: user.id })
-        }).catch(err => console.error("Error sending wink push notification:", err));
-      }
+        break;
+      default:
+        toast.error('Ocorreu um erro inesperado.');
     }
   };
   

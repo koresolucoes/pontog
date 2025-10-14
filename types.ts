@@ -29,6 +29,7 @@ export interface Profile {
   lng: number;
   last_seen: string | null; // Adicionado para status de atividade
   distance_km: number | null; // Adicionado para distância
+  subscription_tier: 'free' | 'plus'; // Adicionado para o plano premium
 }
 
 // O tipo User estende Profile com campos calculados como 'idade'

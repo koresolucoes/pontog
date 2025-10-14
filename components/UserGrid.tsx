@@ -1,12 +1,16 @@
 import React, { useMemo, useEffect } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
+import { useAuthStore } from '../stores/authStore';
+import { useUiStore } from '../stores/uiStore';
 import { User } from '../types';
-import { FlameIcon } from './icons';
+import { FlameIcon, SparklesIcon } from './icons';
 
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();
     const { agoraUserIds, fetchAgoraPosts } = useAgoraStore();
+    const { user: currentUser } = useAuthStore();
+    const { setSubscriptionModalOpen } = useUiStore();
 
     useEffect(() => {
         fetchAgoraPosts();
@@ -19,6 +23,15 @@ export const UserGrid: React.FC = () => {
     const toggleOnlineOnly = () => {
         setFilters({ onlineOnly: !filters.onlineOnly });
     };
+
+    const handlePremiumFilterClick = () => {
+        if (currentUser?.subscription_tier === 'plus') {
+            // TODO: Implementar a lógica de filtro real (ex: abrir um modal de filtro)
+            alert('Filtro premium em breve!');
+        } else {
+            setSubscriptionModalOpen(true);
+        }
+    }
 
     const filteredUsers = useMemo(() => {
         let sortedUsers = [...users].sort((a, b) => {
@@ -41,6 +54,13 @@ export const UserGrid: React.FC = () => {
         return sortedUsers.filter(user => onlineUsers.includes(user.id));
     }, [users, onlineUsers, filters.onlineOnly, agoraUserIds]);
 
+    const PremiumFilterButton = ({ label }: { label: string }) => (
+        <button onClick={handlePremiumFilterClick} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-700 text-gray-300 whitespace-nowrap hover:bg-gray-600 transition-colors">
+            {label}
+            <SparklesIcon className="w-3.5 h-3.5 text-yellow-400" />
+        </button>
+    );
+
     return (
         <div className="h-full flex flex-col bg-gray-900">
             {/* Nova barra de filtros */}
@@ -55,10 +75,9 @@ export const UserGrid: React.FC = () => {
                 >
                     Online
                 </button>
-                 {/* Placeholders para outros filtros */}
-                <button className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-700 text-gray-300 whitespace-nowrap">Right Now</button>
-                <button className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-700 text-gray-300 whitespace-nowrap">Idade</button>
-                <button className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-700 text-gray-300 whitespace-nowrap">Posição</button>
+                 <PremiumFilterButton label="Idade" />
+                 <PremiumFilterButton label="Posição" />
+                 <PremiumFilterButton label="Tribo" />
             </div>
             
             {filteredUsers.length === 0 ? (

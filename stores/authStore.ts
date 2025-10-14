@@ -52,6 +52,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             public_photos: (data.public_photos || []).map(getPublicImageUrl),
             tribes: data.profile_tribes?.map((pt: any) => pt.tribes.name) || [],
             distance_km: null, // Distance is not relevant for the auth user's own profile
+            subscription_tier: data.subscription_tier || 'free',
         };
         delete (profileData as any).profile_tribes; // Clean up joined data
         
@@ -69,6 +70,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           username: supabaseUser.email!.split('@')[0],
           display_name: supabaseUser.user_metadata?.full_name || supabaseUser.email!.split('@')[0],
           avatar_url: supabaseUser.user_metadata?.avatar_url,
+          subscription_tier: 'free', // Default to free on creation
         };
 
         const { data: insertedProfile, error: insertError } = await supabase
@@ -89,6 +91,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             public_photos: [],
             tribes: [],
             distance_km: null,
+            subscription_tier: 'free',
           };
   
           const userData: User = {
@@ -152,6 +155,6 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
     (await import('./mapStore')).useMapStore.setState({ users: [], myLocation: null, selectedUser: null, onlineUsers: [], loading: true, error: null, filters: { onlineOnly: false } });
     (await import('./agoraStore')).useAgoraStore.setState({ posts: [], agoraUserIds: [], isLoading: false, isActivating: false });
     (await import('./homeStore')).useHomeStore.setState({ popularUsers: [], loading: true, error: null });
-    (await import('./uiStore')).useUiStore.setState({ chatUser: null, activeView: 'home' });
+    (await import('./uiStore')).useUiStore.setState({ chatUser: null, activeView: 'home', isSubscriptionModalOpen: false });
   }
 });

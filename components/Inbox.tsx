@@ -6,7 +6,7 @@ import { useAuthStore } from '../stores/authStore';
 import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CheckIcon, XIcon, TrashIcon } from './icons';
+import { CheckIcon, XIcon, TrashIcon, SparklesIcon, LockIcon } from './icons';
 import { ConfirmationModal } from './ConfirmationModal';
 
 type ActiveTab = 'messages' | 'winks' | 'requests';
@@ -23,9 +23,9 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         fetchConversations, fetchWinks, fetchAccessRequests,
         respondToRequest, deleteConversation
     } = useInboxStore();
-    const { setChatUser } = useUiStore();
+    const { setChatUser, setSubscriptionModalOpen } = useUiStore();
     const { setSelectedUser } = useMapStore();
-    const { profile } = useAuthStore();
+    const { user: currentUser } = useAuthStore();
     const [confirmDelete, setConfirmDelete] = useState<ConversationPreview | null>(null);
 
     useEffect(() => {
@@ -51,12 +51,16 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             last_seen: convo.other_participant_last_seen,
             display_name: null, public_photos: [], status_text: null, date_of_birth: null,
             height_cm: null, weight_kg: null, tribes: [], position: null, hiv_status: null,
-            updated_at: '', lat: 0, lng: 0, age: 0, distance_km: null
+            updated_at: '', lat: 0, lng: 0, age: 0, distance_km: null, subscription_tier: 'free',
         };
         setChatUser(chatPartner);
     };
 
     const handleWinkClick = (wink: WinkWithProfile) => {
+        if (currentUser?.subscription_tier !== 'plus') {
+            setSubscriptionModalOpen(true);
+            return;
+        }
         setSelectedUser(wink);
     }
     
@@ -67,12 +71,13 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         }
     };
     
-    const TabButton = ({ label, tabName }: { label: string, tabName: ActiveTab }) => (
+    const TabButton = ({ label, tabName, isPremium = false }: { label: string, tabName: ActiveTab, isPremium?: boolean }) => (
          <button 
             onClick={() => setActiveTab(tabName)}
-            className={`py-2 px-1 text-sm font-semibold transition-colors border-b-2 ${activeTab === tabName ? 'text-pink-500 border-pink-500' : 'text-gray-400 border-transparent hover:text-white'}`}
+            className={`flex items-center gap-1.5 py-2 px-1 text-sm font-semibold transition-colors border-b-2 ${activeTab === tabName ? 'text-pink-500 border-pink-500' : 'text-gray-400 border-transparent hover:text-white'}`}
         >
             {label}
+            {isPremium && <SparklesIcon className="w-4 h-4 text-yellow-400" />}
         </button>
     );
 
@@ -83,7 +88,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                 <h1 className="text-xl font-bold">Caixa de Entrada</h1>
                 <div className="mt-4 flex space-x-6 border-b border-gray-700">
                     <TabButton label="Mensagens" tabName="messages" />
-                    <TabButton label="Chamados" tabName="winks" />
+                    <TabButton label="Te Chamaram" tabName="winks" isPremium />
                     <TabButton label="Solicitações" tabName="requests" />
                 </div>
             </header>
@@ -95,7 +100,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                         loading={loadingConversations}
                         onConversationClick={handleConversationClick}
                         onDeleteClick={(convo) => setConfirmDelete(convo)}
-                        currentUserId={profile?.id}
+                        currentUserId={currentUser?.id}
                     />
                 )}
                 {activeTab === 'winks' && (
@@ -103,6 +108,8 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                         winks={winks}
                         loading={loadingWinks}
                         onWinkClick={handleWinkClick}
+                        isPlus={currentUser?.subscription_tier === 'plus'}
+                        onUpgradeClick={() => setSubscriptionModalOpen(true)}
                     />
                 )}
                 {activeTab === 'requests' && (
@@ -183,11 +190,33 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
 interface WinkListProps {
     winks: WinkWithProfile[];
     loading: boolean;
+    isPlus: boolean;
     onWinkClick: (wink: WinkWithProfile) => void;
+    onUpgradeClick: () => void;
 }
-const WinkList: React.FC<WinkListProps> = ({ winks, loading, onWinkClick }) => {
+const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick, onUpgradeClick }) => {
     if (loading) return <p className="text-center p-8 text-gray-400">Carregando chamados...</p>;
     if (winks.length === 0) return <p className="text-center p-8 text-gray-400">Ninguém te chamou ainda.</p>;
+
+    if (!isPlus) {
+        return (
+            <div className="relative p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
+                {winks.slice(0, 10).map(wink => (
+                    <div key={wink.id} className="relative aspect-square">
+                        <img src={wink.avatar_url} alt="Perfil ofuscado" className="w-full h-full object-cover filter blur-md" />
+                    </div>
+                ))}
+                <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
+                    <LockIcon className="w-12 h-12 text-pink-400 mb-4" />
+                    <h3 className="text-lg font-bold text-white">Veja quem te chamou</h3>
+                    <p className="text-gray-300 my-2">Assine o Ponto G Plus para desbloquear esta e outras funcionalidades.</p>
+                    <button onClick={onUpgradeClick} className="mt-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-2 px-6 rounded-lg">
+                        Fazer Upgrade
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">

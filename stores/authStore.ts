@@ -61,9 +61,46 @@ export const useAuthStore = create<AuthState>((set) => ({
         };
 
         set({ profile: profileData, user: userData });
+      } else {
+        // FIX: Profile not found, so create it. This handles new OAuth sign-ups.
+        console.log('No profile found for user, creating a new one.');
+        const newProfileData = {
+          id: supabaseUser.id,
+          username: supabaseUser.email!.split('@')[0],
+          display_name: supabaseUser.user_metadata?.full_name || supabaseUser.email!.split('@')[0],
+          avatar_url: supabaseUser.user_metadata?.avatar_url,
+        };
+
+        const { data: insertedProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert(newProfileData)
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+          throw insertError;
+        }
+
+        if (insertedProfile) {
+          const profileData: Profile = {
+            ...(insertedProfile as unknown as Profile),
+            avatar_url: getPublicImageUrl(insertedProfile.avatar_url),
+            public_photos: [],
+            tribes: [],
+            distance_km: null,
+          };
+  
+          const userData: User = {
+            ...profileData,
+            age: calculateAge(profileData.date_of_birth),
+          };
+
+          set({ profile: profileData, user: userData });
+        }
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error fetching/creating profile:', error);
     } finally {
       set({ loading: false });
     }

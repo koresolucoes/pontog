@@ -63,6 +63,9 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             updated_at: '', lat: 0, lng: 0, age: 0, distance_km: null, 
             subscription_tier: convo.other_participant_subscription_tier,
             subscription_expires_at: null, is_incognito: false,
+            // FIX: Added missing 'has_completed_onboarding' property to satisfy the User type.
+            // It's safe to assume an existing user in a conversation has completed onboarding.
+            has_completed_onboarding: true,
         };
         setChatUser(chatPartner);
     };

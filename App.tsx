@@ -17,6 +17,7 @@ import { usePwaStore } from './stores/pwaStore';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { DonationModal } from './components/DonationModal';
 import { AdminPanel } from './pages/Admin/AdminPanel';
+import { Onboarding } from './components/Onboarding';
 
 const App: React.FC = () => {
     // Roteamento simples para o painel de administração
@@ -24,7 +25,7 @@ const App: React.FC = () => {
         return <AdminPanel />;
     }
 
-    const { session, user, loading, fetchProfile } = useAuthStore();
+    const { session, user, loading, fetchProfile, showOnboarding } = useAuthStore();
     const { activeView, setActiveView, chatUser, setChatUser, isSubscriptionModalOpen, isDonationModalOpen } = useUiStore();
     const { setInstallPromptEvent } = usePwaStore();
     const { 
@@ -92,6 +93,10 @@ const App: React.FC = () => {
     
     if (!session || !user) {
         return <Auth />;
+    }
+
+    if (showOnboarding) {
+        return <Onboarding />;
     }
 
     const renderActiveView = () => {

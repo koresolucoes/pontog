@@ -60,17 +60,17 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const TabButton = ({ label, tabName }: { label: string, tabName: ActiveTab }) => (
          <button 
             onClick={() => setActiveTab(tabName)}
-            className={`py-2 px-1 text-sm font-semibold transition-colors border-b-2 ${activeTab === tabName ? 'text-yellow-400 border-yellow-400' : 'text-gray-400 border-transparent hover:text-white'}`}
+            className={`py-2 px-1 text-sm font-semibold transition-colors border-b-2 ${activeTab === tabName ? 'text-pink-500 border-pink-500' : 'text-gray-400 border-transparent hover:text-white'}`}
         >
             {label}
         </button>
     );
 
     return (
-        <div className="flex flex-col h-full bg-black text-white">
+        <div className="flex flex-col h-full bg-gray-900 text-white">
             <header className="p-4">
                 <h1 className="text-xl font-bold">Caixa de Entrada</h1>
-                <div className="mt-4 flex space-x-6 border-b border-zinc-800">
+                <div className="mt-4 flex space-x-6 border-b border-gray-700">
                     <TabButton label="Mensagens" tabName="messages" />
                     <TabButton label="Chamados" tabName="winks" />
                     <TabButton label="Solicitações" tabName="requests" />
@@ -118,15 +118,15 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
     if (conversations.length === 0) return <p className="text-center p-8 text-gray-400">Nenhuma conversa iniciada.</p>;
     
     return (
-        <div className="divide-y divide-zinc-800">
+        <div className="divide-y divide-gray-800">
             {conversations.map(convo => {
                 const isOnline = onlineUsers.includes(convo.other_participant_id);
                 return (
-                    <div key={convo.conversation_id} onClick={() => onConversationClick(convo)} className="p-4 flex items-center space-x-3 cursor-pointer hover:bg-zinc-900">
+                    <div key={convo.conversation_id} onClick={() => onConversationClick(convo)} className="p-4 flex items-center space-x-3 cursor-pointer hover:bg-gray-800">
                         <div className="relative flex-shrink-0">
                             <img src={convo.other_participant_avatar_url} alt={convo.other_participant_username} className="w-12 h-12 rounded-full object-cover" />
                              {convo.unread_count > 0 && (
-                                <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-pink-500 text-white text-xs flex items-center justify-center font-bold ring-2 ring-black">
+                                <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-pink-500 text-white text-xs flex items-center justify-center font-bold ring-2 ring-gray-900">
                                     {convo.unread_count > 9 ? '9+' : convo.unread_count}
                                 </span>
                             )}
@@ -185,7 +185,7 @@ const RequestList: React.FC<RequestListProps> = ({ requests, loading, onRespond 
     if (requests.length === 0) return <p className="text-center p-8 text-gray-400">Nenhuma solicitação pendente.</p>;
 
     return (
-        <div className="divide-y divide-zinc-800">
+        <div className="divide-y divide-gray-800">
             {requests.map(req => (
                 <div key={req.id} className="p-4 flex items-center space-x-4">
                     <img src={req.avatar_url} alt={req.username} className="w-12 h-12 rounded-full object-cover" />
@@ -196,8 +196,8 @@ const RequestList: React.FC<RequestListProps> = ({ requests, loading, onRespond 
                         <span className="text-xs text-gray-500">{formatDistanceToNow(new Date(req.created_at), { addSuffix: true, locale: ptBR })}</span>
                     </div>
                     <div className="flex gap-3">
-                        <button onClick={() => onRespond(req.id, 'denied')} className="p-2.5 bg-zinc-800 text-gray-300 rounded-full hover:bg-zinc-700"><XIcon className="w-5 h-5"/></button>
-                        <button onClick={() => onRespond(req.id, 'granted')} className="p-2.5 bg-zinc-800 text-gray-300 rounded-full hover:bg-zinc-700"><CheckIcon className="w-5 h-5"/></button>
+                        <button onClick={() => onRespond(req.id, 'denied')} className="p-2.5 bg-gray-700 text-gray-300 rounded-full hover:bg-gray-600"><XIcon className="w-5 h-5"/></button>
+                        <button onClick={() => onRespond(req.id, 'granted')} className="p-2.5 bg-gray-700 text-gray-300 rounded-full hover:bg-gray-600"><CheckIcon className="w-5 h-5"/></button>
                     </div>
                 </div>
             ))}

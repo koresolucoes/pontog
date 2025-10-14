@@ -99,7 +99,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
 
   return (
     <>
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-30 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50 animate-fade-in" onClick={onClose}>
       <div className="bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-[95vh] sm:h-auto sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         
         {/* Photo Carousel */}

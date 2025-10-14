@@ -34,8 +34,8 @@ const App: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-black flex items-center justify-center">
-                <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-yellow-400"></div>
+            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+                <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-pink-500"></div>
             </div>
         );
     }
@@ -60,14 +60,14 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="h-screen w-screen bg-black text-white flex flex-col antialiased overflow-hidden">
+        <div className="h-screen w-screen bg-gray-900 text-white flex flex-col antialiased overflow-hidden">
             <Toaster
                 position="top-center"
                 toastOptions={{
                     style: {
-                        background: '#27272a', // zinc-800
+                        background: '#1f2937', // gray-800
                         color: '#fff',
-                        border: '1px solid #3f3f46' // zinc-700
+                        border: '1px solid #374151' // gray-700
                     },
                 }}
             />
@@ -97,7 +97,7 @@ const App: React.FC = () => {
             )}
 
             {/* Nova Barra de Navegação Inferior */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-zinc-900/90 backdrop-blur-sm border-t border-zinc-800 z-20">
+            <nav className="fixed bottom-0 left-0 right-0 bg-gray-800/90 backdrop-blur-sm border-t border-gray-700 z-20">
                 <div className="max-w-md mx-auto grid grid-cols-5">
                    <NavButton 
                         icon={SearchIcon} 
@@ -149,7 +149,7 @@ const NavButton: React.FC<NavButtonProps> = ({ icon: Icon, label, isActive, onCl
         <button
             onClick={onClick}
             className={`flex flex-col items-center justify-center pt-2 pb-1 transition-colors ${
-                isActive ? 'text-yellow-400' : 'text-gray-400 hover:text-white'
+                isActive ? 'text-pink-500' : 'text-gray-400 hover:text-white'
             } ${isPlaceholder ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-label={label}
         >

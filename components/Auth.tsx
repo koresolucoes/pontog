@@ -37,13 +37,13 @@ export const Auth: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-zinc-900 p-8 rounded-2xl shadow-lg">
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm bg-gray-800 p-8 rounded-2xl shadow-lg">
         <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center font-bold text-4xl text-black mx-auto">
+            <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-4xl text-white mx-auto">
                 G
             </div>
-            <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-400 mt-4">
+            <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-500 mt-4">
                 Ponto G
             </h1>
             <p className="text-gray-400 mt-2">{isLogin ? 'Bem-vindo de volta!' : 'Crie sua conta'}</p>
@@ -52,7 +52,7 @@ export const Auth: React.FC = () => {
         <form onSubmit={handleAuth}>
           <div className="space-y-4">
             <input
-              className="w-full bg-zinc-800 rounded-lg py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400 border border-transparent focus:border-yellow-400"
+              className="w-full bg-gray-700 rounded-lg py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500 border border-transparent focus:border-pink-500"
               type="email"
               placeholder="Seu e-mail"
               value={email}
@@ -60,7 +60,7 @@ export const Auth: React.FC = () => {
               required
             />
             <input
-              className="w-full bg-zinc-800 rounded-lg py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400 border border-transparent focus:border-yellow-400"
+              className="w-full bg-gray-700 rounded-lg py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500 border border-transparent focus:border-pink-500"
               type="password"
               placeholder="Sua senha"
               value={password}
@@ -70,7 +70,7 @@ export const Auth: React.FC = () => {
           </div>
           <div className="mt-6">
             <button
-              className="w-full bg-yellow-400 text-black font-semibold py-3 px-4 rounded-lg hover:bg-yellow-500 transition-colors disabled:opacity-50"
+              className="w-full bg-pink-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
               disabled={loading}
             >
               {loading ? 'Carregando...' : (isLogin ? 'Entrar' : 'Cadastrar')}
@@ -89,7 +89,7 @@ export const Auth: React.FC = () => {
                 setError(null);
                 setMessage(null);
             }}
-            className="font-semibold text-yellow-400 hover:underline ml-1"
+            className="font-semibold text-pink-500 hover:underline ml-1"
           >
             {isLogin ? 'Cadastre-se' : 'Faça login'}
           </button>

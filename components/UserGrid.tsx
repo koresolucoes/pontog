@@ -30,23 +30,23 @@ export const UserGrid: React.FC = () => {
     }, [users, onlineUsers, filters.onlineOnly]);
 
     return (
-        <div className="h-full flex flex-col bg-black">
+        <div className="h-full flex flex-col bg-gray-900">
             {/* Nova barra de filtros */}
             <div className="p-2 flex items-center space-x-2 overflow-x-auto">
                 <button
                     onClick={toggleOnlineOnly}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${
                         filters.onlineOnly 
-                            ? 'bg-yellow-400 text-black' 
-                            : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
+                            ? 'bg-pink-600 text-white' 
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                     }`}
                 >
                     Online
                 </button>
                  {/* Placeholders para outros filtros */}
-                <button className="px-3 py-1.5 rounded-full text-xs font-semibold bg-zinc-800 text-gray-300 whitespace-nowrap">Right Now</button>
-                <button className="px-3 py-1.5 rounded-full text-xs font-semibold bg-zinc-800 text-gray-300 whitespace-nowrap">Idade</button>
-                <button className="px-3 py-1.5 rounded-full text-xs font-semibold bg-zinc-800 text-gray-300 whitespace-nowrap">Posição</button>
+                <button className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-700 text-gray-300 whitespace-nowrap">Right Now</button>
+                <button className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-700 text-gray-300 whitespace-nowrap">Idade</button>
+                <button className="px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-700 text-gray-300 whitespace-nowrap">Posição</button>
             </div>
             
             {filteredUsers.length === 0 ? (

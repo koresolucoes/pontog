@@ -93,8 +93,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
 
   const markMessagesAsRead = useCallback(async (messageIds: number[]) => {
       if (messageIds.length === 0) return;
+      
+      // Primeiro, atualiza o banco de dados
       const { error } = await supabase.rpc('mark_messages_as_read', { message_ids: messageIds });
-      if (error) console.error("Error marking messages as read:", error);
+      
+      if (error) {
+          console.error("Error marking messages as read:", error);
+      } else {
+          // FIX: Se a atualização no DB for bem-sucedida, atualiza o estado local imediatamente.
+          // Isso garante que a UI mostre o status de "lido" instantaneamente, sem depender
+          // do broadcast do realtime, tornando a experiência mais rápida e confiável.
+          const now = new Date().toISOString();
+          setMessages(prevMessages =>
+              prevMessages.map(msg =>
+                  messageIds.includes(msg.id) ? { ...msg, read_at: now } : msg
+              )
+          );
+      }
   }, []);
 
   useEffect(() => {

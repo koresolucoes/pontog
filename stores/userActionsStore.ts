@@ -18,12 +18,25 @@ export const reportReasons = [
     { key: 'other', label: 'Outro' },
 ];
 
+export interface BlockedUser {
+    blocked_id: string;
+    username: string;
+    avatar_url: string;
+}
+
 interface UserActionsState {
+    blockedUsers: BlockedUser[];
+    isFetchingBlocked: boolean;
     blockUser: (userToBlock: { id: string, username: string }) => Promise<void>;
     reportUser: (reportedId: string, reason: string, comments: string) => Promise<boolean>;
+    fetchBlockedUsers: () => Promise<void>;
+    unblockUser: (userId: string) => Promise<void>;
 }
 
 export const useUserActionsStore = create<UserActionsState>((set, get) => ({
+    blockedUsers: [],
+    isFetchingBlocked: false,
+    
     blockUser: async (userToBlock) => {
         const { id: blocked_id, username } = userToBlock;
         
@@ -76,5 +89,40 @@ export const useUserActionsStore = create<UserActionsState>((set, get) => ({
         
         toast.success('Denúncia enviada. Nossa equipe irá analisar.');
         return true;
+    },
+
+    fetchBlockedUsers: async () => {
+        set({ isFetchingBlocked: true });
+        const { data, error } = await supabase.rpc('get_my_blocked_users');
+        if (error) {
+            toast.error('Erro ao buscar usuários bloqueados.');
+            console.error('Error fetching blocked users:', error);
+        } else {
+            set({ blockedUsers: data || [] });
+        }
+        set({ isFetchingBlocked: false });
+    },
+
+    unblockUser: async (userId: string) => {
+        const { error } = await supabase.from('blocks').delete().eq('blocked_id', userId);
+
+        if (error) {
+            toast.error('Erro ao desbloquear usuário.');
+            console.error('Error unblocking user:', error);
+            return;
+        }
+
+        toast.success('Usuário desbloqueado.');
+        set(state => ({
+            blockedUsers: state.blockedUsers.filter(u => u.blocked_id !== userId)
+        }));
+        
+        // Refresh user lists as this user should now be visible again
+        const { myLocation, fetchNearbyUsers } = useMapStore.getState();
+        if (myLocation) {
+            fetchNearbyUsers(myLocation);
+        }
+        useHomeStore.getState().fetchPopularUsers();
+        useInboxStore.getState().fetchConversations();
     },
 }));

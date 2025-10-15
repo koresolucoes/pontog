@@ -8,6 +8,7 @@ import { MyAlbumsModal } from './MyAlbumsModal';
 import { NotificationType } from '../types';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { BlockedUsersModal } from './BlockedUsersModal';
 
 const ToggleSwitch: React.FC<{
     label: string;
@@ -76,6 +77,7 @@ export const ProfileView: React.FC = () => {
 
     const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
     const [isMyAlbumsOpen, setIsMyAlbumsOpen] = useState(false);
+    const [isBlockedUsersModalOpen, setIsBlockedUsersModalOpen] = useState(false);
 
     useEffect(() => {
         checkPushSupport();
@@ -198,6 +200,7 @@ export const ProfileView: React.FC = () => {
                                 onChange={toggleIncognitoMode}
                                 isPremiumFeature={true}
                             />
+                            <button onClick={() => setIsBlockedUsersModalOpen(true)} className="w-full text-left p-3 rounded-lg hover:bg-slate-800 font-semibold">Gerenciar Bloqueados</button>
                         </div>
 
                         <div className="space-y-2">
@@ -218,6 +221,7 @@ export const ProfileView: React.FC = () => {
             </div>
             {isEditProfileOpen && <EditProfileModal onClose={() => setIsEditProfileOpen(false)} />}
             {isMyAlbumsOpen && <MyAlbumsModal onClose={() => setIsMyAlbumsOpen(false)} />}
+            {isBlockedUsersModalOpen && <BlockedUsersModal onClose={() => setIsBlockedUsersModalOpen(false)} />}
         </>
     );
 };

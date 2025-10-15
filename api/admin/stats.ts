@@ -21,15 +21,30 @@ export default async function handler(
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { count: totalUsers } = await supabaseAdmin
+    // Fetch user data with necessary fields for stats calculation
+    const { data: allUsers, error: usersError } = await supabaseAdmin
         .from('profiles')
-        .select('*', { count: 'exact', head: true });
+        .select(`
+            id,
+            subscription_tier,
+            subscription_expires_at,
+            users ( created_at )
+        `);
+    
+    if (usersError) throw usersError;
 
-    const { count: activeSubscriptions } = await supabaseAdmin
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('subscription_tier', 'plus')
-        .gt('subscription_expires_at', new Date().toISOString());
+    const totalUsers = allUsers.length;
+
+    const activeSubscriptions = allUsers.filter(p => 
+        p.subscription_tier === 'plus' &&
+        p.subscription_expires_at &&
+        new Date(p.subscription_expires_at) > new Date()
+    ).length;
+    
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const dailySignups = allUsers.filter((p: any) => 
+        p.users?.created_at && new Date(p.users.created_at) > twentyFourHoursAgo
+    ).length;
 
     const { data: totalRevenueData, error: revenueError } = await supabaseAdmin
         .from('payments')
@@ -38,21 +53,19 @@ export default async function handler(
         
     if (revenueError) throw revenueError;
     const totalRevenue = totalRevenueData.reduce((sum, item) => sum + item.amount, 0);
-
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count: dailySignups } = await supabaseAdmin
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', twentyFourHoursAgo);
         
     res.status(200).json({
-        totalUsers,
-        activeSubscriptions,
-        totalRevenue,
-        dailySignups
+        totalUsers: totalUsers ?? 0,
+        activeSubscriptions: activeSubscriptions ?? 0,
+        totalRevenue: totalRevenue ?? 0,
+        dailySignups: dailySignups ?? 0
     });
 
   } catch (error: any) {
-    res.status(401).json({ error: error.message || 'Authentication failed' });
+    console.error(`Error in /api/admin/stats: ${error.message}`);
+    if (error.message === 'Not authenticated' || error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+       return res.status(401).json({ error: 'Authentication failed' });
+    }
+    res.status(500).json({ error: error.message || 'Erro no servidor' });
   }
 }

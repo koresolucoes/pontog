@@ -37,17 +37,35 @@ export default async function handler(
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Call the RPC function to get user data with emails
-    const { data, error } = await supabaseAdmin.rpc('get_all_users_for_admin');
+    // FIX: Replace failing RPC call with a direct query.
+    // This query fetches all profile data and joins related user/tribe info.
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select(`
+        *,
+        users ( email, created_at ),
+        profile_tribes ( tribes ( name ) )
+      `)
+      .order('created_at', { referencedTable: 'users', ascending: false });
 
     if (error) throw error;
         
-    // Process avatar URLs and public photos before sending
-    const processedData = data.map((user: any) => ({
-      ...user,
-      avatar_url: getPublicImageUrlServer(supabaseAdmin, user.avatar_url),
-      public_photos: (user.public_photos || []).map((p: string) => getPublicImageUrlServer(supabaseAdmin, p)),
-    }));
+    // Process the nested data to match the flat 'Profile' type
+    const processedData = data.map((profile: any) => {
+        const { users: user, profile_tribes, location, ...rest } = profile;
+        
+        return {
+            ...rest,
+            email: user?.email,
+            created_at: user?.created_at,
+            tribes: profile_tribes.map((pt: any) => pt.tribes.name),
+            lat: location ? location.coordinates[1] : null,
+            lng: location ? location.coordinates[0] : null,
+            distance_km: null, // Distance is not relevant in the admin panel
+            avatar_url: getPublicImageUrlServer(supabaseAdmin, profile.avatar_url),
+            public_photos: (profile.public_photos || []).map((p: string) => getPublicImageUrlServer(supabaseAdmin, p)),
+        }
+    });
 
     res.status(200).json(processedData);
 

@@ -177,26 +177,4 @@ export const useMapStore = create<MapState>((set, get) => ({
     // --- Realtime Channel for Profile/Location Updates ---
     const realtimeChannel = supabase
         .channel('public:profiles')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, 
-            (payload) => {
-                // Re-fetch users when any profile changes
-                // A more optimized approach would be to update/add/remove a single user
-                // but re-fetching is simpler and safer for now.
-                const { myLocation } = get();
-                if (myLocation) {
-                    get().fetchNearbyUsers(myLocation);
-                }
-            }
-        )
-        .subscribe();
-
-    set({ presenceChannel, realtimeChannel });
-  },
-
-  cleanupRealtime: () => {
-    const { presenceChannel, realtimeChannel } = get();
-    if (presenceChannel) supabase.removeChannel(presenceChannel);
-    if (realtimeChannel) supabase.removeChannel(realtimeChannel);
-    set({ presenceChannel: null, realtimeChannel: null, onlineUsers: [] });
-  }
-}));
+        .on('postgres_changes', { event: '*', schema: 'public

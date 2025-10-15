@@ -63,8 +63,12 @@ export const Map: React.FC = () => {
 
   // Centraliza o mapa na localização do usuário quando disponível
   useEffect(() => {
-    if (mapInstanceRef.current && myLocation) {
-        mapInstanceRef.current.setView(myLocation, 14);
+    const map = mapInstanceRef.current;
+    if (map && myLocation) {
+        // Adicionado para garantir que o tamanho do mapa seja recalculado
+        // antes de definir a visualização, o que pode acontecer depois que a UI se estabiliza.
+        map.invalidateSize();
+        map.setView(myLocation, 14);
     }
   }, [myLocation]);
 

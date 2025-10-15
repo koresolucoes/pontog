@@ -42,10 +42,11 @@ export default async function handler(
 
     if (error) throw error;
         
-    // Process avatar URLs before sending
-    const processedData = data.map(user => ({
+    // Process avatar URLs and public photos before sending
+    const processedData = data.map((user: any) => ({
       ...user,
-      avatar_url: getPublicImageUrlServer(supabaseAdmin, user.avatar_url)
+      avatar_url: getPublicImageUrlServer(supabaseAdmin, user.avatar_url),
+      public_photos: (user.public_photos || []).map((p: string) => getPublicImageUrlServer(supabaseAdmin, p)),
     }));
 
     res.status(200).json(processedData);

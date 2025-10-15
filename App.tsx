@@ -29,7 +29,7 @@ const App: React.FC = () => {
     const { session, user, loading, fetchProfile, showOnboarding } = useAuthStore();
     const { activeView, setActiveView, chatUser, setChatUser, isSubscriptionModalOpen, isDonationModalOpen } = useUiStore();
     const { totalUnreadCount, fetchConversations, fetchWinks, fetchAccessRequests } = useInboxStore();
-    const { setInstallPromptEvent } = usePwaStore();
+    const { setInstallPromptEvent, subscribeToPushNotifications } = usePwaStore();
     const { 
         selectedUser, 
         setSelectedUser, 
@@ -39,13 +39,26 @@ const App: React.FC = () => {
     } = useMapStore();
 
     useEffect(() => {
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(registration => console.log('Service Worker registrado:', registration.scope))
-                    .catch(err => console.error('Falha ao registrar Service Worker:', err));
-            });
-        }
+        const registerServiceWorker = async () => {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.register('/service-worker.js');
+                    console.log('Service Worker registrado com sucesso:', registration.scope);
+                    
+                    const subscription = await registration.pushManager.getSubscription();
+                    
+                    // Se não houver inscrição, a permissão for concedida e o usuário estiver logado, tenta se inscrever.
+                    if (!subscription && Notification.permission === 'granted' && session) {
+                        console.log('Permissão para notificações concedida, mas sem inscrição. Inscrevendo agora.');
+                        await subscribeToPushNotifications();
+                    }
+                } catch (error) {
+                    console.error('Falha ao registrar Service Worker:', error);
+                }
+            }
+        };
+
+        registerServiceWorker();
 
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault();
@@ -55,7 +68,7 @@ const App: React.FC = () => {
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
         return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    }, [setInstallPromptEvent]);
+    }, [session, setInstallPromptEvent, subscribeToPushNotifications]);
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);

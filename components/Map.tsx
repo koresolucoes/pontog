@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
 import * as L from 'leaflet';
@@ -36,15 +36,9 @@ export const Map: React.FC = () => {
   const { profile } = useAuthStore();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  // Este ref agora guardará TODOS os marcadores de usuários, independentemente da visibilidade.
   const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
-
-  const filteredUsers = useMemo(() => {
-    if (!filters.onlineOnly) {
-        return users;
-    }
-    return users.filter(user => onlineUsers.includes(user.id));
-  }, [users, onlineUsers, filters.onlineOnly]);
 
   // Inicialização do mapa
   useEffect(() => {
@@ -88,49 +82,74 @@ export const Map: React.FC = () => {
     }
   }, [myLocation, profile]);
 
-  // Gerencia os marcadores de outros usuários (adição, remoção, atualização)
+  // Efeito 1: Sincroniza os dados dos marcadores (cria/deleta/atualiza posição).
+  // Roda apenas quando a lista principal de `users` muda.
   useEffect(() => {
     const map = mapInstanceRef.current;
-    const markers = userMarkersRef.current;
     if (!map) return;
+    
+    const markers = userMarkersRef.current;
+    const userIdsInStore = new Set(users.map(u => u.id));
 
-    const currentUsersIds = new Set(filteredUsers.map(u => u.id));
-
-    // Remove marcadores de usuários que não estão mais na lista filtrada
+    // Remove marcadores de usuários que não estão mais na lista
     markers.forEach((marker, userId) => {
-        if (!currentUsersIds.has(userId)) {
-            marker.remove();
+        if (!userIdsInStore.has(userId)) {
+            marker.remove(); // Remove do mapa se estiver lá
             markers.delete(userId);
         }
     });
-    
-    // Adiciona ou atualiza marcadores dos usuários filtrados
-    filteredUsers.forEach(user => {
-        const isOnline = onlineUsers.includes(user.id);
+
+    // Adiciona novos marcadores ou atualiza a posição dos existentes
+    users.forEach(user => {
         const existingMarker = markers.get(user.id);
-
         if (existingMarker) {
-            // Atualiza posição e ícone (para status online)
+            // Apenas atualiza a posição. O ícone e a visibilidade são controlados pelo outro efeito.
             existingMarker.setLatLng([user.lat, user.lng]);
-            existingMarker.setIcon(createUserIcon(user, isOnline));
         } else {
-            // Cria novo marcador
-            const marker = L.marker([user.lat, user.lng], {
-                icon: createUserIcon(user, isOnline)
-            });
-
-            // FIX: Attach a direct click handler to open the modal, avoiding popup complexities.
-            marker.on('click', () => {
-              setSelectedUser(user);
+            // Cria um novo marcador mas NÃO o adiciona ao mapa ainda.
+            const newMarker = L.marker([user.lat, user.lng], {
+                icon: createUserIcon(user, onlineUsers.includes(user.id))
             });
             
-            marker.addTo(map);
-            markers.set(user.id, marker);
+            newMarker.on('click', () => {
+              setSelectedUser(user);
+            });
+
+            markers.set(user.id, newMarker);
         }
     });
+  }, [users, onlineUsers, setSelectedUser]);
 
-  }, [filteredUsers, onlineUsers, setSelectedUser]);
+  // Efeito 2: Sincroniza a visualização dos marcadores (visibilidade e estilo do ícone).
+  // Roda sempre que os filtros, status online ou a lista de usuários mudam.
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
 
+    const markers = userMarkersRef.current;
+    
+    markers.forEach((marker, userId) => {
+        const user = users.find(u => u.id === userId);
+        if (!user) return; // Não deve acontecer se o Efeito 1 rodou corretamente
+
+        const isOnline = onlineUsers.includes(userId);
+        const shouldBeVisible = !filters.onlineOnly || isOnline;
+
+        // Atualiza o ícone para refletir o status online atual
+        marker.setIcon(createUserIcon(user, isOnline));
+
+        // Adiciona ou remove o marcador do mapa com base na visibilidade
+        if (shouldBeVisible) {
+            if (!map.hasLayer(marker)) {
+                marker.addTo(map);
+            }
+        } else {
+            if (map.hasLayer(marker)) {
+                marker.remove();
+            }
+        }
+    });
+  }, [users, onlineUsers, filters]);
 
   if (loading && !myLocation) {
     return <div className="flex items-center justify-center h-full text-gray-400">Obtendo sua localização...</div>;

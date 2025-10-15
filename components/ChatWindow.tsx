@@ -99,16 +99,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       if (error) {
           console.error("Error marking messages as read:", error);
       } else {
-          // FIX: Se a atualização no DB for bem-sucedida, atualiza o estado local imediatamente.
-          // Isso garante que a UI mostre o status de "lido" instantaneamente, tornando a experiência mais rápida.
           const now = new Date().toISOString();
           setMessages(prevMessages =>
               prevMessages.map(msg =>
                   messageIds.includes(msg.id) ? { ...msg, read_at: now } : msg
               )
           );
-          // FIX: Notifica o inboxStore para zerar a contagem de não lidas para esta conversa,
-          // garantindo que a badge de notificação seja atualizada em toda a UI.
           clearUnreadCountForConversation(convId);
       }
   }, [clearUnreadCountForConversation]);
@@ -329,8 +325,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const MessageStatus = ({ msg }: { msg: MessageType }) => {
     if (msg.sender_id !== currentUser.id) return null;
     
-    // FIX: A lógica de confirmação de leitura foi refatorada para ser mais explícita e robusta.
-    // Isso garante que o benefício funcione corretamente para usuários Plus.
     const isPremiumUser = currentUser?.subscription_tier === 'plus';
     const hasBeenRead = msg.read_at !== null && msg.read_at !== undefined;
     const showReadReceipt = isPremiumUser && hasBeenRead;

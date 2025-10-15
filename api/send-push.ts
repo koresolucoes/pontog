@@ -3,9 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import webpush from 'web-push';
 
-// FIX: Usa variáveis de ambiente consistentes e apropriadas para o servidor.
-// O e-mail de contato e a chave pública VAPID agora são lidos de variáveis
-// sem o prefixo 'VITE_', que é uma convenção para o frontend.
 webpush.setVapidDetails(
   `mailto:${process.env.VAPID_CONTACT_EMAIL || 'contact@example.com'}`,
   process.env.VAPID_PUBLIC_KEY!,
@@ -47,8 +44,6 @@ export default async function handler(
     }
     
     // 1. Verifica se o destinatário tem notificações para 'new_message' ativadas
-    // FIX: Remove .single() e usa .limit(1) para evitar erro 406 em caso de dados duplicados no DB.
-    // Isso torna a consulta mais robusta contra problemas de integridade de dados.
     const { data: preferences, error: prefError } = await supabaseAdmin
         .from('notification_preferences')
         .select('enabled')

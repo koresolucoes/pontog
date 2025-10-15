@@ -42,7 +42,6 @@ export default async function handler(
     }
 
     // 1. Verifica se o destinatário quer receber notificações de 'new_wink'
-    // FIX: Remove .single() e usa .limit(1) para evitar erro 406 em caso de dados duplicados no DB.
     const { data: preferences, error: prefError } = await supabaseAdmin
         .from('notification_preferences')
         .select('enabled')

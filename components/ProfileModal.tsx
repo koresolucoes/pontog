@@ -68,9 +68,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
   const handleWink = async () => {
     if (!currentUser) return;
 
-    // FIX: A função SQL `send_wink` obtém o sender_id de auth.uid() e espera
-    // receber apenas o p_receiver_id. A chamada anterior enviava ambos, causando o erro 404.
-    // A chamada foi corrigida para enviar apenas o parâmetro esperado.
     const { data: result, error } = await supabase.rpc('send_wink', { 
         p_receiver_id: user.id 
     });

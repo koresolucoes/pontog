@@ -42,7 +42,6 @@ export default async function handler(
     }
 
     // 1. Verifica se o destinatário quer receber notificações de 'new_album_request'
-    // FIX: Remove .single() e usa .limit(1) para evitar erro 406 em caso de dados duplicados no DB.
     const { data: preferences, error: prefError } = await supabaseAdmin
         .from('notification_preferences')
         .select('enabled')
@@ -78,8 +77,8 @@ export default async function handler(
 
     const subscription = subscriptionData.subscription_details;
     const payload = JSON.stringify({
-      title: `Solicitação de Acesso 앨범`,
-      body: `${senderProfile.username} pediu para ver seus álbuns privados.`,
+      title: 'Solicitação de Acesso a Álbuns',
+      body: `${senderProfile.username} pediu para ver os seus álbuns privados.`,
     });
     
     await webpush.sendNotification(subscription as any, payload).catch(async (error) => {

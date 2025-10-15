@@ -72,7 +72,7 @@ export const AgoraView: React.FC = () => {
         <>
             <div className="h-full flex flex-col bg-slate-800">
                 {renderHeader()}
-                <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-4">
+                <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-4">
                     {posts.map(post => (
                         <div key={post.id} className="bg-slate-900 rounded-2xl shadow-lg overflow-hidden">
                             <div className="p-4 flex items-center space-x-3">

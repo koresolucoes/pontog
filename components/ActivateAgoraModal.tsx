@@ -37,8 +37,8 @@ export const ActivateAgoraModal: React.FC<ActivateAgoraModalProps> = ({ onClose 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50 animate-fade-in" onClick={onClose}>
-      <div className="bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50 animate-fade-in p-4 pb-20 sm:pb-4" onClick={onClose}>
+      <div className="bg-slate-800 rounded-2xl shadow-xl w-full max-w-md mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col max-h-full" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <span className="material-symbols-outlined text-2xl text-red-500">local_fire_department</span>

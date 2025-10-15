@@ -163,8 +163,6 @@ export const useMapStore = create<MapState>((set, get) => ({
     presenceChannel
         .on('presence', { event: 'sync' }, () => {
             const newState = presenceChannel.presenceState();
-            // FIX: Cast presence state item to 'any' to access 'user_id'.
-            // This resolves a TypeScript type inference issue with Supabase presence state.
             const userIds = Object.keys(newState).map(key => (newState[key][0] as any).user_id);
             set({ onlineUsers: userIds });
         })
@@ -175,6 +173,34 @@ export const useMapStore = create<MapState>((set, get) => ({
         });
 
     // --- Realtime Channel for Profile/Location Updates ---
+    // FIX: Corrected the malformed filter object which was causing a crash.
+    // The schema string was broken due to a copy-paste error.
     const realtimeChannel = supabase
         .channel('public:profiles')
-        .on('postgres_changes', { event: '*', schema: 'public
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' },
+            (payload) => {
+                // On any profile change (like a user updating their status or location),
+                // refetch the list of nearby users to keep the map up-to-date.
+                if (get().myLocation) {
+                    get().fetchNearbyUsers(get().myLocation!);
+                }
+            }
+        )
+        .subscribe();
+
+    set({ presenceChannel, realtimeChannel });
+  },
+
+  cleanupRealtime: () => {
+    // FIX: Implemented cleanup to remove both realtime and presence channels.
+    // This prevents duplicate channel subscriptions and memory leaks on logout/re-login.
+    const { realtimeChannel, presenceChannel } = get();
+    if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+    }
+    if (presenceChannel) {
+        supabase.removeChannel(presenceChannel);
+    }
+    set({ realtimeChannel: null, presenceChannel: null });
+  },
+}));

@@ -184,11 +184,11 @@ interface NavButtonProps {
 const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, isPlus = false, notificationCount = 0 }) => (
     <button
         onClick={onClick}
-        className={`relative flex flex-col items-center justify-center h-16 transition-colors group ${isActive ? 'text-pink-500' : 'text-slate-400 hover:text-white'}`}
+        className={`relative flex flex-col items-center justify-center h-16 w-full transition-colors group ${isActive ? 'text-pink-500' : 'text-slate-400 hover:text-white'}`}
         aria-label={label}
     >
-        <div className="relative">
-             <div className={`absolute -inset-2.5 rounded-full transition-colors ${isActive ? 'bg-pink-500/10' : 'group-hover:bg-slate-700/50'}`}></div>
+        <div className="relative flex items-center justify-center w-14 h-8">
+             <div className={`absolute inset-0 rounded-lg transition-colors ${isActive ? 'bg-pink-500/10' : 'group-hover:bg-slate-700/50'}`}></div>
              <span className="material-symbols-outlined text-2xl relative z-10">{icon}</span>
              {notificationCount > 0 && (
                 <span className="absolute -top-1 -right-2.5 h-5 min-w-[20px] px-1 bg-red-600 rounded-full text-white text-[10px] font-bold flex items-center justify-center border-2 border-slate-800/90 z-20">
@@ -196,7 +196,7 @@ const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, i
                 </span>
              )}
         </div>
-        <span className="text-[10px] mt-1 relative z-10">{label}</span>
+        <span className="text-[10px] mt-1.5 relative z-10">{label}</span>
         {isPlus && (
             <span className="absolute top-3 right-3 material-symbols-outlined !text-[12px] text-yellow-400">auto_awesome</span>
         )}

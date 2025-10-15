@@ -62,8 +62,8 @@ export default async function handler(
             email: (authUser as any)?.email,
             created_at: (authUser as any)?.created_at,
             tribes: profile_tribes.map((pt: any) => pt.tribes.name),
-            lat: location ? location.coordinates[1] : null,
-            lng: location ? location.coordinates[0] : null,
+            lat: location?.coordinates?.[1] ?? null,
+            lng: location?.coordinates?.[0] ?? null,
             distance_km: null, // Distance is not relevant in the admin panel
             avatar_url: getPublicImageUrlServer(supabaseAdmin, profile.avatar_url),
             public_photos: (profile.public_photos || []).map((p: string) => getPublicImageUrlServer(supabaseAdmin, p)),

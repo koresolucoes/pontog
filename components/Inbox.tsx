@@ -45,6 +45,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const { 
         conversations, winks, accessRequests, profileViews,
         loadingConversations, loadingWinks, loadingRequests, loadingProfileViews,
+        fetchWinks, fetchProfileViews, fetchAccessRequests,
         respondToRequest, deleteConversation, clearWinks, clearAccessRequests
     } = useInboxStore();
     const { setChatUser, setSubscriptionModalOpen } = useUiStore();
@@ -52,17 +53,20 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const { user: currentUser } = useAuthStore();
     const [confirmDelete, setConfirmDelete] = useState<ConversationPreview | null>(null);
 
-    // Efeito para limpar as notificações quando o usuário visualiza a aba.
+    // Efeito para buscar dados e limpar as notificações quando o usuário visualiza a aba.
     useEffect(() => {
-        if (activeTab === 'winks' && winks.length > 0) {
-            // Remove os winks do estado para zerar a notificação.
-            // A busca de dados não precisa ser chamada de novo, pois já está no estado.
-            clearWinks();
+        if (activeTab === 'winks') {
+            fetchWinks();
+            if (winks.length > 0) clearWinks();
         }
-        if (activeTab === 'requests' && accessRequests.length > 0) {
-            clearAccessRequests();
+        if (activeTab === 'requests') {
+            fetchAccessRequests();
+            if (accessRequests.length > 0) clearAccessRequests();
         }
-    }, [activeTab, winks.length, accessRequests.length, clearWinks, clearAccessRequests]);
+        if (activeTab === 'views') {
+            fetchProfileViews();
+        }
+    }, [activeTab, winks.length, accessRequests.length, clearWinks, clearAccessRequests, fetchWinks, fetchAccessRequests, fetchProfileViews]);
     
     const handleConversationClick = (convo: ConversationPreview) => {
         const chatPartner: User = {
@@ -74,6 +78,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             subscription_tier: convo.other_participant_subscription_tier,
             subscription_expires_at: null, is_incognito: false,
             has_completed_onboarding: true,
+            has_private_albums: false, // Defaulting, as this info is not in convo preview
         };
         setChatUser(chatPartner);
     };

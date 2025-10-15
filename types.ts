@@ -33,6 +33,7 @@ export interface Profile {
   subscription_expires_at: string | null; // Adicionado para data de expiração
   is_incognito: boolean; // Adicionado para o Modo Invisível
   has_completed_onboarding: boolean; // Adicionado para o fluxo de boas-vindas
+  has_private_albums: boolean; // Adicionado para saber se o usuário tem álbuns
 }
 
 // O tipo User estende Profile com campos calculados como 'idade'

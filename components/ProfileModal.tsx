@@ -226,7 +226,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
               </div>
             </div>
           )}
-
+          
+          {user.has_private_albums && (
             <div>
                 <h3 className="font-semibold text-slate-200 mb-2 flex items-center gap-2">
                     <span className="material-symbols-outlined text-xl">lock</span> Álbuns Privados
@@ -251,7 +252,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
                             ))}
                         </div>
                     ) : (
-                        <p className="text-sm text-center text-slate-400 p-4 bg-slate-700 rounded-lg">Este usuário não possui álbuns privados.</p>
+                        <p className="text-sm text-center text-slate-400 p-4 bg-slate-700 rounded-lg">Este usuário não possui fotos em seus álbuns privados.</p>
                     )
                 ) : (
                     <div className="p-4 bg-slate-700 rounded-lg text-center">
@@ -260,6 +261,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
                     </div>
                 )}
             </div>
+          )}
         </div>
         
         <div className="p-4 border-t border-slate-700 flex-shrink-0 flex flex-col gap-3">

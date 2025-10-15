@@ -42,6 +42,11 @@ interface PwaState {
   relinkSubscriptionOnLogin: () => Promise<void>;
 }
 
+const log = {
+    info: (message: string, data?: any) => console.log(`[PWA_STORE] INFO: ${message}`, data || ''),
+    error: (message: string, error?: any) => console.error(`[PWA_STORE] ERROR: ${message}`, error || ''),
+};
+
 export const usePwaStore = create<PwaState>((set, get) => ({
   installPromptEvent: null,
   pushState: 'prompt',
@@ -52,13 +57,13 @@ export const usePwaStore = create<PwaState>((set, get) => ({
   triggerInstall: async () => {
     const { installPromptEvent } = get();
     if (!installPromptEvent) {
-      console.log('O prompt de instalação do PWA não está disponível.');
+      log.info('O prompt de instalação do PWA não está disponível.');
       return;
     }
     
     installPromptEvent.prompt();
     const { outcome } = await installPromptEvent.userChoice;
-    console.log(`Resposta do usuário ao prompt de instalação: ${outcome}`);
+    log.info(`Resposta do usuário ao prompt de instalação: ${outcome}`);
     set({ installPromptEvent: null });
   },
 
@@ -74,31 +79,28 @@ export const usePwaStore = create<PwaState>((set, get) => ({
     }
 
     if (Notification.permission === 'granted') {
-      // Permissão concedida, mas precisamos verificar se uma inscrição realmente existe.
-      // É possível que o usuário tenha limpado os dados do site, invalidando a inscrição anterior.
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
-        // Se já existe uma inscrição, o estado é 'granted'.
         set({ pushState: 'granted' });
       } else {
-        // Se a permissão foi dada mas não há inscrição, o usuário precisa se inscrever de novo.
         set({ pushState: 'prompt' });
       }
     } else {
-      // Se a permissão for 'default', mostramos o botão.
       set({ pushState: 'prompt' });
     }
   },
 
   subscribeToPushNotifications: () => {
+    log.info('Iniciando processo de inscrição de notificação...');
     const vapidPublicKey = (import.meta as any).env.VITE_VAPID_PUBLIC_KEY;
     if (!vapidPublicKey) {
-        console.error('VAPID public key not found.');
+        log.error('VAPID public key não encontrada nas variáveis de ambiente.');
         toast.error('Configuração de notificação ausente.');
         return;
     }
+    log.info('VAPID public key encontrada.');
 
     if (get().pushState === 'denied' || get().pushState === 'unsupported') {
         toast('As notificações estão bloqueadas ou não são suportadas neste navegador.');
@@ -107,23 +109,25 @@ export const usePwaStore = create<PwaState>((set, get) => ({
 
     set({ isSubscribing: true });
 
-    // FIX: Refatorado para usar .then() para maior clareza e robustez na cadeia de promessas.
-    // Isso evita potenciais problemas de suspensão de 'async/await' e garante que o estado de 'isSubscribing'
-    // seja sempre redefinido no bloco 'finally'.
     Notification.requestPermission().then(permission => {
+        log.info(`Permissão de notificação: ${permission}`);
         if (permission !== 'granted') {
-            throw new Error('Permission not granted for Notifications');
+            throw new Error('Permissão para notificações não concedida.');
         }
         return navigator.serviceWorker.ready;
     }).then(registration => {
+        log.info('Service Worker está pronto.');
         return registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
         });
     }).then(subscription => {
         const subscriptionObject = subscription.toJSON();
+        log.info('Inscrição criada com sucesso no navegador.', subscriptionObject);
+        log.info('Obtendo sessão do Supabase para enviar ao servidor...');
         return supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) throw new Error("User not authenticated");
+            if (!session) throw new Error("Usuário não autenticado para salvar inscrição.");
+            log.info('Sessão do usuário obtida. Enviando inscrição para /api/store-push-subscription...');
             return fetch('/api/store-push-subscription', {
                 method: 'POST',
                 headers: {
@@ -134,14 +138,17 @@ export const usePwaStore = create<PwaState>((set, get) => ({
             });
         });
     }).then(async (response) => {
+        log.info('Resposta recebida do servidor.', { status: response.status });
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to store push subscription on server.');
+            log.error('Servidor retornou um erro ao salvar a inscrição.', errorData);
+            throw new Error(errorData.error || 'Falha ao salvar a inscrição no servidor.');
         }
+        log.info('Inscrição salva com sucesso no servidor!');
         toast.success('Notificações ativadas com sucesso!');
         set({ pushState: 'granted' });
     }).catch(error => {
-        console.error('Failed to subscribe to push notifications:', error);
+        log.error('Falha na cadeia de promessas de inscrição de notificação.', error);
         if (Notification.permission === 'denied') {
             set({ pushState: 'denied' });
             toast.error('Você bloqueou as notificações. Altere nas configurações do navegador.');
@@ -149,6 +156,7 @@ export const usePwaStore = create<PwaState>((set, get) => ({
             toast.error('Não foi possível ativar as notificações.');
         }
     }).finally(() => {
+        log.info('Processo de inscrição finalizado.');
         set({ isSubscribing: false });
     });
   },
@@ -161,16 +169,15 @@ export const usePwaStore = create<PwaState>((set, get) => ({
       
       if (subscription) {
         const subscriptionObject = subscription.toJSON();
-        // Fire-and-forget request to the backend to set user_id to null
         fetch('/api/unlink-push-subscription', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ subscription_object: subscriptionObject }),
         });
-        console.log('Unlinking push subscription from backend.');
+        log.info('Desvinculando inscrição de push do backend.');
       }
     } catch (error) {
-      console.error('Error during push subscription unlinking:', error);
+      log.error('Erro ao desvincular a inscrição de push:', error);
     }
   },
 
@@ -181,12 +188,11 @@ export const usePwaStore = create<PwaState>((set, get) => ({
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
       
-      // If a subscription exists on the device, send it to the backend to link it to the new user.
       if (subscription) {
-        console.log('Existing subscription found on device. Relinking with current user.');
+        log.info('Inscrição existente encontrada no dispositivo. Re-vinculando com o usuário atual.');
         const subscriptionObject = subscription.toJSON();
         const { session } = (await supabase.auth.getSession()).data;
-        if (!session) return; // Can't re-link if not logged in.
+        if (!session) return;
 
         const response = await fetch('/api/store-push-subscription', {
             method: 'POST',
@@ -198,15 +204,14 @@ export const usePwaStore = create<PwaState>((set, get) => ({
         });
 
         if (response.ok) {
-          console.log('Subscription successfully re-linked.');
-          // Silently update state to 'granted' as we now have a valid server link.
+          log.info('Inscrição re-vinculada com sucesso.');
           set({ pushState: 'granted' });
         } else {
-          console.error('Failed to re-link subscription.');
+          log.error('Falha ao re-vincular a inscrição.');
         }
       }
     } catch (error) {
-      console.error('Error during push subscription re-linking:', error);
+      log.error('Erro durante o re-vínculo da inscrição de push:', error);
     }
   },
 }));

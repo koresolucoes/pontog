@@ -171,13 +171,13 @@ const App: React.FC = () => {
 
             <PwaInstallButton />
 
-            <nav className="fixed bottom-0 left-0 right-0 bg-slate-800/90 backdrop-blur-sm border-t border-slate-700 z-20">
+            <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 z-20">
                 <div className="max-w-md mx-auto grid grid-cols-6">
                    <NavButton icon="home" label="Início" isActive={activeView === 'home'} onClick={() => setActiveView('home')} />
                    <NavButton icon="search" label="Buscar" isActive={activeView === 'grid'} onClick={() => setActiveView('grid')} />
                    <NavButton icon="travel_explore" label="Mapa" isActive={activeView === 'map'} onClick={() => setActiveView('map')} />
-                   <NavButton icon="local_fire_department" label="Agora" isActive={activeView === 'agora'} onClick={() => setActiveView('agora')} />
-                   <NavButton icon="inbox" label="Entrada" isActive={activeView === 'inbox'} onClick={() => setActiveView('inbox')} notificationCount={totalUnreadCount} />
+                   <NavButton icon="whatshot" label="Agora" isActive={activeView === 'agora'} onClick={() => setActiveView('agora')} />
+                   <NavButton icon="image" label="Entrada" isActive={activeView === 'inbox'} onClick={() => setActiveView('inbox')} notificationCount={totalUnreadCount} />
                    <NavButton icon="person" label="Perfil" isActive={activeView === 'profile'} onClick={() => setActiveView('profile')} isPlus={user.subscription_tier === 'plus'} />
                 </div>
             </nav>
@@ -197,21 +197,38 @@ interface NavButtonProps {
 const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, isPlus = false, notificationCount = 0 }) => (
     <button
         onClick={onClick}
-        className={`relative flex flex-col items-center justify-center h-16 w-full transition-colors group ${isActive ? 'text-pink-500' : 'text-slate-400 hover:text-white'}`}
+        className="relative flex flex-col items-center justify-center py-2 w-full transition-colors group focus:outline-none"
         aria-label={label}
     >
-        <div className="relative flex items-center justify-center w-14 h-8">
-             <div className={`absolute inset-0 rounded-lg transition-colors ${isActive ? 'bg-pink-500/10' : 'group-hover:bg-slate-700/50'}`}></div>
-             <span className="material-symbols-outlined text-2xl relative z-10">{icon}</span>
-             {notificationCount > 0 && (
-                <span className="absolute -top-1 -right-2.5 h-5 min-w-[20px] px-1 bg-red-600 rounded-full text-white text-[10px] font-bold flex items-center justify-center border-2 border-slate-800/90 z-20">
+        <div className="relative">
+            <div 
+                className={`flex items-center justify-center w-16 h-8 rounded-xl transition-colors
+                    ${isActive ? 'bg-fuchsia-950' : ''}`
+                }
+            >
+                <span 
+                    className={`material-symbols-outlined text-2xl transition-colors 
+                        ${isActive ? 'text-pink-400' : 'text-slate-400 group-hover:text-white'}`
+                    }
+                >
+                    {icon}
+                </span>
+            </div>
+            {notificationCount > 0 && (
+                <span className="absolute -top-1 right-0 h-5 min-w-[20px] px-1 bg-red-600 rounded-full text-white text-[10px] font-bold flex items-center justify-center border-2 border-slate-900 z-10">
                     {notificationCount > 9 ? '9+' : notificationCount}
                 </span>
              )}
         </div>
-        <span className="text-[10px] mt-1.5 relative z-10">{label}</span>
+        <span 
+            className={`text-xs mt-1 font-medium transition-colors 
+                ${isActive ? 'text-pink-400' : 'text-slate-400 group-hover:text-white'}`
+            }
+        >
+            {label}
+        </span>
         {isPlus && (
-            <span className="absolute top-3 right-3 material-symbols-outlined !text-[12px] text-yellow-400">auto_awesome</span>
+            <span className="absolute top-1 right-2 material-symbols-outlined !text-[12px] text-yellow-400">auto_awesome</span>
         )}
     </button>
 );

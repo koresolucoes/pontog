@@ -21,29 +21,27 @@ export default async function handler(
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Fetch user data with necessary fields for stats calculation
-    const { data: allUsers, error: usersError } = await supabaseAdmin
-        .from('profiles')
-        .select(`
-            id,
-            subscription_tier,
-            subscription_expires_at,
-            users ( created_at )
-        `);
+    // FIX: Fetch profiles and auth users separately to avoid the schema cache issue with joins
+    const [{ data: allProfiles, error: profilesError }, { data: authUsersData, error: authUsersError }] = await Promise.all([
+      supabaseAdmin.from('profiles').select(`id, subscription_tier, subscription_expires_at`),
+      // NOTE: This fetches up to 1000 users. For larger user bases, pagination would be required.
+      supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }) 
+    ]);
     
-    if (usersError) throw usersError;
+    if (profilesError) throw profilesError;
+    if (authUsersError) throw authUsersError;
 
-    const totalUsers = allUsers.length;
+    const totalUsers = allProfiles.length;
 
-    const activeSubscriptions = allUsers.filter(p => 
+    const activeSubscriptions = allProfiles.filter(p => 
         p.subscription_tier === 'plus' &&
         p.subscription_expires_at &&
         new Date(p.subscription_expires_at) > new Date()
     ).length;
     
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const dailySignups = allUsers.filter((p: any) => 
-        p.users?.created_at && new Date(p.users.created_at) > twentyFourHoursAgo
+    const dailySignups = authUsersData.users.filter(u => 
+        new Date(u.created_at) > twentyFourHoursAgo
     ).length;
 
     const { data: totalRevenueData, error: revenueError } = await supabaseAdmin
@@ -55,10 +53,10 @@ export default async function handler(
     const totalRevenue = totalRevenueData.reduce((sum, item) => sum + item.amount, 0);
         
     res.status(200).json({
-        totalUsers: totalUsers ?? 0,
-        activeSubscriptions: activeSubscriptions ?? 0,
-        totalRevenue: totalRevenue ?? 0,
-        dailySignups: dailySignups ?? 0
+        totalUsers: totalUsers,
+        activeSubscriptions: activeSubscriptions,
+        totalRevenue: totalRevenue,
+        dailySignups: dailySignups
     });
 
   } catch (error: any) {

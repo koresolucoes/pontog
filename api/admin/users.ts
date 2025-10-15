@@ -37,27 +37,30 @@ export default async function handler(
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // FIX: Replace failing RPC call with a direct query.
-    // This query fetches all profile data and joins related user/tribe info.
-    const { data, error } = await supabaseAdmin
-      .from('profiles')
-      .select(`
-        *,
-        users ( email, created_at ),
-        profile_tribes ( tribes ( name ) )
-      `)
-      .order('created_at', { referencedTable: 'users', ascending: false });
+    // FIX: Fetch auth users and profiles separately and merge them in code.
+    // This bypasses the PostgREST error "Could not find a relationship between 'profiles' and 'users'".
+    
+    // NOTE: This approach fetches up to 1000 users. For larger user bases, pagination would be required.
+    const [{ data: { users: authUsers }, error: authUsersError }, { data: profiles, error: profilesError }] = await Promise.all([
+      supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
+      supabaseAdmin.from('profiles').select(`*, profile_tribes ( tribes ( name ) )`)
+    ]);
 
-    if (error) throw error;
+    if (authUsersError) throw authUsersError;
+    if (profilesError) throw profilesError;
+
+    const authUserMap = new Map(authUsers.map(u => [u.id, u]));
         
-    // Process the nested data to match the flat 'Profile' type
-    const processedData = data.map((profile: any) => {
-        const { users: user, profile_tribes, location, ...rest } = profile;
+    const processedData = profiles.map((profile: any) => {
+        const authUser = authUserMap.get(profile.id);
+        const { profile_tribes, location, ...rest } = profile;
         
         return {
             ...rest,
-            email: user?.email,
-            created_at: user?.created_at,
+            // FIX: Cast `authUser` to `any` to resolve TypeScript error where its type is inferred as 'unknown'.
+            // This allows safe access to properties that are known to exist on the auth user object.
+            email: (authUser as any)?.email,
+            created_at: (authUser as any)?.created_at,
             tribes: profile_tribes.map((pt: any) => pt.tribes.name),
             lat: location ? location.coordinates[1] : null,
             lng: location ? location.coordinates[0] : null,
@@ -65,6 +68,11 @@ export default async function handler(
             avatar_url: getPublicImageUrlServer(supabaseAdmin, profile.avatar_url),
             public_photos: (profile.public_photos || []).map((p: string) => getPublicImageUrlServer(supabaseAdmin, p)),
         }
+    }).sort((a, b) => {
+        // Sort by creation date descending, handling cases where it might be null
+        if (!a.created_at) return 1;
+        if (!b.created_at) return -1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     });
 
     res.status(200).json(processedData);

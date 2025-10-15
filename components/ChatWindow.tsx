@@ -448,19 +448,26 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                     </button>
                 </div>
             )}
-            <form onSubmit={handleSendMessage} className="relative flex items-center">
+            <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                 <input type="file" accept="image/*" className="hidden" ref={imageInputRef} onChange={handleSendImage}/>
+                <button 
+                    type="button" 
+                    onClick={() => setAttachmentMenuOpen(prev => !prev)} 
+                    className="flex-shrink-0 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full hover:bg-slate-600 transition-colors"
+                >
+                    <span className="material-symbols-outlined text-2xl">add_circle</span>
+                </button>
                 <input
                     type="text"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Digite uma mensagem..."
-                    className="w-full bg-slate-700 rounded-full py-2.5 pl-12 pr-12 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    className="flex-1 bg-slate-700 rounded-full py-2 px-4 h-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
                 />
-                 <button type="button" onClick={() => setAttachmentMenuOpen(prev => !prev)} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-2.5 rounded-full hover:bg-slate-600 transition-colors">
-                    <span className="material-symbols-outlined text-xl">add_circle</span>
-                </button>
-                <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-pink-600 text-white rounded-full p-2.5 hover:bg-pink-700 transition-colors">
+                <button 
+                    type="submit" 
+                    className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-pink-600 text-white rounded-full hover:bg-pink-700 transition-colors"
+                >
                     <span className="material-symbols-outlined text-xl">send</span>
                 </button>
             </form>

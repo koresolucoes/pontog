@@ -37,7 +37,7 @@ interface PwaState {
   pushState: 'unsupported' | 'denied' | 'prompt' | 'granted';
   isSubscribing: boolean;
   checkPushSupport: () => Promise<void>;
-  subscribeToPushNotifications: () => void; // A função agora não é async aqui, ela gerencia suas próprias promessas
+  subscribeToPushNotifications: () => void;
   unlinkSubscriptionOnLogout: () => Promise<void>;
   relinkSubscriptionOnLogin: () => Promise<void>;
 }
@@ -92,73 +92,85 @@ export const usePwaStore = create<PwaState>((set, get) => ({
     }
   },
 
-  subscribeToPushNotifications: () => {
+  subscribeToPushNotifications: async () => {
     log.info('Iniciando processo de inscrição de notificação...');
-    const vapidPublicKey = (import.meta as any).env.VITE_VAPID_PUBLIC_KEY;
-    if (!vapidPublicKey) {
-        log.error('VAPID public key não encontrada nas variáveis de ambiente.');
-        toast.error('Configuração de notificação ausente.');
-        return;
-    }
-    log.info('VAPID public key encontrada.');
-
-    if (get().pushState === 'denied' || get().pushState === 'unsupported') {
-        toast('As notificações estão bloqueadas ou não são suportadas neste navegador.');
-        return;
-    }
-
     set({ isSubscribing: true });
 
-    Notification.requestPermission().then(permission => {
+    try {
+        const vapidPublicKey = (import.meta as any).env.VITE_VAPID_PUBLIC_KEY;
+        if (!vapidPublicKey) {
+            throw new Error('VAPID public key não encontrada nas variáveis de ambiente.');
+        }
+        log.info('VAPID public key encontrada.');
+
+        if (get().pushState === 'denied' || get().pushState === 'unsupported') {
+            toast('As notificações estão bloqueadas ou não são suportadas neste navegador.');
+            set({ isSubscribing: false });
+            return;
+        }
+
+        log.info('Solicitando permissão para notificações...');
+        const permission = await Notification.requestPermission();
         log.info(`Permissão de notificação: ${permission}`);
         if (permission !== 'granted') {
             throw new Error('Permissão para notificações não concedida.');
         }
-        return navigator.serviceWorker.ready;
-    }).then(registration => {
-        log.info('Service Worker está pronto.');
-        return registration.pushManager.subscribe({
+
+        log.info('Aguardando o Service Worker ficar pronto...');
+        const registration = await navigator.serviceWorker.ready;
+        log.info('Service Worker está pronto.', registration);
+
+        log.info('Inscrevendo no Push Manager...');
+        const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
         });
-    }).then(subscription => {
         const subscriptionObject = subscription.toJSON();
         log.info('Inscrição criada com sucesso no navegador.', subscriptionObject);
+
         log.info('Obtendo sessão do Supabase para enviar ao servidor...');
-        return supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) throw new Error("Usuário não autenticado para salvar inscrição.");
-            log.info('Sessão do usuário obtida. Enviando inscrição para /api/store-push-subscription...');
-            return fetch('/api/store-push-subscription', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
-                },
-                body: JSON.stringify({ subscription_object: subscriptionObject }),
-            });
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            throw new Error("Usuário não autenticado para salvar inscrição.");
+        }
+
+        log.info('Sessão do usuário obtida. Enviando inscrição para /api/store-push-subscription...');
+        const response = await fetch('/api/store-push-subscription', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ subscription_object: subscriptionObject }),
         });
-    }).then(async (response) => {
         log.info('Resposta recebida do servidor.', { status: response.status });
+
         if (!response.ok) {
             const errorData = await response.json();
             log.error('Servidor retornou um erro ao salvar a inscrição.', errorData);
             throw new Error(errorData.error || 'Falha ao salvar a inscrição no servidor.');
         }
+
         log.info('Inscrição salva com sucesso no servidor!');
         toast.success('Notificações ativadas com sucesso!');
         set({ pushState: 'granted' });
-    }).catch(error => {
-        log.error('Falha na cadeia de promessas de inscrição de notificação.', error);
+
+    } catch (error: any) {
+        log.error('Falha no processo de inscrição de notificação.', error);
         if (Notification.permission === 'denied') {
             set({ pushState: 'denied' });
             toast.error('Você bloqueou as notificações. Altere nas configurações do navegador.');
         } else {
-            toast.error('Não foi possível ativar as notificações.');
+             if (error.message.toLowerCase().includes("service worker")) {
+                toast.error('Erro ao ativar serviço de notificações. Tente recarregar a página.');
+            } else {
+                toast.error('Não foi possível ativar as notificações.');
+            }
         }
-    }).finally(() => {
+    } finally {
         log.info('Processo de inscrição finalizado.');
         set({ isSubscribing: false });
-    });
+    }
   },
 
   unlinkSubscriptionOnLogout: async () => {

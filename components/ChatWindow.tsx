@@ -76,7 +76,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentUser = useAuthStore(state => state.user);
   const onlineUsers = useMapStore(state => state.onlineUsers);
-  const { deleteConversation } = useInboxStore();
+  const { deleteConversation, clearUnreadCountForConversation } = useInboxStore();
   const { uploadPhoto, grantAccess } = useAlbumStore();
 
   const [editingMessage, setEditingMessage] = useState<MessageType | null>(null);
@@ -91,26 +91,27 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   // Novo estado para o menu de opções da mensagem
   const [messageOptions, setMessageOptions] = useState<MessageType | null>(null);
 
-  const markMessagesAsRead = useCallback(async (messageIds: number[]) => {
-      if (messageIds.length === 0) return;
+  const markMessagesAsRead = useCallback(async (messageIds: number[], convId: number | null) => {
+      if (messageIds.length === 0 || !convId) return;
       
-      // Primeiro, atualiza o banco de dados
       const { error } = await supabase.rpc('mark_messages_as_read', { message_ids: messageIds });
       
       if (error) {
           console.error("Error marking messages as read:", error);
       } else {
           // FIX: Se a atualização no DB for bem-sucedida, atualiza o estado local imediatamente.
-          // Isso garante que a UI mostre o status de "lido" instantaneamente, sem depender
-          // do broadcast do realtime, tornando a experiência mais rápida e confiável.
+          // Isso garante que a UI mostre o status de "lido" instantaneamente, tornando a experiência mais rápida.
           const now = new Date().toISOString();
           setMessages(prevMessages =>
               prevMessages.map(msg =>
                   messageIds.includes(msg.id) ? { ...msg, read_at: now } : msg
               )
           );
+          // FIX: Notifica o inboxStore para zerar a contagem de não lidas para esta conversa,
+          // garantindo que a badge de notificação seja atualizada em toda a UI.
+          clearUnreadCountForConversation(convId);
       }
-  }, []);
+  }, [clearUnreadCountForConversation]);
 
   useEffect(() => {
     const setupConversation = async () => {
@@ -141,7 +142,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
           const unreadIds = initialMessages
             .filter(m => m.sender_id !== currentUser.id && !m.read_at)
             .map(m => m.id);
-          markMessagesAsRead(unreadIds);
+          markMessagesAsRead(unreadIds, convId);
       }
     };
 
@@ -161,7 +162,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                const newMessagePayload = payload.new as MessageType;
                setMessages((prevMessages) => [...prevMessages, newMessagePayload]);
                if (newMessagePayload.sender_id !== currentUser.id) {
-                   markMessagesAsRead([newMessagePayload.id]);
+                   markMessagesAsRead([newMessagePayload.id], conversationId);
                }
            } else if (payload.eventType === 'UPDATE') {
                const updatedMessage = payload.new as MessageType;

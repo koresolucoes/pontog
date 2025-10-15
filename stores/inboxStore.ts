@@ -37,6 +37,7 @@ interface InboxState {
   deleteConversation: (conversationId: number) => Promise<void>;
   clearWinks: () => void; // Adicionado para zerar notificações
   clearAccessRequests: () => void; // Adicionado para zerar notificações
+  clearUnreadCountForConversation: (conversationId: number) => void;
   subscribeToInboxChanges: () => void;
   cleanupRealtime: () => void;
 }
@@ -191,15 +192,22 @@ export const useInboxStore = create<InboxState>((set, get) => {
             }
         },
 
-        // Nova função para limpar os winks e atualizar a contagem de notificações
         clearWinks: () => {
             set({ winks: [] });
             updateTotalUnreadCount();
         },
 
-        // Nova função para limpar as solicitações e atualizar a contagem de notificações
         clearAccessRequests: () => {
             set({ accessRequests: [] });
+            updateTotalUnreadCount();
+        },
+        
+        clearUnreadCountForConversation: (conversationId: number) => {
+            set(state => ({
+                conversations: state.conversations.map(c => 
+                    c.conversation_id === conversationId ? { ...c, unread_count: 0 } : c
+                )
+            }));
             updateTotalUnreadCount();
         },
 

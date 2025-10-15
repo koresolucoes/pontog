@@ -42,14 +42,17 @@ export default async function handler(
     }
 
     // 1. Verifica se o destinatário quer receber notificações de 'new_album_request'
-    const { data: preference } = await supabaseAdmin
+    // FIX: Remove .single() e usa .limit(1) para evitar erro 406 em caso de dados duplicados no DB.
+    const { data: preferences, error: prefError } = await supabaseAdmin
         .from('notification_preferences')
         .select('enabled')
         .eq('user_id', receiver_id)
         .eq('notification_type', 'new_album_request')
-        .single();
+        .limit(1);
         
-    if (!preference || !preference.enabled) {
+    if (prefError) throw prefError;
+        
+    if (!preferences || preferences.length === 0 || !preferences[0].enabled) {
         return res.status(200).json({ success: true, message: 'User has disabled album request notifications.' });
     }
     

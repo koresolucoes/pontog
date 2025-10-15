@@ -47,15 +47,19 @@ export default async function handler(
     }
     
     // 1. Verifica se o destinatário tem notificações para 'new_message' ativadas
-    const { data: preference } = await supabaseAdmin
+    // FIX: Remove .single() e usa .limit(1) para evitar erro 406 em caso de dados duplicados no DB.
+    // Isso torna a consulta mais robusta contra problemas de integridade de dados.
+    const { data: preferences, error: prefError } = await supabaseAdmin
         .from('notification_preferences')
         .select('enabled')
         .eq('user_id', receiver_id)
         .eq('notification_type', 'new_message')
-        .single();
+        .limit(1);
         
-    // Se a preferência não existe ou está desativada, não envia a notificação
-    if (!preference || !preference.enabled) {
+    if (prefError) throw prefError;
+        
+    // Se a preferência não existe (array vazio) ou está desativada, não envia a notificação
+    if (!preferences || preferences.length === 0 || !preferences[0].enabled) {
         return res.status(200).json({ success: true, message: 'User has disabled new message notifications.' });
     }
     

@@ -14,6 +14,7 @@ export interface Tribe {
 export interface Profile {
   id: string;
   username: string;
+  email: string; // Adicionado para o painel admin
   display_name: string | null;
   avatar_url: string;
   public_photos: string[] | null;
@@ -25,6 +26,7 @@ export interface Profile {
   position: string | null;
   hiv_status: string | null;
   updated_at: string;
+  created_at: string;
   lat: number;
   lng: number;
   last_seen: string | null; // Adicionado para status de atividade
@@ -34,6 +36,8 @@ export interface Profile {
   is_incognito: boolean; // Adicionado para o Modo Invisível
   has_completed_onboarding: boolean; // Adicionado para o fluxo de boas-vindas
   has_private_albums: boolean; // Adicionado para saber se o usuário tem álbuns
+  status: 'active' | 'suspended' | 'banned'; // Adicionado para moderação
+  suspended_until: string | null; // Adicionado para moderação
 }
 
 // O tipo User estende Profile com campos calculados como 'idade'

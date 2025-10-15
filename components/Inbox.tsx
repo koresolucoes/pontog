@@ -83,6 +83,9 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     }, [activeTab, accessRequests, clearAccessRequests]);
 
     const handleConversationClick = (convo: ConversationPreview) => {
+        // FIX: Adiciona as propriedades que faltavam para que o objeto corresponda ao tipo `User`.
+        // Como `ConversationPreview` não tem todos os dados de um perfil completo,
+        // preenchemos os campos restantes com valores padrão/dummy para satisfazer o TypeScript.
         const chatPartner: User = {
             id: convo.other_participant_id, username: convo.other_participant_username,
             avatar_url: convo.other_participant_avatar_url, last_seen: convo.other_participant_last_seen,
@@ -93,6 +96,10 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             subscription_expires_at: null, is_incognito: false,
             has_completed_onboarding: true,
             has_private_albums: false, // Defaulting, as this info is not in convo preview
+            email: '',
+            created_at: '',
+            status: 'active',
+            suspended_until: null,
         };
         setChatUser(chatPartner);
     };

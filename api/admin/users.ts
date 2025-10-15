@@ -37,10 +37,8 @@ export default async function handler(
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { data, error } = await supabaseAdmin
-        .from('profiles')
-        .select('*')
-        .order('updated_at', { ascending: false });
+    // Call the RPC function to get user data with emails
+    const { data, error } = await supabaseAdmin.rpc('get_all_users_for_admin');
 
     if (error) throw error;
         

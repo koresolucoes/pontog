@@ -53,21 +53,35 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const { user: currentUser } = useAuthStore();
     const [confirmDelete, setConfirmDelete] = useState<ConversationPreview | null>(null);
 
-    // Efeito para buscar dados e limpar as notificações quando o usuário visualiza a aba.
+    // FIX: A lógica foi dividida em múltiplos `useEffect` para evitar o loop infinito.
+    // Este efeito é responsável por buscar os dados apropriados quando o usuário troca de aba.
     useEffect(() => {
         if (activeTab === 'winks') {
             fetchWinks();
-            if (winks.length > 0) clearWinks();
         }
         if (activeTab === 'requests') {
             fetchAccessRequests();
-            if (accessRequests.length > 0) clearAccessRequests();
         }
         if (activeTab === 'views') {
             fetchProfileViews();
         }
-    }, [activeTab, winks.length, accessRequests.length, clearWinks, clearAccessRequests, fetchWinks, fetchAccessRequests, fetchProfileViews]);
+    }, [activeTab, fetchWinks, fetchAccessRequests, fetchProfileViews]);
     
+    // FIX: Este efeito é responsável por limpar a contagem de notificações de 'winks'
+    // assim que os dados são carregados na tela. Ele não causa mais um loop.
+    useEffect(() => {
+        if (activeTab === 'winks' && winks.length > 0) {
+            clearWinks();
+        }
+    }, [activeTab, winks, clearWinks]);
+
+    // FIX: Efeito similar para limpar as notificações de 'solicitações de acesso'.
+    useEffect(() => {
+        if (activeTab === 'requests' && accessRequests.length > 0) {
+            clearAccessRequests();
+        }
+    }, [activeTab, accessRequests, clearAccessRequests]);
+
     const handleConversationClick = (convo: ConversationPreview) => {
         const chatPartner: User = {
             id: convo.other_participant_id, username: convo.other_participant_username,

@@ -28,15 +28,21 @@ interface InboxState {
   loadingWinks: boolean;
   loadingRequests: boolean;
   loadingProfileViews: boolean;
-  realtimeChannel: any | null; // Adicionado para a inscrição realtime
+  realtimeChannel: any | null;
+  
+  // FIX: Adiciona flags para rastrear o estado de "visto" das notificações,
+  // desacoplando a contagem de notificação do array de dados.
+  winksHaveBeenSeen: boolean;
+  requestsHaveBeenSeen: boolean;
+  
   fetchConversations: () => Promise<void>;
   fetchWinks: () => Promise<void>;
   fetchAccessRequests: () => Promise<void>;
   fetchProfileViews: () => Promise<void>;
   respondToRequest: (requestId: number, status: 'granted' | 'denied') => Promise<void>;
   deleteConversation: (conversationId: number) => Promise<void>;
-  clearWinks: () => void; // Adicionado para zerar notificações
-  clearAccessRequests: () => void; // Adicionado para zerar notificações
+  clearWinks: () => void;
+  clearAccessRequests: () => void;
   clearUnreadCountForConversation: (conversationId: number) => void;
   subscribeToInboxChanges: () => void;
   cleanupRealtime: () => void;
@@ -45,12 +51,14 @@ interface InboxState {
 export const useInboxStore = create<InboxState>((set, get) => {
     
     const updateTotalUnreadCount = () => {
-        const { conversations, winks, accessRequests } = get();
+        const { conversations, winks, accessRequests, winksHaveBeenSeen, requestsHaveBeenSeen } = get();
         const unreadMessages = conversations.reduce((sum, convo) => sum + (convo.unread_count || 0), 0);
-        // A contagem agora reflete o estado atual dos arrays
-        const newWinks = winks.length; 
-        const newRequests = accessRequests.length;
-        set({ totalUnreadCount: unreadMessages + newWinks + newRequests });
+        
+        // FIX: A contagem de notificações agora depende se os itens foram marcados como vistos.
+        const newWinksCount = winksHaveBeenSeen ? 0 : winks.length;
+        const newRequestsCount = requestsHaveBeenSeen ? 0 : accessRequests.length;
+
+        set({ totalUnreadCount: unreadMessages + newWinksCount + newRequestsCount });
     };
 
     return {
@@ -64,6 +72,8 @@ export const useInboxStore = create<InboxState>((set, get) => {
         loadingRequests: false,
         loadingProfileViews: false,
         realtimeChannel: null,
+        winksHaveBeenSeen: true,
+        requestsHaveBeenSeen: true,
 
         fetchConversations: async () => {
             set({ loadingConversations: true });
@@ -108,7 +118,8 @@ export const useInboxStore = create<InboxState>((set, get) => {
                 public_photos: (wink.public_photos || []).map(getPublicImageUrl),
             }));
 
-            set({ winks: winksWithAgeAndUrls, loadingWinks: false });
+            // FIX: Ao buscar novos winks, reseta a flag 'seen' para que eles contem como notificação.
+            set({ winks: winksWithAgeAndUrls, loadingWinks: false, winksHaveBeenSeen: false });
             updateTotalUnreadCount();
         },
 
@@ -127,7 +138,8 @@ export const useInboxStore = create<InboxState>((set, get) => {
                 avatar_url: getPublicImageUrl(req.avatar_url)
             }));
 
-            set({ accessRequests: processedRequests, loadingRequests: false });
+            // FIX: Ao buscar novas solicitações, reseta a flag 'seen'.
+            set({ accessRequests: processedRequests, loadingRequests: false, requestsHaveBeenSeen: false });
             updateTotalUnreadCount();
         },
 
@@ -193,12 +205,16 @@ export const useInboxStore = create<InboxState>((set, get) => {
         },
 
         clearWinks: () => {
-            set({ winks: [] });
+            // FIX: Apenas marca os winks como vistos para zerar a notificação, sem apagar os dados.
+            if (get().winksHaveBeenSeen) return;
+            set({ winksHaveBeenSeen: true });
             updateTotalUnreadCount();
         },
 
         clearAccessRequests: () => {
-            set({ accessRequests: [] });
+            // FIX: Apenas marca as solicitações como vistas para zerar a notificação.
+            if (get().requestsHaveBeenSeen) return;
+            set({ requestsHaveBeenSeen: true });
             updateTotalUnreadCount();
         },
         

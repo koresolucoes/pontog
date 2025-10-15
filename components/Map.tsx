@@ -36,39 +36,34 @@ export const Map: React.FC = () => {
   const { profile } = useAuthStore();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  // Este ref agora guardará TODOS os marcadores de usuários, independentemente da visibilidade.
   const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
 
-  // Inicialização do mapa
+  // Efeito de Inicialização e Centralização do Mapa
+  // A inicialização agora depende da existência de `myLocation` para evitar erros.
   useEffect(() => {
-    if (mapContainerRef.current && !mapInstanceRef.current) {
-      const map = L.map(mapContainerRef.current, {
+    if (!myLocation || !mapContainerRef.current) {
+      return;
+    }
+
+    const map = mapInstanceRef.current;
+
+    if (!map) {
+      const newMap = L.map(mapContainerRef.current, {
         zoomControl: false,
-      }).setView([-15.7801, -47.9292], 4); // Centro do Brasil
+      }).setView(myLocation, 14);
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-      }).addTo(map);
+      }).addTo(newMap);
 
-      mapInstanceRef.current = map;
-
-      // FIX: Força o mapa a recalcular seu tamanho após ser renderizado no DOM.
-      // Isso corrige o bug onde os 'tiles' não aparecem na primeira carga.
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 100); 
-    }
-  }, []);
-
-  // Centraliza o mapa na localização do usuário quando disponível
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (map && myLocation) {
-        // Adicionado para garantir que o tamanho do mapa seja recalculado
-        // antes de definir a visualização, o que pode acontecer depois que a UI se estabiliza.
-        map.invalidateSize();
-        map.setView(myLocation, 14);
+      mapInstanceRef.current = newMap;
+      
+      // Garante que o tamanho seja calculado corretamente após a primeira renderização.
+      newMap.invalidateSize();
+    } else {
+      // Se o mapa já existe, apenas atualiza a visão para a nova localização.
+      map.setView(myLocation, 14);
     }
   }, [myLocation]);
 
@@ -87,7 +82,6 @@ export const Map: React.FC = () => {
   }, [myLocation, profile]);
 
   // Efeito 1: Sincroniza os dados dos marcadores (cria/deleta/atualiza posição).
-  // Roda apenas quando a lista principal de `users` muda.
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -95,37 +89,35 @@ export const Map: React.FC = () => {
     const markers = userMarkersRef.current;
     const userIdsInStore = new Set(users.map(u => u.id));
 
-    // Remove marcadores de usuários que não estão mais na lista
     markers.forEach((marker, userId) => {
         if (!userIdsInStore.has(userId)) {
-            marker.remove(); // Remove do mapa se estiver lá
+            marker.remove();
             markers.delete(userId);
         }
     });
 
-    // Adiciona novos marcadores ou atualiza a posição dos existentes
     users.forEach(user => {
+        // FIX: Adiciona uma verificação mais robusta para garantir que o usuário tenha coordenadas válidas.
+        // Isso impede que o Leaflet trave ao tentar criar um marcador com lat/lng nulos, indefinidos ou NaN.
+        if (!Number.isFinite(user.lat) || !Number.isFinite(user.lng)) {
+            console.warn(`Ignorando marcador para o usuário ${user.username} por coordenadas inválidas.`);
+            return; // Pula este usuário
+        }
+
         const existingMarker = markers.get(user.id);
         if (existingMarker) {
-            // Apenas atualiza a posição. O ícone e a visibilidade são controlados pelo outro efeito.
             existingMarker.setLatLng([user.lat, user.lng]);
         } else {
-            // Cria um novo marcador mas NÃO o adiciona ao mapa ainda.
-            const newMarker = L.marker([user.lat, user.lng], {
-                icon: createUserIcon(user, onlineUsers.includes(user.id))
-            });
-            
+            const newMarker = L.marker([user.lat, user.lng]);
             newMarker.on('click', () => {
               setSelectedUser(user);
             });
-
             markers.set(user.id, newMarker);
         }
     });
-  }, [users, onlineUsers, setSelectedUser]);
+  }, [users, setSelectedUser]);
 
   // Efeito 2: Sincroniza a visualização dos marcadores (visibilidade e estilo do ícone).
-  // Roda sempre que os filtros, status online ou a lista de usuários mudam.
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -134,15 +126,13 @@ export const Map: React.FC = () => {
     
     markers.forEach((marker, userId) => {
         const user = users.find(u => u.id === userId);
-        if (!user) return; // Não deve acontecer se o Efeito 1 rodou corretamente
+        if (!user) return;
 
         const isOnline = onlineUsers.includes(userId);
         const shouldBeVisible = !filters.onlineOnly || isOnline;
 
-        // Atualiza o ícone para refletir o status online atual
         marker.setIcon(createUserIcon(user, isOnline));
 
-        // Adiciona ou remove o marcador do mapa com base na visibilidade
         if (shouldBeVisible) {
             if (!map.hasLayer(marker)) {
                 marker.addTo(map);
@@ -155,12 +145,16 @@ export const Map: React.FC = () => {
     });
   }, [users, onlineUsers, filters]);
 
-  if (loading && !myLocation) {
-    return <div className="flex items-center justify-center h-full text-gray-400">Obtendo sua localização...</div>;
-  }
-  
-  if (error) {
-    return <div className="flex items-center justify-center h-full text-center text-red-400 p-4">{error}</div>;
+  // Renderização condicional: Mostra status enquanto espera a localização.
+  // O container do mapa só é renderizado quando a localização está disponível.
+  if (!myLocation) {
+    if (loading) {
+      return <div className="flex items-center justify-center h-full text-gray-400">Obtendo sua localização...</div>;
+    }
+    if (error) {
+      return <div className="flex items-center justify-center h-full text-center text-red-400 p-4">{error}</div>;
+    }
+    return <div className="flex items-center justify-center h-full text-center text-gray-400 p-4">Aguardando permissão de localização para exibir o mapa.</div>;
   }
 
   return (

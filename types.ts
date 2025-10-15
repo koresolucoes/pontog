@@ -27,8 +27,8 @@ export interface Profile {
   hiv_status: string | null;
   updated_at: string;
   created_at: string;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   last_seen: string | null; // Adicionado para status de atividade
   distance_km: number | null; // Adicionado para distância
   subscription_tier: 'free' | 'plus'; // Adicionado para o plano premium

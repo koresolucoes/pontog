@@ -211,7 +211,7 @@ export const UsersView: React.FC = () => {
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                                    {format(new Date(user.created_at), 'dd/MM/yyyy')}
+                                    {user.created_at ? format(new Date(user.created_at), 'dd/MM/yyyy') : 'N/A'}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <ActionDropdown user={user} onAction={(action, duration) => setConfirmAction({ user, action, duration })} />

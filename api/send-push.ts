@@ -69,39 +69,45 @@ export default async function handler(
         return res.status(404).json({ error: 'Sender profile not found' });
     }
 
-    // Busca a inscrição de push do destinatário
-    const { data: subscriptionData, error: subscriptionError } = await supabaseAdmin
+    // Busca todas as inscrições de push do destinatário
+    const { data: subscriptions, error: subscriptionError } = await supabaseAdmin
       .from('push_subscriptions')
       .select('subscription_details')
-      .eq('user_id', receiver_id)
-      .single();
+      .eq('user_id', receiver_id);
 
-    if (subscriptionError || !subscriptionData) {
-      // É normal não encontrar uma inscrição se o usuário não ativou as notificações
+    if (subscriptionError) {
+      throw subscriptionError;
+    }
+
+    if (!subscriptions || subscriptions.length === 0) {
       console.log(`No push subscription found for user ${receiver_id}.`);
       return res.status(200).json({ success: true, message: 'No subscription found.' });
     }
 
-    const subscription = subscriptionData.subscription_details;
     const payload = JSON.stringify({
       title: `Nova mensagem de ${senderProfile.username}`,
       body: message_content,
     });
     
-    // Envia a notificação
-    await webpush.sendNotification(subscription as any, payload)
-        .catch(async (error) => {
-            // Se a inscrição for inválida (ex: usuário desinstalou o app), remove ela do DB
-            if (error.statusCode === 410 || error.statusCode === 404) {
-                console.log(`Subscription for user ${receiver_id} is gone. Deleting.`);
-                await supabaseAdmin
-                    .from('push_subscriptions')
-                    .delete()
-                    .eq('user_id', receiver_id);
-            } else {
-                console.error('Error sending push notification:', error);
-            }
-        });
+    // Envia a notificação para cada inscrição do usuário
+    const sendPromises = subscriptions.map(sub => {
+        const subscription = sub.subscription_details as any;
+        return webpush.sendNotification(subscription, payload)
+            .catch(async (error) => {
+                // Se a inscrição for inválida (ex: usuário desinstalou o app), remove ela do DB
+                if (error.statusCode === 410 || error.statusCode === 404) {
+                    console.log(`Subscription for user ${receiver_id} is gone. Deleting endpoint: ${subscription.endpoint}`);
+                    await supabaseAdmin
+                        .from('push_subscriptions')
+                        .delete()
+                        .eq('endpoint', subscription.endpoint);
+                } else {
+                    console.error('Error sending push notification:', error);
+                }
+            });
+    });
+
+    await Promise.all(sendPromises);
 
     return res.status(200).json({ success: true });
 

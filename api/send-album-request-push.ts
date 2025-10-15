@@ -65,29 +65,37 @@ export default async function handler(
         return res.status(404).json({ error: 'Sender profile not found' });
     }
 
-    const { data: subscriptionData } = await supabaseAdmin
+    const { data: subscriptions, error: subscriptionError } = await supabaseAdmin
       .from('push_subscriptions')
       .select('subscription_details')
-      .eq('user_id', receiver_id)
-      .single();
+      .eq('user_id', receiver_id);
 
-    if (!subscriptionData) {
+    if (subscriptionError) {
+        throw subscriptionError;
+    }
+
+    if (!subscriptions || subscriptions.length === 0) {
       return res.status(200).json({ success: true, message: 'No subscription found.' });
     }
 
-    const subscription = subscriptionData.subscription_details;
     const payload = JSON.stringify({
       title: 'Solicitação de Acesso a Álbuns',
       body: `${senderProfile.username} pediu para ver os seus álbuns privados.`,
     });
     
-    await webpush.sendNotification(subscription as any, payload).catch(async (error) => {
-        if (error.statusCode === 410 || error.statusCode === 404) {
-            await supabaseAdmin.from('push_subscriptions').delete().eq('user_id', receiver_id);
-        } else {
-            console.error('Error sending album request push notification:', error);
-        }
+    const sendPromises = subscriptions.map(sub => {
+        const subscription = sub.subscription_details as any;
+        return webpush.sendNotification(subscription, payload).catch(async (error) => {
+            if (error.statusCode === 410 || error.statusCode === 404) {
+                console.log(`Subscription for user ${receiver_id} is gone. Deleting endpoint: ${subscription.endpoint}`);
+                await supabaseAdmin.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint);
+            } else {
+                console.error('Error sending album request push notification:', error);
+            }
+        });
     });
+
+    await Promise.all(sendPromises);
 
     return res.status(200).json({ success: true });
 

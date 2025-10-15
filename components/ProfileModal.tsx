@@ -9,6 +9,9 @@ import { useUiStore } from '../stores/uiStore';
 import toast from 'react-hot-toast';
 import { formatLastSeen } from '../lib/utils';
 import { AlbumGalleryModal } from './AlbumGalleryModal';
+import { useUserActionsStore } from '../stores/userActionsStore';
+import { ReportUserModal } from './ReportUserModal';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface ProfileModalProps {
   user: User;
@@ -29,10 +32,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
     requestAccess,
     clearViewedUserData
   } = useAlbumStore();
+  const { blockUser } = useUserActionsStore();
 
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [viewingAlbum, setViewingAlbum] = useState<PrivateAlbum | null>(null);
   const [winkCount, setWinkCount] = useState<number | null>(null);
+  const [isOptionsMenuOpen, setOptionsMenuOpen] = useState(false);
+  const [isReportModalOpen, setReportModalOpen] = useState(false);
+  const [isBlockConfirmOpen, setBlockConfirmOpen] = useState(false);
   
   const agoraPost = posts.find(p => p.user_id === user.id);
 
@@ -127,6 +134,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
       });
   }
 
+  const handleBlockUser = () => {
+      setBlockConfirmOpen(false); // close confirmation
+      blockUser({ id: user.id, username: user.username });
+      onClose(); // Close the profile modal itself
+  };
+
   const allPhotos = [user.avatar_url, ...(user.public_photos || [])];
 
   const nextPhoto = () => setCurrentPhotoIndex((prev) => (prev + 1) % allPhotos.length);
@@ -153,6 +166,32 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
         <div className={`relative w-full aspect-square flex-shrink-0 ${agoraPost ? 'border-b-4 border-red-600 animate-pulse-fire' : ''}`}>
           <img src={allPhotos[currentPhotoIndex]} alt={user.username} className="w-full h-full object-cover sm:rounded-t-2xl" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+
+          <button onClick={() => setOptionsMenuOpen(true)} className="absolute top-4 left-4 text-white bg-black/30 p-2 rounded-full hover:bg-black/50 transition-colors z-10">
+              <span className="material-symbols-outlined">more_vert</span>
+          </button>
+
+          {isOptionsMenuOpen && (
+              <>
+                <div className="absolute top-14 left-4 bg-slate-700 rounded-lg shadow-lg z-20 w-48 text-left animate-fade-in">
+                    <button 
+                        onClick={() => { setBlockConfirmOpen(true); setOptionsMenuOpen(false); }} 
+                        className="w-full flex items-center gap-3 p-3 text-sm text-red-400 hover:bg-slate-600 rounded-t-lg"
+                    >
+                        <span className="material-symbols-outlined text-xl">block</span>
+                        Bloquear {user.username}
+                    </button>
+                    <button 
+                        onClick={() => { setReportModalOpen(true); setOptionsMenuOpen(false); }} 
+                        className="w-full flex items-center gap-3 p-3 text-sm text-yellow-400 hover:bg-slate-600 rounded-b-lg"
+                    >
+                        <span className="material-symbols-outlined text-xl">flag</span>
+                        Denunciar
+                    </button>
+                </div>
+                <div className="fixed inset-0 z-10" onClick={() => setOptionsMenuOpen(false)}></div>
+              </>
+          )}
           
           <button onClick={onClose} className="absolute top-4 right-4 text-white bg-black/30 p-2 rounded-full hover:bg-black/50 transition-colors z-10">
             <span className="material-symbols-outlined">close</span>
@@ -296,6 +335,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
     </div>
     {viewingAlbum && (
         <AlbumGalleryModal album={viewingAlbum} onClose={() => setViewingAlbum(null)} />
+    )}
+    {isReportModalOpen && (
+        <ReportUserModal user={user} onClose={() => setReportModalOpen(false)} />
+    )}
+    {isBlockConfirmOpen && (
+        <ConfirmationModal
+            isOpen={isBlockConfirmOpen}
+            title={`Bloquear ${user.username}`}
+            message={`Você não verá mais o perfil de ${user.username} e ele não verá o seu. Ele não será notificado. Tem certeza?`}
+            onConfirm={handleBlockUser}
+            onCancel={() => setBlockConfirmOpen(false)}
+            confirmText="Bloquear"
+        />
     )}
     </>
   );

@@ -5,8 +5,9 @@ import { DashboardView } from './views/DashboardView';
 import { UsersView } from './views/UsersView';
 import { PlansView } from './views/PlansView';
 import { PaymentsView } from './views/PaymentsView';
+import { ReportsView } from './views/ReportsView';
 
-type AdminView = 'dashboard' | 'users' | 'plans' | 'payments';
+type AdminView = 'dashboard' | 'users' | 'plans' | 'payments' | 'reports';
 
 const NavLink: React.FC<{
     icon: string;
@@ -36,6 +37,7 @@ export const AdminLayout: React.FC = () => {
             case 'users': return <UsersView />;
             case 'plans': return <PlansView />;
             case 'payments': return <PaymentsView />;
+            case 'reports': return <ReportsView />;
             default: return <DashboardView />;
         }
     };
@@ -50,6 +52,7 @@ export const AdminLayout: React.FC = () => {
                 <NavLink icon="group" label="Usuários" isActive={activeView === 'users'} onClick={() => { setActiveView('users'); setSidebarOpen(false); }} />
                 <NavLink icon="sell" label="Planos" isActive={activeView === 'plans'} onClick={() => { setActiveView('plans'); setSidebarOpen(false); }} />
                 <NavLink icon="receipt_long" label="Pagamentos" isActive={activeView === 'payments'} onClick={() => { setActiveView('payments'); setSidebarOpen(false); }} />
+                <NavLink icon="flag" label="Denúncias" isActive={activeView === 'reports'} onClick={() => { setActiveView('reports'); setSidebarOpen(false); }} />
             </nav>
             <div className="p-4 border-t border-gray-700">
                 <button onClick={logout} className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-red-400 hover:bg-gray-700 hover:text-red-300">

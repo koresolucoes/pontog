@@ -1,11 +1,19 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useHomeStore } from '../stores/homeStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
 import { User } from '../types';
 
+const GridLoader: React.FC = () => (
+    <>
+        {Array.from({ length: 3 }).map((_, i) => (
+             <div key={i} className="relative aspect-square bg-slate-700 animate-pulse"></div>
+        ))}
+    </>
+);
+
 export const HomeView: React.FC = () => {
-    const { popularUsers, loading, error, fetchPopularUsers } = useHomeStore();
+    const { popularUsers, loading, error, hasMore, loadingMore, fetchPopularUsers, fetchMorePopularUsers } = useHomeStore();
     const { onlineUsers, setSelectedUser, myLocation } = useMapStore();
     const { agoraUserIds } = useAgoraStore();
 
@@ -14,6 +22,18 @@ export const HomeView: React.FC = () => {
             fetchPopularUsers();
         }
     }, [myLocation, fetchPopularUsers]);
+
+    const observer = useRef<IntersectionObserver>();
+    const lastUserElementRef = useCallback((node: HTMLDivElement) => {
+        if (loadingMore) return;
+        if (observer.current) observer.current.disconnect();
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMore) {
+                fetchMorePopularUsers();
+            }
+        });
+        if (node) observer.current.observe(node);
+    }, [loadingMore, hasMore, fetchMorePopularUsers]);
 
     const handleUserClick = (user: User) => {
         setSelectedUser(user);
@@ -72,11 +92,13 @@ export const HomeView: React.FC = () => {
             
             <div className="flex-1 overflow-y-auto bg-slate-800">
                 <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px content-start">
-                    {sortedUsers.map((user) => {
+                    {sortedUsers.map((user, index) => {
+                        const isLast = index === sortedUsers.length - 1;
                         const isAgora = agoraUserIds.includes(user.id);
                         const isPlus = user.subscription_tier === 'plus';
                         return (
                             <div 
+                                ref={isLast ? lastUserElementRef : null}
                                 key={user.id} 
                                 className={`isolate relative aspect-square cursor-pointer group overflow-hidden bg-slate-900 ${isAgora ? 'border-2 border-red-600 animate-pulse-fire' : ''} ${isPlus && !isAgora ? 'border-2 border-yellow-400/80' : ''}`}
                                 onClick={() => handleUserClick(user)}
@@ -109,6 +131,7 @@ export const HomeView: React.FC = () => {
                             </div>
                         );
                     })}
+                    {loadingMore && <GridLoader />}
                 </div>
             </div>
         </div>

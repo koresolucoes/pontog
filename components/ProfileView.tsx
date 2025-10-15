@@ -168,7 +168,7 @@ export const ProfileView: React.FC = () => {
 
     return (
         <>
-            <div className="bg-slate-900 min-h-full">
+            <div className="bg-slate-900 h-full overflow-y-auto">
                 <div className="p-4 space-y-6">
                     <div className="flex items-center space-x-4">
                         <img src={user.avatar_url} alt={user.username} className="w-16 h-16 rounded-full object-cover" />

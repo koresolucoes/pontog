@@ -16,11 +16,15 @@ interface MapState {
   presenceChannel: any | null; // Supabase Presence Channel
   filters: {
     onlineOnly: boolean;
+    minAge: number | null;
+    maxAge: number | null;
+    positions: string[];
+    tribes: string[];
   };
   setUsers: (users: User[]) => void;
   setMyLocation: (coords: Coordinates) => void;
   setSelectedUser: (user: User | null) => void;
-  setFilters: (newFilters: Partial<{ onlineOnly: boolean }>) => void;
+  setFilters: (newFilters: Partial<MapState['filters']>) => void;
   requestLocationPermission: () => void;
   stopLocationWatch: () => void;
   updateMyLocationInDb: (coords: Coordinates) => Promise<void>;
@@ -41,6 +45,10 @@ export const useMapStore = create<MapState>((set, get) => ({
   presenceChannel: null,
   filters: {
     onlineOnly: false,
+    minAge: 18,
+    maxAge: 99,
+    positions: [],
+    tribes: [],
   },
   setUsers: (users) => set({ users }),
   setMyLocation: (coords) => set({ myLocation: coords }),

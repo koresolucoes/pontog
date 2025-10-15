@@ -1,15 +1,17 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 import { User } from '../types';
+import { PremiumFilterModal } from './PremiumFilterModal';
 
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();
     const { agoraUserIds, fetchAgoraPosts } = useAgoraStore();
     const { user: currentUser } = useAuthStore();
     const { setSubscriptionModalOpen } = useUiStore();
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
     useEffect(() => {
         fetchAgoraPosts();
@@ -20,13 +22,12 @@ export const UserGrid: React.FC = () => {
     };
 
     const toggleOnlineOnly = () => {
-        setFilters({ onlineOnly: !filters.onlineOnly });
+        setFilters({ ...filters, onlineOnly: !filters.onlineOnly });
     };
 
     const handlePremiumFilterClick = () => {
         if (currentUser?.subscription_tier === 'plus') {
-            // TODO: Implementar a lógica de filtro real (ex: abrir um modal de filtro)
-            alert('Filtro premium em breve!');
+            setIsFilterModalOpen(true);
         } else {
             setSubscriptionModalOpen(true);
         }
@@ -47,20 +48,51 @@ export const UserGrid: React.FC = () => {
             return 0;
         });
 
-        if (!filters.onlineOnly) {
-            return sortedUsers;
-        }
-        return sortedUsers.filter(user => onlineUsers.includes(user.id));
-    }, [users, onlineUsers, filters.onlineOnly, agoraUserIds]);
+        const { onlineOnly, minAge, maxAge, positions, tribes } = filters;
 
-    const PremiumFilterButton = ({ label }: { label: string }) => (
-        <button onClick={handlePremiumFilterClick} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-700 text-slate-300 whitespace-nowrap hover:bg-slate-600 transition-colors">
+        // Apply filters
+        let finalUsers = sortedUsers;
+        if (onlineOnly) {
+            finalUsers = finalUsers.filter(user => onlineUsers.includes(user.id));
+        }
+        if (minAge) {
+            finalUsers = finalUsers.filter(user => user.age >= minAge);
+        }
+        if (maxAge) {
+            finalUsers = finalUsers.filter(user => user.age <= maxAge);
+        }
+        if (positions.length > 0) {
+            finalUsers = finalUsers.filter(user => user.position && positions.includes(user.position));
+        }
+        if (tribes.length > 0) {
+            finalUsers = finalUsers.filter(user =>
+                user.tribes && user.tribes.some(t => tribes.includes(t))
+            );
+        }
+        
+        return finalUsers;
+    }, [users, onlineUsers, filters, agoraUserIds]);
+    
+    // Check if any premium filter is active
+    const isAgeFilterActive = filters.minAge !== 18 || filters.maxAge !== 99;
+    const arePositionsFiltered = filters.positions.length > 0;
+    const areTribesFiltered = filters.tribes.length > 0;
+    const areAnyPremiumFiltersActive = isAgeFilterActive || arePositionsFiltered || areTribesFiltered;
+
+    const PremiumFilterButton = ({ label, isActive }: { label: string, isActive: boolean }) => (
+        <button 
+            onClick={handlePremiumFilterClick} 
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${
+                isActive ? 'bg-pink-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+        >
             {label}
             <span className="material-symbols-outlined !text-[14px] text-yellow-400">auto_awesome</span>
         </button>
     );
 
     return (
+        <>
         <div className="h-full flex flex-col bg-slate-900">
             <div className="p-2 flex items-center space-x-2 overflow-x-auto">
                 <button
@@ -73,15 +105,13 @@ export const UserGrid: React.FC = () => {
                 >
                     Online
                 </button>
-                 <PremiumFilterButton label="Idade" />
-                 <PremiumFilterButton label="Posição" />
-                 <PremiumFilterButton label="Tribo" />
+                 <PremiumFilterButton label="Filtros" isActive={areAnyPremiumFiltersActive} />
             </div>
             
             {filteredUsers.length === 0 ? (
                  <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
-                    <h2 className="text-xl font-bold">Ninguém por perto...</h2>
-                    <p className="mt-2">Tente voltar mais tarde.</p>
+                    <h2 className="text-xl font-bold">Ninguém encontrado</h2>
+                    <p className="mt-2">Tente ajustar seus filtros ou volte mais tarde.</p>
                 </div>
             ) : (
                 <div className="flex-1 overflow-y-auto bg-slate-800">
@@ -127,5 +157,7 @@ export const UserGrid: React.FC = () => {
                 </div>
             )}
         </div>
+        {isFilterModalOpen && <PremiumFilterModal onClose={() => setIsFilterModalOpen(false)} />}
+        </>
     );
 };

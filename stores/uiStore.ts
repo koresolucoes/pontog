@@ -1,15 +1,15 @@
 import { create } from 'zustand';
-import { User, ChatUser } from '../types';
+import { User } from '../types';
 
 export type View = 'home' | 'map' | 'grid' | 'inbox' | 'profile' | 'agora';
 
 interface UiState {
   activeView: View;
-  chatUser: (User | ChatUser) | null;
+  chatUser: User | null;
   isSubscriptionModalOpen: boolean;
   isDonationModalOpen: boolean; // Adicionado para o modal de doação
   setActiveView: (view: View) => void;
-  setChatUser: (user: (User | ChatUser) | null) => void;
+  setChatUser: (user: User | null) => void;
   setSubscriptionModalOpen: (isOpen: boolean) => void;
   setDonationModalOpen: (isOpen: boolean) => void; // Adicionado
 }

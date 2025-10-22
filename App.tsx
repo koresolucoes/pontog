@@ -19,7 +19,6 @@ import { SubscriptionModal } from './components/SubscriptionModal';
 import { DonationModal } from './components/DonationModal';
 import { AdminPanel } from './pages/Admin/AdminPanel';
 import { Onboarding } from './components/Onboarding';
-import { ChatUser } from './types';
 
 const App: React.FC = () => {
     // Roteamento simples para o painel de administração
@@ -156,7 +155,13 @@ const App: React.FC = () => {
 
             {chatUser && (
                 <ChatWindow 
-                    user={chatUser as ChatUser} 
+                    user={{
+                        id: chatUser.id,
+                        name: chatUser.username,
+                        imageUrl: chatUser.avatar_url,
+                        last_seen: chatUser.last_seen,
+                        subscription_tier: chatUser.subscription_tier,
+                    }} 
                     onClose={() => setChatUser(null)}
                 />
             )}

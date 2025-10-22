@@ -3,7 +3,7 @@
 // Novo tipo para Anúncios
 export interface Ad {
   id: number;
-  ad_type: 'feed' | 'inbox' | 'banner';
+  ad_type: 'feed' | 'inbox';
   title: string;
   description: string;
   image_url: string;
@@ -60,15 +60,6 @@ export interface Profile {
 // O tipo User estende Profile com campos calculados como 'idade'
 export interface User extends Profile {
   age: number;
-}
-
-// Novo tipo para padronizar os dados necessários para uma janela de chat
-export interface ChatUser {
-  id: string;
-  username: string;
-  avatar_url: string;
-  last_seen: string | null;
-  subscription_tier: 'free' | 'plus';
 }
 
 export interface Message {

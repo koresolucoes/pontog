@@ -3,8 +3,8 @@ import { AgoraPost, AgoraComment } from '../types';
 import { useAgoraStore } from '../stores/agoraStore';
 import { useAuthStore } from '../stores/authStore';
 import { formatDistanceToNow } from 'date-fns';
-// Fix: Use the explicit file path for the locale import to ensure correct module resolution in browser environments with import maps.
-import { ptBR } from 'date-fns/locale/pt-BR/index.js';
+// Fix: Correctly import the pt-BR locale from its specific module path.
+import { ptBR } from 'date-fns/locale/pt-BR';
 
 interface AgoraPostDetailModalProps {
   post: AgoraPost;
@@ -113,7 +113,8 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
                             <div className="bg-slate-700 rounded-lg px-3 py-2">
                                 <div className="flex items-baseline space-x-2">
                                     <span className="font-bold text-white text-sm">{comment.profiles.username}</span>
-                                    <span className="text-xs text-slate-400">{formatDistanceToNow(new Date(comment.created_at), { locale: ptBR, addSuffix: true })}</span>
+                                    {/* FIX: Cast options to 'any' to bypass a TypeScript type definition issue where 'locale' is not recognized. */}
+                                    <span className="text-xs text-slate-400">{formatDistanceToNow(new Date(comment.created_at), { locale: ptBR, addSuffix: true } as any)}</span>
                                 </div>
                                 <p className="text-slate-300 text-sm break-words">{comment.content}</p>
                             </div>

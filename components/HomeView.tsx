@@ -5,7 +5,6 @@ import { useAgoraStore } from '../stores/agoraStore';
 import { User, Ad } from '../types';
 import { useAdStore } from '../stores/adStore';
 import { FeedAdCard } from './FeedAdCard';
-import { AdBanner } from './AdBanner';
 
 
 const GridLoader: React.FC = () => (
@@ -20,19 +19,17 @@ export const HomeView: React.FC = () => {
     const { popularUsers, loading, error, hasMore, loadingMore, fetchPopularUsers, fetchMorePopularUsers } = useHomeStore();
     const { onlineUsers, setSelectedUser, myLocation } = useMapStore();
     const { agoraUserIds } = useAgoraStore();
-    const { feedAds, bannerAdUnitPath, initializeAds, isInitialized } = useAdStore();
+    const { feedAd, fetchAds } = useAdStore();
 
     const initialFetchDone = useRef(false);
 
     useEffect(() => {
-        if (!isInitialized) {
-            initializeAds();
-        }
         if (myLocation && !initialFetchDone.current) {
             fetchPopularUsers();
+            fetchAds();
             initialFetchDone.current = true;
         }
-    }, [myLocation, fetchPopularUsers, initializeAds, isInitialized]);
+    }, [myLocation, fetchPopularUsers, fetchAds]);
 
     const observer = useRef<IntersectionObserver>();
     const lastUserElementRef = useCallback((node: HTMLDivElement) => {
@@ -51,7 +48,7 @@ export const HomeView: React.FC = () => {
     };
     
     const itemsWithAds = useMemo(() => {
-        const sortedUsers = [...popularUsers].sort((a, b) => {
+        let items: (User | Ad)[] = [...popularUsers].sort((a, b) => {
             const aIsAgora = agoraUserIds.includes(a.id);
             const bIsAgora = agoraUserIds.includes(b.id);
             if (aIsAgora && !bIsAgora) return -1;
@@ -65,24 +62,13 @@ export const HomeView: React.FC = () => {
             return 0;
         });
 
-        const items: (User | { type: 'ad'; adType: 'feed' | 'banner'; id: string })[] = [];
-        let feedAdCount = 0;
-        let bannerAdCount = 0;
-        
-        sortedUsers.forEach((user, index) => {
-            items.push(user);
-            if ((index + 1) % 15 === 0) {
-                items.push({ type: 'ad', adType: 'banner', id: `banner-home-${bannerAdCount++}` });
-            }
-            if ((index + 1) % 8 === 0) {
-                items.push({ type: 'ad', adType: 'feed', id: `feed-home-${feedAdCount++}` });
-            }
-        });
+        if (feedAd && items.length > 8) {
+            items.splice(8, 0, feedAd);
+        }
 
         return items;
-    }, [popularUsers, onlineUsers, agoraUserIds]);
+    }, [popularUsers, onlineUsers, agoraUserIds, feedAd]);
 
-    const renderedFeedAds = useRef(0);
 
     if (loading && popularUsers.length === 0) {
         return (
@@ -118,27 +104,16 @@ export const HomeView: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px content-start">
                         {itemsWithAds.map((item, index) => {
-                            if ('type' in item && item.type === 'ad') {
-                                if (item.adType === 'feed') {
-                                    const ad = feedAds[renderedFeedAds.current % feedAds.length];
-                                    if (!ad) return null; // Não renderiza se o anúncio ainda não foi carregado
-                                    renderedFeedAds.current++;
-                                    return <FeedAdCard key={item.id} ad={ad} />;
-                                }
-                                if (item.adType === 'banner') {
-                                    return <AdBanner key={item.id} adUnitPath={bannerAdUnitPath} divId={item.id} />;
-                                }
-                                return null;
+                            if ('ad_type' in item) {
+                                return <FeedAdCard key={`ad-${item.id}`} ad={item} />;
                             }
-                            
                             const user = item as User;
-                            const isLastUser = index === itemsWithAds.length - 1 && 'username' in item;
+                            const isLast = index === itemsWithAds.length - 1;
                             const isAgora = agoraUserIds.includes(user.id);
                             const isPlus = user.subscription_tier === 'plus';
-                            
                             return (
                                 <div 
-                                    ref={isLastUser ? lastUserElementRef : null}
+                                    ref={isLast ? lastUserElementRef : null}
                                     key={user.id} 
                                     className={`isolate relative aspect-square cursor-pointer group overflow-hidden bg-slate-900 ${isAgora ? 'border-2 border-red-600 animate-pulse-fire' : ''} ${isPlus && !isAgora ? 'border-2 border-yellow-400/80' : ''}`}
                                     onClick={() => handleUserClick(user)}

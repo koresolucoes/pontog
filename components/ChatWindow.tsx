@@ -12,6 +12,7 @@ import { ConfirmationModal } from './ConfirmationModal';
 import { SelectAlbumModal } from './SelectAlbumModal';
 import { getPublicImageUrl } from '../lib/supabase';
 import toast from 'react-hot-toast';
+import { ViewOncePhotoModal } from './ViewOncePhotoModal';
 
 interface ChatUser {
   id: string;
@@ -26,7 +27,13 @@ interface ChatWindowProps {
   onClose: () => void;
 }
 
-const MessageContent: React.FC<{ message: MessageType }> = ({ message }) => {
+interface MessageContentProps {
+  message: MessageType;
+  onViewOnceClick: (message: MessageType) => void;
+}
+
+
+const MessageContent: React.FC<MessageContentProps> = ({ message, onViewOnceClick }) => {
     const { setSelectedUser } = useMapStore();
     const { user: currentUser } = useAuthStore();
 
@@ -58,6 +65,27 @@ const MessageContent: React.FC<{ message: MessageType }> = ({ message }) => {
     } catch (e) {
         // Not JSON, treat as plain text
     }
+    
+    if (message.is_view_once) {
+        if (message.viewed_at) {
+            return (
+                <div className="flex items-center gap-2 text-sm italic text-slate-400">
+                    <span className="material-symbols-outlined !text-base">photo_camera</span>
+                    <span>Foto vista</span>
+                </div>
+            );
+        }
+        return (
+            <button
+                onClick={() => onViewOnceClick(message)}
+                className="flex items-center gap-2 text-sm font-bold text-white bg-slate-600 px-4 py-2 rounded-lg hover:bg-slate-500 transition-colors"
+            >
+                <span className="material-symbols-outlined !text-base">visibility</span>
+                <span>Ver Foto</span>
+            </button>
+        );
+    }
+
 
     return (
         <div className="space-y-2">
@@ -88,8 +116,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const [isAlbumSelectorOpen, setIsAlbumSelectorOpen] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   
-  // Novo estado para o menu de opções da mensagem
   const [messageOptions, setMessageOptions] = useState<MessageType | null>(null);
+
+  const [imageToSend, setImageToSend] = useState<{ file: File; preview: string } | null>(null);
+  const [isViewOnce, setIsViewOnce] = useState(false);
+  const [viewingOncePhoto, setViewingOncePhoto] = useState<MessageType | null>(null);
 
   const markMessagesAsRead = useCallback(async (messageIds: number[], convId: number | null) => {
       if (messageIds.length === 0 || !convId) return;
@@ -187,7 +218,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
 
   useEffect(scrollToBottom, [messages]);
   
-  const sendMessage = async (content: string | null, imageUrl: string | null = null) => {
+  const sendMessage = async (content: string | null, imageUrl: string | null = null, isViewOnceFlag: boolean = false) => {
     if ((!content || content.trim() === '') && !imageUrl) return;
     if (!currentUser || !conversationId) return;
 
@@ -196,6 +227,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       conversation_id: conversationId,
       content: content,
       image_url: imageUrl,
+      is_view_once: isViewOnceFlag,
     });
     
     if (error) {
@@ -218,29 +250,48 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
     }
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await sendMessage(newMessage, null);
+  const cancelImageSend = () => {
+    if (imageToSend) {
+        URL.revokeObjectURL(imageToSend.preview);
+    }
+    setImageToSend(null);
+    setIsViewOnce(false);
     setNewMessage('');
   };
-  
-  const handleSendImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    const toastId = toast.loading('Enviando imagem...');
-    const imagePath = await uploadPhoto(file);
-    if (imagePath) {
-        await sendMessage(newMessage, imagePath);
-        setNewMessage('');
-        toast.success('Imagem enviada!', { id: toastId });
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (imageToSend) {
+        const toastId = toast.loading('Enviando foto...');
+        const imagePath = await uploadPhoto(imageToSend.file);
+        if (imagePath) {
+            await sendMessage(newMessage || null, imagePath, isViewOnce);
+            cancelImageSend();
+            toast.success('Foto enviada!', { id: toastId });
+        } else {
+            toast.error('Falha ao enviar foto.', { id: toastId });
+        }
     } else {
-        toast.error('Falha ao enviar imagem.', { id: toastId });
+        if (!newMessage.trim()) return;
+        await sendMessage(newMessage.trim(), null, false);
+        setNewMessage('');
     }
-    // Reset file input
-    if (e.target) e.target.value = '';
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            toast.error('A imagem não pode ter mais de 5MB.');
+            return;
+        }
+        const preview = URL.createObjectURL(file);
+        setImageToSend({ file, preview });
+    }
+    setAttachmentMenuOpen(false);
+    if (e.target) e.target.value = '';
+  };
+  
   const handleSendLocation = () => {
     setAttachmentMenuOpen(false);
     toast.loading('Obtendo sua localização...');
@@ -318,6 +369,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       if (!conversationId) return;
       await deleteConversation(conversationId);
       onClose();
+  };
+
+  const handleViewOnceClick = async (message: MessageType) => {
+    if (!message.viewed_at && message.image_url) {
+        setViewingOncePhoto(message);
+        const { error } = await supabase
+            .from('messages')
+            .update({ viewed_at: new Date().toISOString() })
+            .eq('id', message.id);
+            
+        if (error) {
+            console.error("Failed to mark photo as viewed", error);
+            setViewingOncePhoto(null);
+            toast.error("Não foi possível carregar a foto.");
+        }
+    }
   };
 
   if (!currentUser) return null;
@@ -399,11 +466,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                      </div>
                  ) : (
                     <div className={`px-4 py-2 rounded-2xl relative ${msg.sender_id === currentUser.id ? 'bg-pink-600 text-white rounded-br-none' : 'bg-slate-700 text-slate-200 rounded-bl-none'}`}>
-                        <MessageContent message={msg} />
+                        <MessageContent message={msg} onViewOnceClick={handleViewOnceClick} />
                     </div>
                  )}
                 
-                 {msg.sender_id === currentUser.id && !editingMessage && !msg.image_url && !msg.content?.includes('"type":') && (
+                 {msg.sender_id === currentUser.id && !editingMessage && !msg.is_view_once && !msg.image_url && !msg.content?.includes('"type":') && (
                     <div className="relative">
                         <button onClick={() => setMessageOptions(msg)} className="text-slate-500 hover:text-white px-1 self-center">
                             <span className="material-symbols-outlined text-base">more_vert</span>
@@ -442,29 +509,64 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                     </button>
                 </div>
             )}
-            <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                <input type="file" accept="image/*" className="hidden" ref={imageInputRef} onChange={handleSendImage}/>
-                <button 
-                    type="button" 
-                    onClick={() => setAttachmentMenuOpen(prev => !prev)} 
-                    className="flex-shrink-0 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full hover:bg-slate-600 transition-colors"
-                >
-                    <span className="material-symbols-outlined text-2xl">add_circle</span>
-                </button>
-                <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Digite uma mensagem..."
-                    className="flex-1 bg-slate-700 rounded-full py-2 px-4 h-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                />
-                <button 
-                    type="submit" 
-                    className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-pink-600 text-white rounded-full hover:bg-pink-700 transition-colors"
-                >
-                    <span className="material-symbols-outlined text-xl">send</span>
-                </button>
-            </form>
+            
+            {imageToSend ? (
+                <div className="p-2 space-y-2">
+                    <div className="relative w-28 h-28 rounded-lg overflow-hidden">
+                        <img src={imageToSend.preview} alt="Preview" className="w-full h-full object-cover" />
+                        <button onClick={cancelImageSend} className="absolute top-1 right-1 bg-black/50 p-1 rounded-full text-white hover:bg-black/70 transition-colors">
+                            <span className="material-symbols-outlined !text-base">close</span>
+                        </button>
+                    </div>
+                    <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                        <button 
+                            type="button" 
+                            onClick={() => setIsViewOnce(!isViewOnce)} 
+                            className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full transition-colors ${isViewOnce ? 'bg-pink-600 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`} 
+                            title="Visualização única"
+                        >
+                            <span className="material-symbols-outlined">local_fire_department</span>
+                        </button>
+                        <input
+                            type="text"
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            placeholder="Adicionar legenda..."
+                            className="flex-1 bg-slate-700 rounded-full py-2 px-4 h-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        />
+                        <button 
+                            type="submit" 
+                            className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-pink-600 text-white rounded-full hover:bg-pink-700 transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-xl">send</span>
+                        </button>
+                    </form>
+                </div>
+              ) : (
+                <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                    <input type="file" accept="image/*" className="hidden" ref={imageInputRef} onChange={handleFileSelect}/>
+                    <button 
+                        type="button" 
+                        onClick={() => setAttachmentMenuOpen(prev => !prev)} 
+                        className="flex-shrink-0 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full hover:bg-slate-600 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-2xl">add_circle</span>
+                    </button>
+                    <input
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Digite uma mensagem..."
+                        className="flex-1 bg-slate-700 rounded-full py-2 px-4 h-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                    <button 
+                        type="submit" 
+                        className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-pink-600 text-white rounded-full hover:bg-pink-700 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-xl">send</span>
+                    </button>
+                </form>
+            )}
         </div>
       )}
     </div>
@@ -496,6 +598,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
     )}
     {messageOptions && (
         <div className="fixed inset-0 z-0" onClick={() => setMessageOptions(null)}></div>
+    )}
+    {viewingOncePhoto && viewingOncePhoto.image_url && (
+        <ViewOncePhotoModal
+            imageUrl={getPublicImageUrl(viewingOncePhoto.image_url)}
+            onClose={() => setViewingOncePhoto(null)}
+        />
     )}
     </>
   );

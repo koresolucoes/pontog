@@ -2,10 +2,8 @@ import React, { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useHomeStore } from '../stores/homeStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
-import { User, Ad } from '../types';
-import { useAdStore } from '../stores/adStore';
-import { FeedAdCard } from './FeedAdCard';
-import { AdBanner } from './AdBanner';
+import { User } from '../types';
+import { AdSenseUnit } from './AdSenseUnit';
 
 
 const GridLoader: React.FC = () => (
@@ -20,17 +18,15 @@ export const HomeView: React.FC = () => {
     const { popularUsers, loading, error, hasMore, loadingMore, fetchPopularUsers, fetchMorePopularUsers } = useHomeStore();
     const { onlineUsers, setSelectedUser, myLocation } = useMapStore();
     const { agoraUserIds } = useAgoraStore();
-    const { feedAds, bannerAds, fetchAds } = useAdStore();
 
     const initialFetchDone = useRef(false);
 
     useEffect(() => {
         if (myLocation && !initialFetchDone.current) {
             fetchPopularUsers();
-            fetchAds();
             initialFetchDone.current = true;
         }
-    }, [myLocation, fetchPopularUsers, fetchAds]);
+    }, [myLocation, fetchPopularUsers]);
 
     const observer = useRef<IntersectionObserver>();
     const lastUserElementRef = useCallback((node: HTMLDivElement) => {
@@ -63,24 +59,23 @@ export const HomeView: React.FC = () => {
             return 0;
         });
 
-        const items: (User | Ad)[] = [];
-        let feedAdIndex = 0;
-        let bannerAdIndex = 0;
+        // O tipo do array agora é uma união de User e um objeto que representa um anúncio
+        const items: (User | { type: 'ad'; ad_type: 'feed' | 'banner'; key: string })[] = [];
 
         sortedUsers.forEach((user, index) => {
             items.push(user);
-            // Insert a banner ad every 15 users (5 rows of 3)
-            if ((index + 1) % 15 === 0 && bannerAds.length > 0) {
-                items.push(bannerAds[bannerAdIndex++ % bannerAds.length]);
+            // Insere um banner a cada 15 usuários
+            if ((index + 1) % 15 === 0) {
+                items.push({ type: 'ad', ad_type: 'banner', key: `banner-${index}` });
             }
-            // Insert a feed ad every 8 users
-            if ((index + 1) % 8 === 0 && feedAds.length > 0) {
-                items.push(feedAds[feedAdIndex++ % feedAds.length]);
+            // Insere um anúncio de feed a cada 8 usuários
+            if ((index + 1) % 8 === 0) {
+                items.push({ type: 'ad', ad_type: 'feed', key: `feed-${index}` });
             }
         });
 
         return items;
-    }, [popularUsers, onlineUsers, agoraUserIds, feedAds, bannerAds]);
+    }, [popularUsers, onlineUsers, agoraUserIds]);
 
 
     if (loading && popularUsers.length === 0) {
@@ -117,12 +112,22 @@ export const HomeView: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px content-start">
                         {itemsWithAds.map((item, index) => {
-                            if ('ad_type' in item) {
+                            if ('type' in item && item.type === 'ad') {
                                 if (item.ad_type === 'feed') {
-                                    return <FeedAdCard key={`ad-feed-${item.id}-${index}`} ad={item} />;
+                                    return (
+                                        <div key={item.key} className="relative aspect-square bg-slate-900 flex items-center justify-center text-slate-500 text-xs">
+                                             {/* IMPORTANTE: Substitua '1234567890' pelo seu Ad Slot ID real */}
+                                            <AdSenseUnit client="ca-pub-9015745232467355" slot="1234567890" format="auto" />
+                                        </div>
+                                    );
                                 }
                                 if (item.ad_type === 'banner') {
-                                    return <AdBanner key={`ad-banner-${item.id}-${index}`} ad={item} />;
+                                    return (
+                                        <div key={item.key} className="col-span-full aspect-[2/1] sm:aspect-[3/1] bg-slate-900 flex items-center justify-center text-slate-500 text-xs">
+                                            {/* IMPORTANTE: Crie um bloco de anúncio separado para banners e substitua o Slot ID */}
+                                            <AdSenseUnit client="ca-pub-9015745232467355" slot="2345678901" format="auto" className="w-full h-full" />
+                                        </div>
+                                    );
                                 }
                                 return null;
                             }

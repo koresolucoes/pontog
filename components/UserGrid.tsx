@@ -1,22 +1,18 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
-import { User, Ad } from '../types';
+import { User } from '../types';
 import { FilterModal } from './FilterModal';
-import { useAdStore } from '../stores/adStore';
-import { FeedAdCard } from './FeedAdCard';
-import { AdBanner } from './AdBanner';
+import { AdSenseUnit } from './AdSenseUnit';
 
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();
     const { agoraUserIds, fetchAgoraPosts } = useAgoraStore();
-    const { feedAds, bannerAds, fetchAds } = useAdStore();
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
     useEffect(() => {
         fetchAgoraPosts();
-        fetchAds();
-    }, [fetchAgoraPosts, fetchAds]);
+    }, [fetchAgoraPosts]);
 
     const handleUserClick = (user: User) => {
         setSelectedUser(user);
@@ -71,24 +67,22 @@ export const UserGrid: React.FC = () => {
     }, [users, onlineUsers, filters, agoraUserIds]);
     
     const itemsWithAds = useMemo(() => {
-        const items: (User | Ad)[] = [];
-        let feedAdIndex = 0;
-        let bannerAdIndex = 0;
+        const items: (User | { type: 'ad'; ad_type: 'feed' | 'banner'; key: string })[] = [];
 
         filteredUsers.forEach((user, index) => {
             items.push(user);
-            // Insert a banner ad every 15 users (5 rows of 3)
-            if ((index + 1) % 15 === 0 && bannerAds.length > 0) {
-                items.push(bannerAds[bannerAdIndex++ % bannerAds.length]);
+            // Insert a banner ad every 15 users
+            if ((index + 1) % 15 === 0) {
+                items.push({ type: 'ad', ad_type: 'banner', key: `banner-${index}` });
             }
             // Insert a feed ad every 8 users
-            if ((index + 1) % 8 === 0 && feedAds.length > 0) {
-                items.push(feedAds[feedAdIndex++ % feedAds.length]);
+            if ((index + 1) % 8 === 0) {
+                items.push({ type: 'ad', ad_type: 'feed', key: `feed-${index}` });
             }
         });
 
         return items;
-    }, [filteredUsers, feedAds, bannerAds]);
+    }, [filteredUsers]);
 
     // Check if any filter is active to highlight the button
     const isAgeFilterActive = filters.minAge !== 18 || filters.maxAge !== 99;
@@ -133,12 +127,22 @@ export const UserGrid: React.FC = () => {
                 <div className="flex-1 overflow-y-auto bg-slate-800">
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px">
                         {itemsWithAds.map((item, index) => {
-                             if ('ad_type' in item) {
+                             if ('type' in item && item.type === 'ad') {
                                 if (item.ad_type === 'feed') {
-                                    return <FeedAdCard key={`ad-feed-${item.id}-${index}`} ad={item} />;
+                                    return (
+                                        <div key={item.key} className="relative aspect-square bg-slate-900 flex items-center justify-center text-slate-500 text-xs">
+                                             {/* IMPORTANTE: Substitua '1234567890' pelo seu Ad Slot ID real */}
+                                            <AdSenseUnit client="ca-pub-9015745232467355" slot="1234567890" format="auto" />
+                                        </div>
+                                    );
                                 }
                                 if (item.ad_type === 'banner') {
-                                    return <AdBanner key={`ad-banner-${item.id}-${index}`} ad={item} />;
+                                     return (
+                                        <div key={item.key} className="col-span-full aspect-[2/1] sm:aspect-[3/1] bg-slate-900 flex items-center justify-center text-slate-500 text-xs">
+                                            {/* IMPORTANTE: Crie um bloco de anúncio separado para banners e substitua o Slot ID */}
+                                            <AdSenseUnit client="ca-pub-9015745232467355" slot="2345678901" format="auto" className="w-full h-full" />
+                                        </div>
+                                    );
                                 }
                                 return null;
                             }

@@ -1,22 +1,5 @@
 // types.ts
 
-// Novo tipo para Anúncios
-export interface Ad {
-  id: number;
-  ad_type: 'feed' | 'inbox' | 'banner';
-  title: string;
-  description: string;
-  image_url: string;
-  cta_text: string;
-  cta_url: string;
-}
-
-// Novo tipo para benefícios temporários
-export interface TemporaryPerk {
-  perk: 'view_winks' | 'view_profile_views';
-  expires_at: string; // ISO string
-}
-
 export interface Coordinates {
   lat: number;
   lng: number;
@@ -159,6 +142,27 @@ export interface AgoraComment {
     // Campos de interação para os comentários
     likes_count: number;
     user_has_liked: boolean;
+}
+
+// FIX: Define and export Ad and TemporaryPerk types to resolve import errors.
+// These types are used for the new advertising and rewarded ad features.
+export type AdType = 'feed' | 'inbox' | 'banner';
+
+export interface Ad {
+    id: number;
+    ad_type: AdType;
+    title: string;
+    description: string;
+    image_url: string;
+    cta_text: string;
+    cta_url: string;
+}
+
+export type PerkType = 'view_winks' | 'view_profile_views';
+
+export interface TemporaryPerk {
+    perk: PerkType;
+    expires_at: string; // ISO date string
 }
 
 // Novo tipo para as preferências de notificação

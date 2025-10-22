@@ -3,15 +3,12 @@ import { useInboxStore } from '../stores/inboxStore';
 import { useUiStore } from '../stores/uiStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
-import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest, ProfileViewWithProfile, Ad } from '../types';
+import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest, ProfileViewWithProfile } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 // Fix: Correctly import the pt-BR locale from its specific module path.
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { ConfirmationModal } from './ConfirmationModal';
-import { useAdStore } from '../stores/adStore';
-import { InboxAdItem } from './InboxAdItem';
-import { UnlockFeatureModal } from './UnlockFeatureModal';
-import { RewardAdModal } from './RewardAdModal';
+import { AdSenseUnit } from './AdSenseUnit';
 
 
 type ActiveTab = 'messages' | 'winks' | 'views' | 'requests';
@@ -55,16 +52,12 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const { setChatUser, setSubscriptionModalOpen } = useUiStore();
     const { setSelectedUser } = useMapStore();
     const { user: currentUser } = useAuthStore();
-    const { inboxAd, fetchAds, hasPerk, grantTemporaryPerk } = useAdStore();
-
+    
     const [confirmDelete, setConfirmDelete] = useState<ConversationPreview | null>(null);
-    const [unlockModal, setUnlockModal] = useState<'winks' | 'views' | null>(null);
-    const [rewardModal, setRewardModal] = useState<'winks' | 'views' | null>(null);
 
     // FIX: A lógica foi dividida em múltiplos `useEffect` para evitar o loop infinito.
     // Este efeito é responsável por buscar os dados apropriados quando o usuário troca de aba.
     useEffect(() => {
-        fetchAds();
         if (activeTab === 'winks') {
             fetchWinks();
         }
@@ -74,7 +67,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         if (activeTab === 'views') {
             fetchProfileViews();
         }
-    }, [activeTab, fetchWinks, fetchAccessRequests, fetchProfileViews, fetchAds]);
+    }, [activeTab, fetchWinks, fetchAccessRequests, fetchProfileViews]);
     
     // FIX: Este efeito é responsável por limpar a contagem de notificações de 'winks'
     // assim que os dados são carregados na tela. Ele não causa mais um loop.
@@ -120,30 +113,11 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         }
     };
     
-    // Handlers for rewarded flow
     const handlePremiumFeatureClick = (feature: 'winks' | 'views') => {
-        const perk = feature === 'winks' ? 'view_winks' : 'view_profile_views';
-        if (currentUser?.subscription_tier !== 'plus' && !hasPerk(perk)) {
-            setUnlockModal(feature);
+        if (currentUser?.subscription_tier !== 'plus') {
+            setSubscriptionModalOpen(true);
         } else {
             setActiveTab(feature);
-        }
-    };
-
-    const handleWatchAd = () => {
-        if (unlockModal) {
-            setRewardModal(unlockModal);
-            setUnlockModal(null);
-        }
-    };
-    
-    const handleReward = () => {
-        if (rewardModal === 'winks') {
-            grantTemporaryPerk('view_winks', 1);
-            setActiveTab('winks');
-        } else if (rewardModal === 'views') {
-            grantTemporaryPerk('view_profile_views', 1);
-            setActiveTab('views');
         }
     };
 
@@ -152,12 +126,12 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     }
 
     const conversationsWithAd = useMemo(() => {
-        let items: (ConversationPreview | Ad)[] = [...conversations];
-        if (inboxAd && items.length > 2) {
-            items.splice(2, 0, inboxAd);
+        let items: (ConversationPreview | {type: 'ad', key: string})[] = [...conversations];
+        if (items.length > 2) {
+            items.splice(2, 0, {type: 'ad', key: 'inbox-ad'});
         }
         return items;
-    }, [conversations, inboxAd]);
+    }, [conversations]);
 
     const TabButton = ({ label, tabName, isPremium = false }: { label: string, tabName: ActiveTab, isPremium?: boolean }) => (
          <button 
@@ -198,20 +172,18 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                     <WinkList 
                         winks={winks}
                         loading={loadingWinks}
-                        isPlus={currentUser?.subscription_tier === 'plus' || hasPerk('view_winks')}
+                        isPlus={currentUser?.subscription_tier === 'plus'}
                         onWinkClick={handlePremiumUserClick}
                         onUpgradeClick={() => setSubscriptionModalOpen(true)}
-                        perkExpiresAt={hasPerk('view_winks') ? useAdStore.getState().temporaryPerks.find(p => p.perk === 'view_winks')?.expires_at : undefined}
                     />
                 )}
                  {activeTab === 'views' && (
                     <ProfileViewList 
                         views={profileViews}
                         loading={loadingProfileViews}
-                        isPlus={currentUser?.subscription_tier === 'plus' || hasPerk('view_profile_views')}
+                        isPlus={currentUser?.subscription_tier === 'plus'}
                         onViewClick={handlePremiumUserClick}
                         onUpgradeClick={() => setSubscriptionModalOpen(true)}
-                        perkExpiresAt={hasPerk('view_profile_views') ? useAdStore.getState().temporaryPerks.find(p => p.perk === 'view_profile_views')?.expires_at : undefined}
                     />
                 )}
                 {activeTab === 'requests' && (
@@ -233,21 +205,6 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                 confirmText="Apagar"
              />
         )}
-        {unlockModal && (
-             <UnlockFeatureModal
-                title={unlockModal === 'winks' ? 'Veja quem te chamou' : 'Descubra quem te viu'}
-                description="Assine o Plus para acesso ilimitado ou veja um anúncio para desbloquear por 1 hora."
-                onClose={() => setUnlockModal(null)}
-                onUpgrade={() => { setUnlockModal(null); setSubscriptionModalOpen(true); }}
-                onWatchAd={handleWatchAd}
-            />
-        )}
-        {rewardModal && (
-            <RewardAdModal
-                onClose={() => setRewardModal(null)}
-                onReward={handleReward}
-            />
-        )}
         </>
     );
 };
@@ -255,7 +212,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
 // ... Sub-componentes ...
 
 interface ConversationListProps {
-    items: (ConversationPreview | Ad)[]; 
+    items: (ConversationPreview | {type: 'ad', key: string})[]; 
     loading: boolean;
     onConversationClick: (convo: ConversationPreview) => void;
     onDeleteClick: (convo: ConversationPreview) => void;
@@ -270,8 +227,13 @@ const ConversationList: React.FC<ConversationListProps> = ({ items, loading, onC
     return (
         <div className="divide-y divide-slate-800">
             {items.map(item => {
-                if ('ad_type' in item) {
-                    return <InboxAdItem key={`ad-${item.id}`} ad={item} />;
+                if ('type' in item && item.type === 'ad') {
+                    return (
+                        <div key={item.key} className="p-2 bg-slate-800">
+                             {/* IMPORTANTE: Crie um bloco de anúncio para a caixa de entrada e substitua o Slot ID */}
+                             <AdSenseUnit client="ca-pub-9015745232467355" slot="3456789012" format="fluid" />
+                        </div>
+                    );
                 }
                 const convo = item as ConversationPreview;
                 const isOnline = onlineUsers.includes(convo.other_participant_id);
@@ -315,13 +277,10 @@ interface WinkListProps {
     winks: WinkWithProfile[]; loading: boolean; isPlus: boolean;
     onWinkClick: (wink: WinkWithProfile) => void;
     onUpgradeClick: () => void;
-    perkExpiresAt?: string;
 }
-const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick, onUpgradeClick, perkExpiresAt }) => {
+const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick, onUpgradeClick }) => {
     if (loading) return <p className="text-center p-8 text-slate-400">Carregando chamados...</p>;
     if (!isPlus && winks.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém te chamou ainda.</p>;
-    
-    if (perkExpiresAt && winks.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém te chamou ainda.</p>;
 
     if (!isPlus) {
         return (
@@ -346,12 +305,6 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
     if (winks.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém te chamou ainda.</p>;
 
     return (
-        <>
-        {perkExpiresAt && (
-            <div className="p-3 bg-green-900/50 text-center text-sm text-green-300 sticky top-0 z-10">
-                Acesso temporário desbloqueado! Expira {formatDistanceToNow(new Date(perkExpiresAt), { addSuffix: true, locale: ptBR } as any)}.
-            </div>
-        )}
         <div className="p-1 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1">
             {winks.map(wink => (
                 <div key={wink.id} onClick={() => onWinkClick(wink)} className="relative aspect-square cursor-pointer group">
@@ -365,7 +318,6 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
                 </div>
             ))}
         </div>
-        </>
     );
 }
 
@@ -373,13 +325,10 @@ interface ProfileViewListProps {
     views: ProfileViewWithProfile[]; loading: boolean; isPlus: boolean;
     onViewClick: (view: ProfileViewWithProfile) => void;
     onUpgradeClick: () => void;
-    perkExpiresAt?: string;
 }
-const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlus, onViewClick, onUpgradeClick, perkExpiresAt }) => {
+const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlus, onViewClick, onUpgradeClick }) => {
     if (loading) return <p className="text-center p-8 text-slate-400">Carregando visitantes...</p>;
     if (!isPlus && views.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém visitou seu perfil ainda.</p>;
-
-    if (perkExpiresAt && views.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém visitou seu perfil ainda.</p>;
 
     if (!isPlus) {
         return (
@@ -404,12 +353,6 @@ const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlu
     if (views.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém visitou seu perfil ainda.</p>;
 
     return (
-        <>
-        {perkExpiresAt && (
-             <div className="p-3 bg-green-900/50 text-center text-sm text-green-300 sticky top-0 z-10">
-                Acesso temporário desbloqueado! Expira {formatDistanceToNow(new Date(perkExpiresAt), { addSuffix: true, locale: ptBR } as any)}.
-            </div>
-        )}
         <div className="p-1 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1">
             {views.map(view => (
                 <div key={view.id} onClick={() => onViewClick(view)} className="relative aspect-square cursor-pointer group">
@@ -423,7 +366,6 @@ const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlu
                 </div>
             ))}
         </div>
-        </>
     );
 }
 

@@ -3,7 +3,7 @@ import { useInboxStore } from '../stores/inboxStore';
 import { useUiStore } from '../stores/uiStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
-import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest, ProfileViewWithProfile, Ad } from '../types';
+import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest, ProfileViewWithProfile, Ad, ChatUser } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 // Fix: Correctly import the pt-BR locale from its specific module path.
 import { ptBR } from 'date-fns/locale/pt-BR';
@@ -92,23 +92,12 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     }, [activeTab, accessRequests, clearAccessRequests]);
 
     const handleConversationClick = (convo: ConversationPreview) => {
-        // FIX: Adiciona as propriedades que faltavam para que o objeto corresponda ao tipo `User`.
-        // Como `ConversationPreview` não tem todos os dados de um perfil completo,
-        // preenchemos os campos restantes com valores padrão/dummy para satisfazer o TypeScript.
-        const chatPartner: User = {
-            id: convo.other_participant_id, username: convo.other_participant_username,
-            avatar_url: convo.other_participant_avatar_url, last_seen: convo.other_participant_last_seen,
-            display_name: null, public_photos: [], status_text: null, date_of_birth: null,
-            height_cm: null, weight_kg: null, tribes: [], position: null, hiv_status: null,
-            updated_at: '', lat: 0, lng: 0, age: 0, distance_km: null, 
+        const chatPartner: ChatUser = {
+            id: convo.other_participant_id,
+            username: convo.other_participant_username,
+            avatar_url: convo.other_participant_avatar_url,
+            last_seen: convo.other_participant_last_seen,
             subscription_tier: convo.other_participant_subscription_tier,
-            subscription_expires_at: null, is_incognito: false,
-            has_completed_onboarding: true,
-            has_private_albums: false, // Defaulting, as this info is not in convo preview
-            email: '',
-            created_at: '',
-            status: 'active',
-            suspended_until: null,
         };
         setChatUser(chatPartner);
     };

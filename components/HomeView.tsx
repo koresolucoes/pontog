@@ -20,17 +20,19 @@ export const HomeView: React.FC = () => {
     const { popularUsers, loading, error, hasMore, loadingMore, fetchPopularUsers, fetchMorePopularUsers } = useHomeStore();
     const { onlineUsers, setSelectedUser, myLocation } = useMapStore();
     const { agoraUserIds } = useAgoraStore();
-    const { feedAds, bannerAds, fetchAds } = useAdStore();
+    const { feedAds, bannerAdUnitPath, initializeAds, isInitialized } = useAdStore();
 
     const initialFetchDone = useRef(false);
 
     useEffect(() => {
+        if (!isInitialized) {
+            initializeAds();
+        }
         if (myLocation && !initialFetchDone.current) {
             fetchPopularUsers();
-            fetchAds();
             initialFetchDone.current = true;
         }
-    }, [myLocation, fetchPopularUsers, fetchAds]);
+    }, [myLocation, fetchPopularUsers, initializeAds, isInitialized]);
 
     const observer = useRef<IntersectionObserver>();
     const lastUserElementRef = useCallback((node: HTMLDivElement) => {
@@ -63,25 +65,24 @@ export const HomeView: React.FC = () => {
             return 0;
         });
 
-        const items: (User | Ad)[] = [];
-        let feedAdIndex = 0;
-        let bannerAdIndex = 0;
-
+        const items: (User | { type: 'ad'; adType: 'feed' | 'banner'; id: string })[] = [];
+        let feedAdCount = 0;
+        let bannerAdCount = 0;
+        
         sortedUsers.forEach((user, index) => {
             items.push(user);
-            // Insert a banner ad every 15 users (5 rows of 3)
-            if ((index + 1) % 15 === 0 && bannerAds.length > 0) {
-                items.push(bannerAds[bannerAdIndex++ % bannerAds.length]);
+            if ((index + 1) % 15 === 0) {
+                items.push({ type: 'ad', adType: 'banner', id: `banner-home-${bannerAdCount++}` });
             }
-            // Insert a feed ad every 8 users
-            if ((index + 1) % 8 === 0 && feedAds.length > 0) {
-                items.push(feedAds[feedAdIndex++ % feedAds.length]);
+            if ((index + 1) % 8 === 0) {
+                items.push({ type: 'ad', adType: 'feed', id: `feed-home-${feedAdCount++}` });
             }
         });
 
         return items;
-    }, [popularUsers, onlineUsers, agoraUserIds, feedAds, bannerAds]);
+    }, [popularUsers, onlineUsers, agoraUserIds]);
 
+    const renderedFeedAds = useRef(0);
 
     if (loading && popularUsers.length === 0) {
         return (
@@ -117,12 +118,15 @@ export const HomeView: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px content-start">
                         {itemsWithAds.map((item, index) => {
-                            if ('ad_type' in item) {
-                                if (item.ad_type === 'feed') {
-                                    return <FeedAdCard key={`ad-feed-${item.id}-${index}`} ad={item} />;
+                            if ('type' in item && item.type === 'ad') {
+                                if (item.adType === 'feed') {
+                                    const ad = feedAds[renderedFeedAds.current % feedAds.length];
+                                    if (!ad) return null; // Não renderiza se o anúncio ainda não foi carregado
+                                    renderedFeedAds.current++;
+                                    return <FeedAdCard key={item.id} ad={ad} />;
                                 }
-                                if (item.ad_type === 'banner') {
-                                    return <AdBanner key={`ad-banner-${item.id}-${index}`} ad={item} />;
+                                if (item.adType === 'banner') {
+                                    return <AdBanner key={item.id} adUnitPath={bannerAdUnitPath} divId={item.id} />;
                                 }
                                 return null;
                             }

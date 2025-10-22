@@ -1,37 +1,42 @@
-import React from 'react';
-import { Ad } from '../types';
+import React, { useEffect } from 'react';
 
 interface AdBannerProps {
-  ad: Ad;
+  adUnitPath: string;
+  divId: string;
 }
 
-export const AdBanner: React.FC<AdBannerProps> = ({ ad }) => {
-  const handleClick = () => {
-    window.open(ad.cta_url, '_blank', 'noopener,noreferrer');
-  };
+export const AdBanner: React.FC<AdBannerProps> = ({ adUnitPath, divId }) => {
+  useEffect(() => {
+    const googletag = window.googletag || { cmd: [] };
+    
+    googletag.cmd.push(() => {
+        // Define o slot do banner, que é responsivo
+        const slot = googletag.defineSlot(adUnitPath, ['fluid'], divId)?.addService(googletag.pubads());
+        
+        // Exibe o anúncio
+        googletag.display(divId);
+
+        // Atualiza o slot para preenchê-lo com um anúncio
+        if (slot) {
+            googletag.pubads().refresh([slot]);
+        }
+    });
+
+    // Limpeza ao desmontar o componente
+    return () => {
+        googletag.cmd.push(() => {
+            const slot = googletag.pubads().getSlots().find((s: any) => s.getSlotElementId() === divId);
+            if (slot) {
+                googletag.destroySlots([slot]);
+            }
+        });
+    };
+  }, [adUnitPath, divId]);
 
   return (
-    <div 
-      className="col-span-full relative aspect-[2/1] sm:aspect-[3/1] md:aspect-[4/1] lg:aspect-[5/1] cursor-pointer group overflow-hidden bg-slate-900"
-      onClick={handleClick}
-    >
-      <img 
-        src={ad.image_url} 
-        alt={ad.title} 
-        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
-      />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent flex flex-col justify-center p-4 sm:p-8">
-        <div className="w-full md:w-1/2">
-            <span className="bg-slate-900/70 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-md mb-2 inline-block">
-                Patrocinado
-            </span>
-            <h3 className="font-bold text-lg sm:text-2xl text-white drop-shadow-lg">{ad.title}</h3>
-            <p className="text-sm text-slate-200 mt-1 drop-shadow-lg hidden sm:block">{ad.description}</p>
-            <button className="mt-4 bg-pink-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-pink-700 text-sm">
-                {ad.cta_text}
-            </button>
-        </div>
-      </div>
+    <div className="col-span-full aspect-[2/1] sm:aspect-[3/1] md:aspect-[4/1] lg:aspect-[5/1] bg-slate-900 flex items-center justify-center">
+        {/* Este é o contêiner onde o Google Ad Manager irá renderizar o banner */}
+        <div id={divId}></div>
     </div>
   );
 };

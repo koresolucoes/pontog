@@ -62,6 +62,15 @@ export interface User extends Profile {
   age: number;
 }
 
+// Novo tipo para padronizar os dados necessários para uma janela de chat
+export interface ChatUser {
+  id: string;
+  username: string;
+  avatar_url: string;
+  last_seen: string | null;
+  subscription_tier: 'free' | 'plus';
+}
+
 export interface Message {
   id: number;
   conversation_id: number;

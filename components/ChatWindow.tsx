@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { User, Message as MessageType, PrivateAlbum } from '../types';
+import { User, Message as MessageType, PrivateAlbum, ChatUser } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import { useMapStore } from '../stores/mapStore';
@@ -12,14 +12,6 @@ import { ConfirmationModal } from './ConfirmationModal';
 import { SelectAlbumModal } from './SelectAlbumModal';
 import { getPublicImageUrl } from '../lib/supabase';
 import toast from 'react-hot-toast';
-
-interface ChatUser {
-  id: string;
-  name: string;
-  imageUrl: string;
-  last_seen?: string | null;
-  subscription_tier: 'free' | 'plus';
-}
 
 interface ChatWindowProps {
   user: ChatUser;
@@ -99,12 +91,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       if (error) {
           console.error("Error marking messages as read:", error);
       } else {
+          // FIX: Se a atualização no DB for bem-sucedida, atualiza o estado local imediatamente.
+          // Isso garante que a UI mostre o status de "lido" instantaneamente, tornando a experiência mais rápida.
           const now = new Date().toISOString();
           setMessages(prevMessages =>
               prevMessages.map(msg =>
                   messageIds.includes(msg.id) ? { ...msg, read_at: now } : msg
               )
           );
+          // FIX: Notifica o inboxStore para zerar a contagem de não lidas para esta conversa,
+          // garantindo que a badge de notificação seja atualizada em toda a UI.
           clearUnreadCountForConversation(convId);
       }
   }, [clearUnreadCountForConversation]);
@@ -325,6 +321,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const MessageStatus = ({ msg }: { msg: MessageType }) => {
     if (msg.sender_id !== currentUser.id) return null;
     
+    // FIX: A lógica de confirmação de leitura foi refatorada para ser mais explícita e robusta.
+    // Isso garante que o benefício funcione corretamente para usuários Plus.
     const isPremiumUser = currentUser?.subscription_tier === 'plus';
     const hasBeenRead = msg.read_at !== null && msg.read_at !== undefined;
     const showReadReceipt = isPremiumUser && hasBeenRead;
@@ -350,10 +348,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
     <div className="fixed bottom-0 right-0 sm:right-4 md:right-8 w-full sm:w-96 h-full sm:h-[500px] bg-slate-900 shadow-2xl rounded-t-2xl sm:rounded-lg z-40 flex flex-col animate-slide-in-up border border-slate-700">
       <header className="flex items-center justify-between p-3 bg-slate-800 rounded-t-2xl sm:rounded-t-lg border-b border-slate-700 flex-shrink-0">
         <div className="flex items-center space-x-3">
-          <img src={user.imageUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
+          <img src={user.avatar_url} alt={user.username} className="w-10 h-10 rounded-full object-cover" />
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-bold">{user.name}</h3>
+              <h3 className="font-bold">{user.username}</h3>
               {user.subscription_tier === 'plus' && (
                   <span className="flex items-center text-xs bg-yellow-400/20 text-yellow-300 font-semibold px-1.5 py-0.5 rounded-full">
                       <span className="material-symbols-outlined !text-[12px]">auto_awesome</span>
@@ -381,7 +379,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
           {messages.map((msg) => (
             <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUser.id ? 'items-end' : 'items-start'}`}>
               <div className={`flex items-end gap-2 max-w-xs md:max-w-sm ${msg.sender_id === currentUser.id ? 'flex-row-reverse' : 'flex-row'}`}>
-                 {msg.sender_id !== currentUser.id && <img src={user.imageUrl} className="w-6 h-6 rounded-full self-start" />}
+                 {msg.sender_id !== currentUser.id && <img src={user.avatar_url} className="w-6 h-6 rounded-full self-start" />}
                  
                  {editingMessage?.id === msg.id ? (
                      <div className="flex-1 space-y-1">

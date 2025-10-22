@@ -10,13 +10,15 @@ import { AdBanner } from './AdBanner';
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();
     const { agoraUserIds, fetchAgoraPosts } = useAgoraStore();
-    const { feedAds, bannerAds, fetchAds } = useAdStore();
+    const { feedAds, bannerAdUnitPath, isInitialized, initializeAds } = useAdStore();
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
     useEffect(() => {
+        if (!isInitialized) {
+            initializeAds();
+        }
         fetchAgoraPosts();
-        fetchAds();
-    }, [fetchAgoraPosts, fetchAds]);
+    }, [fetchAgoraPosts, initializeAds, isInitialized]);
 
     const handleUserClick = (user: User) => {
         setSelectedUser(user);
@@ -71,26 +73,27 @@ export const UserGrid: React.FC = () => {
     }, [users, onlineUsers, filters, agoraUserIds]);
     
     const itemsWithAds = useMemo(() => {
-        const items: (User | Ad)[] = [];
-        let feedAdIndex = 0;
-        let bannerAdIndex = 0;
+        const items: (User | { type: 'ad'; adType: 'feed' | 'banner'; id: string })[] = [];
+        let feedAdCount = 0;
+        let bannerAdCount = 0;
 
         filteredUsers.forEach((user, index) => {
             items.push(user);
             // Insert a banner ad every 15 users (5 rows of 3)
-            if ((index + 1) % 15 === 0 && bannerAds.length > 0) {
-                items.push(bannerAds[bannerAdIndex++ % bannerAds.length]);
+            if ((index + 1) % 15 === 0) {
+                 items.push({ type: 'ad', adType: 'banner', id: `banner-grid-${bannerAdCount++}` });
             }
             // Insert a feed ad every 8 users
-            if ((index + 1) % 8 === 0 && feedAds.length > 0) {
-                items.push(feedAds[feedAdIndex++ % feedAds.length]);
+            if ((index + 1) % 8 === 0) {
+                items.push({ type: 'ad', adType: 'feed', id: `feed-grid-${feedAdCount++}` });
             }
         });
 
         return items;
-    }, [filteredUsers, feedAds, bannerAds]);
+    }, [filteredUsers]);
 
-    // Check if any filter is active to highlight the button
+    const renderedFeedAds = React.useRef(0);
+
     const isAgeFilterActive = filters.minAge !== 18 || filters.maxAge !== 99;
     const arePositionsFiltered = filters.positions.length > 0;
     const areTribesFiltered = filters.tribes.length > 0;
@@ -133,12 +136,15 @@ export const UserGrid: React.FC = () => {
                 <div className="flex-1 overflow-y-auto bg-slate-800">
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px">
                         {itemsWithAds.map((item, index) => {
-                             if ('ad_type' in item) {
-                                if (item.ad_type === 'feed') {
-                                    return <FeedAdCard key={`ad-feed-${item.id}-${index}`} ad={item} />;
+                             if ('type' in item && item.type === 'ad') {
+                                if (item.adType === 'feed') {
+                                    const ad = feedAds[renderedFeedAds.current % feedAds.length];
+                                    if (!ad) return null;
+                                    renderedFeedAds.current++;
+                                    return <FeedAdCard key={item.id} ad={ad} />;
                                 }
-                                if (item.ad_type === 'banner') {
-                                    return <AdBanner key={`ad-banner-${item.id}-${index}`} ad={item} />;
+                                if (item.adType === 'banner') {
+                                    return <AdBanner key={item.id} adUnitPath={bannerAdUnitPath} divId={item.id} />;
                                 }
                                 return null;
                             }

@@ -94,8 +94,8 @@ export const useMapStore = create<MapState>((set, get) => ({
       };
 
       updateLocation();
-      const intervalId = setInterval(updateLocation, 30000);
-      set({ watchId: intervalId as any });
+      const intervalId = window.setInterval(updateLocation, 30000);
+      set({ watchId: intervalId });
       get().setupRealtime();
 
     } else {
@@ -106,7 +106,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   stopLocationWatch: () => {
     const { watchId } = get();
     if (watchId !== null) {
-      clearInterval(watchId);
+      window.clearInterval(watchId);
       set({ watchId: null });
     }
   },

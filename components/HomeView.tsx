@@ -5,6 +5,7 @@ import { useAgoraStore } from '../stores/agoraStore';
 import { User, Ad } from '../types';
 import { useAdStore } from '../stores/adStore';
 import { FeedAdCard } from './FeedAdCard';
+import { AdBanner } from './AdBanner';
 
 
 const GridLoader: React.FC = () => (
@@ -19,7 +20,7 @@ export const HomeView: React.FC = () => {
     const { popularUsers, loading, error, hasMore, loadingMore, fetchPopularUsers, fetchMorePopularUsers } = useHomeStore();
     const { onlineUsers, setSelectedUser, myLocation } = useMapStore();
     const { agoraUserIds } = useAgoraStore();
-    const { feedAd, fetchAds } = useAdStore();
+    const { feedAds, bannerAds, fetchAds } = useAdStore();
 
     const initialFetchDone = useRef(false);
 
@@ -48,7 +49,7 @@ export const HomeView: React.FC = () => {
     };
     
     const itemsWithAds = useMemo(() => {
-        let items: (User | Ad)[] = [...popularUsers].sort((a, b) => {
+        const sortedUsers = [...popularUsers].sort((a, b) => {
             const aIsAgora = agoraUserIds.includes(a.id);
             const bIsAgora = agoraUserIds.includes(b.id);
             if (aIsAgora && !bIsAgora) return -1;
@@ -62,12 +63,24 @@ export const HomeView: React.FC = () => {
             return 0;
         });
 
-        if (feedAd && items.length > 8) {
-            items.splice(8, 0, feedAd);
-        }
+        const items: (User | Ad)[] = [];
+        let feedAdIndex = 0;
+        let bannerAdIndex = 0;
+
+        sortedUsers.forEach((user, index) => {
+            items.push(user);
+            // Insert a banner ad every 15 users (5 rows of 3)
+            if ((index + 1) % 15 === 0 && bannerAds.length > 0) {
+                items.push(bannerAds[bannerAdIndex++ % bannerAds.length]);
+            }
+            // Insert a feed ad every 8 users
+            if ((index + 1) % 8 === 0 && feedAds.length > 0) {
+                items.push(feedAds[feedAdIndex++ % feedAds.length]);
+            }
+        });
 
         return items;
-    }, [popularUsers, onlineUsers, agoraUserIds, feedAd]);
+    }, [popularUsers, onlineUsers, agoraUserIds, feedAds, bannerAds]);
 
 
     if (loading && popularUsers.length === 0) {
@@ -105,15 +118,23 @@ export const HomeView: React.FC = () => {
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px content-start">
                         {itemsWithAds.map((item, index) => {
                             if ('ad_type' in item) {
-                                return <FeedAdCard key={`ad-${item.id}`} ad={item} />;
+                                if (item.ad_type === 'feed') {
+                                    return <FeedAdCard key={`ad-feed-${item.id}-${index}`} ad={item} />;
+                                }
+                                if (item.ad_type === 'banner') {
+                                    return <AdBanner key={`ad-banner-${item.id}-${index}`} ad={item} />;
+                                }
+                                return null;
                             }
+                            
                             const user = item as User;
-                            const isLast = index === itemsWithAds.length - 1;
+                            const isLastUser = index === itemsWithAds.length - 1 && 'username' in item;
                             const isAgora = agoraUserIds.includes(user.id);
                             const isPlus = user.subscription_tier === 'plus';
+                            
                             return (
                                 <div 
-                                    ref={isLast ? lastUserElementRef : null}
+                                    ref={isLastUser ? lastUserElementRef : null}
                                     key={user.id} 
                                     className={`isolate relative aspect-square cursor-pointer group overflow-hidden bg-slate-900 ${isAgora ? 'border-2 border-red-600 animate-pulse-fire' : ''} ${isPlus && !isAgora ? 'border-2 border-yellow-400/80' : ''}`}
                                     onClick={() => handleUserClick(user)}

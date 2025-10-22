@@ -5,11 +5,12 @@ import { User, Ad } from '../types';
 import { FilterModal } from './FilterModal';
 import { useAdStore } from '../stores/adStore';
 import { FeedAdCard } from './FeedAdCard';
+import { AdBanner } from './AdBanner';
 
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();
     const { agoraUserIds, fetchAgoraPosts } = useAgoraStore();
-    const { feedAd, fetchAds } = useAdStore();
+    const { feedAds, bannerAds, fetchAds } = useAdStore();
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
     useEffect(() => {
@@ -70,12 +71,24 @@ export const UserGrid: React.FC = () => {
     }, [users, onlineUsers, filters, agoraUserIds]);
     
     const itemsWithAds = useMemo(() => {
-        let items: (User | Ad)[] = [...filteredUsers];
-        if (feedAd && items.length > 8) {
-            items.splice(8, 0, feedAd);
-        }
+        const items: (User | Ad)[] = [];
+        let feedAdIndex = 0;
+        let bannerAdIndex = 0;
+
+        filteredUsers.forEach((user, index) => {
+            items.push(user);
+            // Insert a banner ad every 15 users (5 rows of 3)
+            if ((index + 1) % 15 === 0 && bannerAds.length > 0) {
+                items.push(bannerAds[bannerAdIndex++ % bannerAds.length]);
+            }
+            // Insert a feed ad every 8 users
+            if ((index + 1) % 8 === 0 && feedAds.length > 0) {
+                items.push(feedAds[feedAdIndex++ % feedAds.length]);
+            }
+        });
+
         return items;
-    }, [filteredUsers, feedAd]);
+    }, [filteredUsers, feedAds, bannerAds]);
 
     // Check if any filter is active to highlight the button
     const isAgeFilterActive = filters.minAge !== 18 || filters.maxAge !== 99;
@@ -119,9 +132,15 @@ export const UserGrid: React.FC = () => {
             ) : (
                 <div className="flex-1 overflow-y-auto bg-slate-800">
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px">
-                        {itemsWithAds.map((item) => {
+                        {itemsWithAds.map((item, index) => {
                              if ('ad_type' in item) {
-                                return <FeedAdCard key={`ad-${item.id}`} ad={item} />;
+                                if (item.ad_type === 'feed') {
+                                    return <FeedAdCard key={`ad-feed-${item.id}-${index}`} ad={item} />;
+                                }
+                                if (item.ad_type === 'banner') {
+                                    return <AdBanner key={`ad-banner-${item.id}-${index}`} ad={item} />;
+                                }
+                                return null;
                             }
                             const user = item as User;
                             const isAgora = agoraUserIds.includes(user.id);

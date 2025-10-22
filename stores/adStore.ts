@@ -24,10 +24,38 @@ const MOCK_ADS: Ad[] = [
         cta_text: 'Ver Agora',
         cta_url: 'https://example.com',
     },
+    {
+        id: 3,
+        ad_type: 'feed',
+        title: 'Bear Pride Week',
+        description: 'O maior encontro de ursos da cidade. Não perca!',
+        image_url: 'https://images.pexels.com/photos/1485637/pexels-photo-1485637.jpeg?auto=compress&cs=tinysrgb&w=600',
+        cta_text: 'Ingressos',
+        cta_url: 'https://example.com',
+    },
+    {
+        id: 4,
+        ad_type: 'banner',
+        title: 'Festival de Cinema Queer',
+        description: 'Os melhores filmes LGBTQIA+ do ano, em cartaz esta semana.',
+        image_url: 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+        cta_text: 'Ver Programação',
+        cta_url: 'https://example.com',
+    },
+    {
+        id: 5,
+        ad_type: 'feed',
+        title: 'Barbearia Le Mustache',
+        description: 'Estilo e cuidado para o homem moderno. Agende seu horário.',
+        image_url: 'https://images.pexels.com/photos/3998414/pexels-photo-3998414.jpeg?auto=compress&cs=tinysrgb&w=600',
+        cta_text: 'Agendar',
+        cta_url: 'https://example.com',
+    }
 ];
 
 interface AdState {
-  feedAd: Ad | null;
+  feedAds: Ad[];
+  bannerAds: Ad[];
   inboxAd: Ad | null;
   temporaryPerks: TemporaryPerk[];
   fetchAds: () => void;
@@ -36,15 +64,17 @@ interface AdState {
 }
 
 export const useAdStore = create<AdState>((set, get) => ({
-    feedAd: null,
+    feedAds: [],
+    bannerAds: [],
     inboxAd: null,
     temporaryPerks: [],
     fetchAds: () => {
         // In a real app, this would be a network request.
         // Here we just pull from the mock data.
-        const feedAd = MOCK_ADS.find(ad => ad.ad_type === 'feed') || null;
+        const feedAds = MOCK_ADS.filter(ad => ad.ad_type === 'feed');
+        const bannerAds = MOCK_ADS.filter(ad => ad.ad_type === 'banner');
         const inboxAd = MOCK_ADS.find(ad => ad.ad_type === 'inbox') || null;
-        set({ feedAd, inboxAd });
+        set({ feedAds, bannerAds, inboxAd });
     },
 
     grantTemporaryPerk: (perk, durationHours) => {

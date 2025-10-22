@@ -1,9 +1,8 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
-import { useUiStore } from '../stores/uiStore';
 import { User } from '../types';
-import { FilterModal } from './PremiumFilterModal';
+import { FilterModal } from './FilterModal';
 
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();

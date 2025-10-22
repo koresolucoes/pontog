@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useDataStore } from '../stores/dataStore';
+import { useAuthStore } from '../stores/authStore';
+import { useUiStore } from '../stores/uiStore';
 import { POSITIONS } from '../lib/constants';
 
-interface PremiumFilterModalProps {
+interface FilterModalProps {
   onClose: () => void;
 }
 
@@ -11,24 +13,39 @@ const ChipButton: React.FC<{
     label: string;
     isSelected: boolean;
     onClick: () => void;
-}> = ({ label, isSelected, onClick }) => (
+    disabled?: boolean;
+}> = ({ label, isSelected, onClick, disabled = false }) => (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${
         isSelected
           ? 'bg-pink-600 text-white'
           : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-      }`}
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       {label}
     </button>
 );
 
+const PremiumFeatureLock: React.FC<{ title: string; onUpgrade: () => void }> = ({ title, onUpgrade }) => (
+    <div 
+        onClick={onUpgrade}
+        className="absolute inset-0 -m-2 bg-slate-800/80 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center cursor-pointer p-4 text-center"
+    >
+        <span className="material-symbols-outlined text-4xl text-yellow-400">lock</span>
+        <p className="text-white font-bold mt-2">Exclusivo para Assinantes Plus</p>
+        <p className="text-sm text-slate-300">Faça o upgrade para filtrar por {title}.</p>
+    </div>
+);
 
-export const PremiumFilterModal: React.FC<PremiumFilterModalProps> = ({ onClose }) => {
+export const FilterModal: React.FC<FilterModalProps> = ({ onClose }) => {
     const { filters, setFilters } = useMapStore();
     const { tribes, fetchTribes } = useDataStore();
+    const { user } = useAuthStore();
+    const { setSubscriptionModalOpen } = useUiStore();
+    const isPlus = user?.subscription_tier === 'plus';
     
     const [localFilters, setLocalFilters] = useState({
         minAge: filters.minAge || 18,
@@ -42,8 +59,14 @@ export const PremiumFilterModal: React.FC<PremiumFilterModalProps> = ({ onClose 
             fetchTribes();
         }
     }, [tribes, fetchTribes]);
+    
+    const handleUpgradeClick = () => {
+        onClose();
+        setSubscriptionModalOpen(true);
+    };
 
     const handlePositionToggle = (position: string) => {
+        if (!isPlus) return;
         const currentPositions = localFilters.positions;
         const newPositions = currentPositions.includes(position)
           ? currentPositions.filter(p => p !== position)
@@ -52,6 +75,7 @@ export const PremiumFilterModal: React.FC<PremiumFilterModalProps> = ({ onClose 
     };
 
     const handleTribeToggle = (tribeName: string) => {
+        if (!isPlus) return;
         const currentTribes = localFilters.tribes;
         const newTribes = currentTribes.includes(tribeName)
           ? currentTribes.filter(t => t !== tribeName)
@@ -87,8 +111,7 @@ export const PremiumFilterModal: React.FC<PremiumFilterModalProps> = ({ onClose 
             <div className="bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-full sm:h-auto sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
                 <header className="p-6 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <span className="material-symbols-outlined text-yellow-400">auto_awesome</span>
-                        Filtros Premium
+                        Filtrar Perfis
                     </h2>
                     <button onClick={onClose} className="text-slate-400 hover:text-white"><span className="material-symbols-outlined">close</span></button>
                 </header>
@@ -116,21 +139,23 @@ export const PremiumFilterModal: React.FC<PremiumFilterModalProps> = ({ onClose 
                             />
                         </div>
                     </div>
-                    <div>
+                    <div className="relative p-2">
                         <h3 className="text-sm font-medium text-slate-300 mb-2">Posição</h3>
                         <div className="flex flex-wrap gap-2">
                             {POSITIONS.map(p => (
-                                <ChipButton key={p} label={p} isSelected={localFilters.positions.includes(p)} onClick={() => handlePositionToggle(p)} />
+                                <ChipButton key={p} label={p} isSelected={localFilters.positions.includes(p)} onClick={() => handlePositionToggle(p)} disabled={!isPlus} />
                             ))}
                         </div>
+                         {!isPlus && <PremiumFeatureLock title="posição" onUpgrade={handleUpgradeClick} />}
                     </div>
-                     <div>
+                     <div className="relative p-2">
                         <h3 className="text-sm font-medium text-slate-300 mb-2">Tribos</h3>
                         <div className="flex flex-wrap gap-2">
                              {tribes.map(t => (
-                                <ChipButton key={t.id} label={t.name} isSelected={localFilters.tribes.includes(t.name)} onClick={() => handleTribeToggle(t.name)} />
+                                <ChipButton key={t.id} label={t.name} isSelected={localFilters.tribes.includes(t.name)} onClick={() => handleTribeToggle(t.name)} disabled={!isPlus} />
                             ))}
                         </div>
+                        {!isPlus && <PremiumFeatureLock title="tribos" onUpgrade={handleUpgradeClick} />}
                     </div>
                 </main>
 

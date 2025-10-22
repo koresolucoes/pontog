@@ -1,16 +1,13 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
-import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 import { User } from '../types';
-import { PremiumFilterModal } from './PremiumFilterModal';
+import { FilterModal } from './PremiumFilterModal';
 
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();
     const { agoraUserIds, fetchAgoraPosts } = useAgoraStore();
-    const { user: currentUser } = useAuthStore();
-    const { setSubscriptionModalOpen } = useUiStore();
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
     useEffect(() => {
@@ -25,12 +22,8 @@ export const UserGrid: React.FC = () => {
         setFilters({ ...filters, onlineOnly: !filters.onlineOnly });
     };
 
-    const handlePremiumFilterClick = () => {
-        if (currentUser?.subscription_tier === 'plus') {
-            setIsFilterModalOpen(true);
-        } else {
-            setSubscriptionModalOpen(true);
-        }
+    const handleFilterClick = () => {
+        setIsFilterModalOpen(true);
     }
 
     const filteredUsers = useMemo(() => {
@@ -73,21 +66,20 @@ export const UserGrid: React.FC = () => {
         return finalUsers;
     }, [users, onlineUsers, filters, agoraUserIds]);
     
-    // Check if any premium filter is active
+    // Check if any filter is active to highlight the button
     const isAgeFilterActive = filters.minAge !== 18 || filters.maxAge !== 99;
     const arePositionsFiltered = filters.positions.length > 0;
     const areTribesFiltered = filters.tribes.length > 0;
-    const areAnyPremiumFiltersActive = isAgeFilterActive || arePositionsFiltered || areTribesFiltered;
+    const areAnyFiltersActive = isAgeFilterActive || arePositionsFiltered || areTribesFiltered;
 
-    const PremiumFilterButton = ({ label, isActive }: { label: string, isActive: boolean }) => (
+    const FilterButton = ({ label, isActive }: { label: string, isActive: boolean }) => (
         <button 
-            onClick={handlePremiumFilterClick} 
+            onClick={handleFilterClick} 
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${
                 isActive ? 'bg-pink-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
         >
             {label}
-            <span className="material-symbols-outlined !text-[14px] text-yellow-400">auto_awesome</span>
         </button>
     );
 
@@ -105,7 +97,7 @@ export const UserGrid: React.FC = () => {
                 >
                     Online
                 </button>
-                 <PremiumFilterButton label="Filtros" isActive={areAnyPremiumFiltersActive} />
+                 <FilterButton label="Filtros" isActive={areAnyFiltersActive} />
             </div>
             
             {filteredUsers.length === 0 ? (
@@ -157,7 +149,7 @@ export const UserGrid: React.FC = () => {
                 </div>
             )}
         </div>
-        {isFilterModalOpen && <PremiumFilterModal onClose={() => setIsFilterModalOpen(false)} />}
+        {isFilterModalOpen && <FilterModal onClose={() => setIsFilterModalOpen(false)} />}
         </>
     );
 };

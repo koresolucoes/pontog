@@ -3,7 +3,7 @@
 // Novo tipo para Anúncios
 export interface Ad {
   id: number;
-  ad_type: 'feed' | 'inbox';
+  ad_type: 'feed' | 'inbox' | 'banner';
   title: string;
   description: string;
   image_url: string;

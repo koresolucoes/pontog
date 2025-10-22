@@ -3,7 +3,6 @@ import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
 import { User } from '../types';
 import { FilterModal } from './FilterModal';
-import { AdSenseUnit } from './AdSenseUnit';
 
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();
@@ -65,24 +64,6 @@ export const UserGrid: React.FC = () => {
         
         return finalUsers;
     }, [users, onlineUsers, filters, agoraUserIds]);
-    
-    const itemsWithAds = useMemo(() => {
-        const items: (User | { type: 'ad'; ad_type: 'feed' | 'banner'; key: string })[] = [];
-
-        filteredUsers.forEach((user, index) => {
-            items.push(user);
-            // Insert a banner ad every 15 users
-            if ((index + 1) % 15 === 0) {
-                items.push({ type: 'ad', ad_type: 'banner', key: `banner-${index}` });
-            }
-            // Insert a feed ad every 8 users
-            if ((index + 1) % 8 === 0) {
-                items.push({ type: 'ad', ad_type: 'feed', key: `feed-${index}` });
-            }
-        });
-
-        return items;
-    }, [filteredUsers]);
 
     // Check if any filter is active to highlight the button
     const isAgeFilterActive = filters.minAge !== 18 || filters.maxAge !== 99;
@@ -118,7 +99,7 @@ export const UserGrid: React.FC = () => {
                  <FilterButton label="Filtros" isActive={areAnyFiltersActive} />
             </div>
             
-            {itemsWithAds.length === 0 ? (
+            {filteredUsers.length === 0 ? (
                  <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
                     <h2 className="text-xl font-bold">Ninguém encontrado</h2>
                     <p className="mt-2">Tente ajustar seus filtros ou volte mais tarde.</p>
@@ -126,27 +107,7 @@ export const UserGrid: React.FC = () => {
             ) : (
                 <div className="flex-1 overflow-y-auto bg-slate-800">
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px">
-                        {itemsWithAds.map((item, index) => {
-                             if ('type' in item && item.type === 'ad') {
-                                if (item.ad_type === 'feed') {
-                                    return (
-                                        <div key={item.key} className="relative aspect-square bg-slate-900 flex items-center justify-center text-slate-500 text-xs">
-                                             {/* IMPORTANTE: Substitua '1234567890' pelo seu Ad Slot ID real */}
-                                            <AdSenseUnit client="ca-pub-9015745232467355" slot="1234567890" format="auto" />
-                                        </div>
-                                    );
-                                }
-                                if (item.ad_type === 'banner') {
-                                     return (
-                                        <div key={item.key} className="col-span-full aspect-[2/1] sm:aspect-[3/1] bg-slate-900 flex items-center justify-center text-slate-500 text-xs">
-                                            {/* IMPORTANTE: Crie um bloco de anúncio separado para banners e substitua o Slot ID */}
-                                            <AdSenseUnit client="ca-pub-9015745232467355" slot="2345678901" format="auto" className="w-full h-full" />
-                                        </div>
-                                    );
-                                }
-                                return null;
-                            }
-                            const user = item as User;
+                        {filteredUsers.map((user) => {
                             const isAgora = agoraUserIds.includes(user.id);
                             const isPlus = user.subscription_tier === 'plus';
                             return (

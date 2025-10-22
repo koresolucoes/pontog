@@ -8,7 +8,6 @@ import { formatDistanceToNow } from 'date-fns';
 // Fix: Correctly import the pt-BR locale from its specific module path.
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { ConfirmationModal } from './ConfirmationModal';
-import { AdSenseUnit } from './AdSenseUnit';
 
 
 type ActiveTab = 'messages' | 'winks' | 'views' | 'requests';
@@ -125,14 +124,6 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         setSelectedUser(user);
     }
 
-    const conversationsWithAd = useMemo(() => {
-        let items: (ConversationPreview | {type: 'ad', key: string})[] = [...conversations];
-        if (items.length > 2) {
-            items.splice(2, 0, {type: 'ad', key: 'inbox-ad'});
-        }
-        return items;
-    }, [conversations]);
-
     const TabButton = ({ label, tabName, isPremium = false }: { label: string, tabName: ActiveTab, isPremium?: boolean }) => (
          <button 
             onClick={() => isPremium ? handlePremiumFeatureClick(tabName as 'winks' | 'views') : setActiveTab(tabName)}
@@ -161,7 +152,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             <div className="flex-1 overflow-y-auto">
                 {activeTab === 'messages' && (
                     <ConversationList 
-                        items={conversationsWithAd} 
+                        conversations={conversations} 
                         loading={loadingConversations}
                         onConversationClick={handleConversationClick}
                         onDeleteClick={(convo) => setConfirmDelete(convo)}
@@ -212,30 +203,21 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
 // ... Sub-componentes ...
 
 interface ConversationListProps {
-    items: (ConversationPreview | {type: 'ad', key: string})[]; 
+    conversations: ConversationPreview[]; 
     loading: boolean;
     onConversationClick: (convo: ConversationPreview) => void;
     onDeleteClick: (convo: ConversationPreview) => void;
     currentUserId?: string;
 }
-const ConversationList: React.FC<ConversationListProps> = ({ items, loading, onConversationClick, onDeleteClick, currentUserId }) => {
+const ConversationList: React.FC<ConversationListProps> = ({ conversations, loading, onConversationClick, onDeleteClick, currentUserId }) => {
     const onlineUsers = useMapStore((state) => state.onlineUsers);
 
     if (loading) return <p className="text-center p-8 text-slate-400">Carregando conversas...</p>;
-    if (items.length === 0) return <p className="text-center p-8 text-slate-400">Nenhuma conversa iniciada.</p>;
+    if (conversations.length === 0) return <p className="text-center p-8 text-slate-400">Nenhuma conversa iniciada.</p>;
     
     return (
         <div className="divide-y divide-slate-800">
-            {items.map(item => {
-                if ('type' in item && item.type === 'ad') {
-                    return (
-                        <div key={item.key} className="p-2 bg-slate-800">
-                             {/* IMPORTANTE: Crie um bloco de anúncio para a caixa de entrada e substitua o Slot ID */}
-                             <AdSenseUnit client="ca-pub-9015745232467355" slot="3456789012" format="fluid" />
-                        </div>
-                    );
-                }
-                const convo = item as ConversationPreview;
+            {conversations.map(convo => {
                 const isOnline = onlineUsers.includes(convo.other_participant_id);
                 return (
                     <div key={convo.conversation_id} className="p-4 flex items-center space-x-3 group hover:bg-slate-800">

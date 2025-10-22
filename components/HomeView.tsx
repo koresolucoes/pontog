@@ -3,7 +3,6 @@ import { useHomeStore } from '../stores/homeStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
 import { User } from '../types';
-import { AdSenseUnit } from './AdSenseUnit';
 
 
 const GridLoader: React.FC = () => (
@@ -44,8 +43,8 @@ export const HomeView: React.FC = () => {
         setSelectedUser(user);
     };
     
-    const itemsWithAds = useMemo(() => {
-        const sortedUsers = [...popularUsers].sort((a, b) => {
+    const sortedUsers = useMemo(() => {
+        return [...popularUsers].sort((a, b) => {
             const aIsAgora = agoraUserIds.includes(a.id);
             const bIsAgora = agoraUserIds.includes(b.id);
             if (aIsAgora && !bIsAgora) return -1;
@@ -58,23 +57,6 @@ export const HomeView: React.FC = () => {
             
             return 0;
         });
-
-        // O tipo do array agora é uma união de User e um objeto que representa um anúncio
-        const items: (User | { type: 'ad'; ad_type: 'feed' | 'banner'; key: string })[] = [];
-
-        sortedUsers.forEach((user, index) => {
-            items.push(user);
-            // Insere um banner a cada 15 usuários
-            if ((index + 1) % 15 === 0) {
-                items.push({ type: 'ad', ad_type: 'banner', key: `banner-${index}` });
-            }
-            // Insere um anúncio de feed a cada 8 usuários
-            if ((index + 1) % 8 === 0) {
-                items.push({ type: 'ad', ad_type: 'feed', key: `feed-${index}` });
-            }
-        });
-
-        return items;
     }, [popularUsers, onlineUsers, agoraUserIds]);
 
 
@@ -104,36 +86,15 @@ export const HomeView: React.FC = () => {
             </header>
             
             <div className="flex-1 overflow-y-auto bg-slate-800">
-                {itemsWithAds.length === 0 && !loading ? (
+                {sortedUsers.length === 0 && !loading ? (
                     <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
                         <h2 className="text-xl font-bold">Nenhum perfil encontrado.</h2>
                         <p className="mt-2">Explore o mapa ou a grade para encontrar mais pessoas.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px content-start">
-                        {itemsWithAds.map((item, index) => {
-                            if ('type' in item && item.type === 'ad') {
-                                if (item.ad_type === 'feed') {
-                                    return (
-                                        <div key={item.key} className="relative aspect-square bg-slate-900 flex items-center justify-center text-slate-500 text-xs">
-                                             {/* IMPORTANTE: Substitua '1234567890' pelo seu Ad Slot ID real */}
-                                            <AdSenseUnit client="ca-pub-9015745232467355" slot="1234567890" format="auto" />
-                                        </div>
-                                    );
-                                }
-                                if (item.ad_type === 'banner') {
-                                    return (
-                                        <div key={item.key} className="col-span-full aspect-[2/1] sm:aspect-[3/1] bg-slate-900 flex items-center justify-center text-slate-500 text-xs">
-                                            {/* IMPORTANTE: Crie um bloco de anúncio separado para banners e substitua o Slot ID */}
-                                            <AdSenseUnit client="ca-pub-9015745232467355" slot="2345678901" format="auto" className="w-full h-full" />
-                                        </div>
-                                    );
-                                }
-                                return null;
-                            }
-                            
-                            const user = item as User;
-                            const isLastUser = index === itemsWithAds.length - 1 && 'username' in item;
+                        {sortedUsers.map((user, index) => {
+                            const isLastUser = index === sortedUsers.length - 1;
                             const isAgora = agoraUserIds.includes(user.id);
                             const isPlus = user.subscription_tier === 'plus';
                             

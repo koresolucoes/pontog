@@ -144,8 +144,16 @@ export interface AgoraComment {
     user_has_liked: boolean;
 }
 
-// FIX: Define and export Ad and TemporaryPerk types to resolve import errors.
-// These types are used for the new advertising and rewarded ad features.
+// Novo tipo para as preferências de notificação
+export type NotificationType = 'new_message' | 'new_wink' | 'new_album_request';
+
+export interface NotificationPreference {
+    notification_type: NotificationType;
+    enabled: boolean;
+}
+
+// FIX: Add missing types for Ads and TemporaryPerks
+// Novos tipos para anúncios
 export type AdType = 'feed' | 'inbox' | 'banner';
 
 export interface Ad {
@@ -158,17 +166,10 @@ export interface Ad {
     cta_url: string;
 }
 
+// Novo tipo para benefícios temporários (ads recompensados)
 export type PerkType = 'view_winks' | 'view_profile_views';
 
 export interface TemporaryPerk {
     perk: PerkType;
-    expires_at: string; // ISO date string
-}
-
-// Novo tipo para as preferências de notificação
-export type NotificationType = 'new_message' | 'new_wink' | 'new_album_request';
-
-export interface NotificationPreference {
-    notification_type: NotificationType;
-    enabled: boolean;
+    expires_at: string;
 }

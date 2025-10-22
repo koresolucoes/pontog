@@ -6,7 +6,9 @@ import { transformProfileToUser } from '../lib/utils';
 
 interface MapState {
   users: User[];
-  myLocation: Coordinates | null;
+  myLocation: Coordinates | null; // A localização efetiva (real ou simulada)
+  gpsLocation: Coordinates | null; // A localização real do GPS
+  simulatedLocation: { name: string; coords: Coordinates } | null; // A localização buscada pelo usuário
   onlineUsers: string[];
   loading: boolean;
   error: string | null;
@@ -25,6 +27,7 @@ interface MapState {
   setMyLocation: (coords: Coordinates) => void;
   setSelectedUser: (user: User | null) => void;
   setFilters: (newFilters: Partial<MapState['filters']>) => void;
+  setSimulatedLocation: (location: { name: string; coords: Coordinates } | null) => void;
   requestLocationPermission: () => void;
   stopLocationWatch: () => void;
   updateMyLocationInDb: (coords: Coordinates) => Promise<void>;
@@ -36,6 +39,8 @@ interface MapState {
 export const useMapStore = create<MapState>((set, get) => ({
   users: [],
   myLocation: null,
+  gpsLocation: null,
+  simulatedLocation: null,
   onlineUsers: [],
   loading: true,
   error: null,
@@ -55,9 +60,17 @@ export const useMapStore = create<MapState>((set, get) => ({
   setSelectedUser: (user) => set({ selectedUser: user }),
   setFilters: (newFilters) => set(state => ({ filters: { ...state.filters, ...newFilters } })),
 
+  setSimulatedLocation: (location) => {
+    set({ simulatedLocation: location });
+    if (location === null) {
+      const gpsLoc = get().gpsLocation;
+      set({ myLocation: gpsLoc });
+    } else {
+      set({ myLocation: location.coords });
+    }
+  },
 
   requestLocationPermission: () => {
-    // Prevent multiple intervals from running
     if (get().watchId) {
       get().stopLocationWatch();
     }
@@ -67,21 +80,24 @@ export const useMapStore = create<MapState>((set, get) => ({
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
-            const newLocation = { lat: latitude, lng: longitude };
+            const newGpsLocation = { lat: latitude, lng: longitude };
+            set({ gpsLocation: newGpsLocation });
             
-            const oldLocation = get().myLocation;
-            // A threshold of 0.0005 degrees is roughly 55 meters.
-            // Only update if it's the first time or location changed significantly.
-            if (!oldLocation || 
-                Math.abs(oldLocation.lat - newLocation.lat) > 0.0005 || 
-                Math.abs(oldLocation.lng - newLocation.lng) > 0.0005) {
+            // Apenas atualiza myLocation se não houver simulação ativa
+            if (!get().simulatedLocation) {
+              const oldLocation = get().myLocation;
+              if (!oldLocation || 
+                  Math.abs(oldLocation.lat - newGpsLocation.lat) > 0.0005 || 
+                  Math.abs(oldLocation.lng - newGpsLocation.lng) > 0.0005) {
                   
-              set({ myLocation: newLocation, loading: false, error: null });
-              get().updateMyLocationInDb(newLocation);
-              get().fetchNearbyUsers(newLocation);
+                set({ myLocation: newGpsLocation, loading: false, error: null });
+                get().updateMyLocationInDb(newGpsLocation);
+                get().fetchNearbyUsers(newGpsLocation);
+              } else if (get().loading) {
+                set({ loading: false });
+              }
             } else if (get().loading) {
-              // If location hasn't changed but we're still in a loading state, turn it off.
-              set({ loading: false });
+                 set({loading: false});
             }
           },
           (error) => {
@@ -90,19 +106,14 @@ export const useMapStore = create<MapState>((set, get) => ({
               loading: false, 
               error: "Não foi possível obter sua localização. Verifique as permissões do seu navegador e tente novamente." 
             });
-            // Stop trying if there's an error to avoid repeated failures.
             get().stopLocationWatch();
           },
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 } // Allow cached position for 1 min
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
         );
       };
 
-      // Perform an initial update immediately on load.
       updateLocation();
-
-      // Set up an interval to update every 30 seconds.
-      const intervalId = setInterval(updateLocation, 30000); // 30 seconds
-      
+      const intervalId = setInterval(updateLocation, 30000);
       set({ watchId: intervalId as any });
       get().setupRealtime();
 
@@ -121,7 +132,7 @@ export const useMapStore = create<MapState>((set, get) => ({
 
   updateMyLocationInDb: async (coords: Coordinates) => {
     const user = useAuthStore.getState().user;
-    if (!user) return;
+    if (!user || get().simulatedLocation) return; // Não atualiza o DB com localização simulada
     const { lat, lng } = coords;
     await supabase.rpc('update_my_location', {
         new_lat: lat,
@@ -155,10 +166,8 @@ export const useMapStore = create<MapState>((set, get) => ({
     const profile = useAuthStore.getState().profile;
     if (!profile) return;
     
-    // Cleanup existing channels before creating new ones
     get().cleanupRealtime();
 
-    // --- Presence Channel for Online Status ---
     const presenceChannel = supabase.channel('online-users');
     presenceChannel
         .on('presence', { event: 'sync' }, () => {
@@ -172,15 +181,10 @@ export const useMapStore = create<MapState>((set, get) => ({
             }
         });
 
-    // --- Realtime Channel for Profile/Location Updates ---
-    // FIX: Corrected the malformed filter object which was causing a crash.
-    // The schema string was broken due to a copy-paste error.
     const realtimeChannel = supabase
         .channel('public:profiles')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' },
             (payload) => {
-                // On any profile change (like a user updating their status or location),
-                // refetch the list of nearby users to keep the map up-to-date.
                 if (get().myLocation) {
                     get().fetchNearbyUsers(get().myLocation!);
                 }
@@ -192,8 +196,6 @@ export const useMapStore = create<MapState>((set, get) => ({
   },
 
   cleanupRealtime: () => {
-    // FIX: Implemented cleanup to remove both realtime and presence channels.
-    // This prevents duplicate channel subscriptions and memory leaks on logout/re-login.
     const { realtimeChannel, presenceChannel } = get();
     if (realtimeChannel) {
         supabase.removeChannel(realtimeChannel);

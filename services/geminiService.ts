@@ -1,9 +1,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Coordinates } from "../types";
 
-// Fix: Initialize the Gemini AI client as per the guidelines.
-// The API key is sourced directly from environment variables, assuming it's pre-configured.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+// FIX: Switched from `process.env.API_KEY` to `import.meta.env.VITE_API_KEY`
+// to correctly access client-side environment variables in a Vite-based setup,
+// resolving the "API Key must be set" error.
+const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_API_KEY! });
 
 /**
  * Generates a creative icebreaker message to start a conversation.

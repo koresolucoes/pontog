@@ -42,7 +42,7 @@ export const Auth: React.FC = () => {
             <h1 className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">
                 Ponto G
             </h1>
-            <p className="text-slate-300 mt-2 font-semibold">Encontros gays. Sem enrolação.</p>
+            <p className="text-slate-300 mt-2 font-semibold">Direto ao ponto.</p>
         </div>
         
         <div className="my-6 text-center text-amber-400 font-semibold flex items-center justify-center gap-2 border border-amber-400/50 bg-amber-400/10 py-2 px-4 rounded-lg">

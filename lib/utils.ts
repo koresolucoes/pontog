@@ -1,7 +1,7 @@
 // lib/utils.ts
 import { format, formatDistanceToNow, isToday, isYesterday, differenceInMinutes } from 'date-fns';
-// Fix: Correctly import the pt-BR locale from its specific module path.
-import { ptBR } from 'date-fns/locale/pt-BR';
+// Fix: Use the explicit file path for the locale import to ensure correct module resolution in browser environments with import maps.
+import { ptBR } from 'date-fns/locale/pt-BR/index.js';
 import { getPublicImageUrl } from './supabase';
 import { User } from '../types';
 
@@ -28,9 +28,7 @@ export const formatLastSeen = (timestamp: string | null | undefined): string => 
     if (isYesterday(date)) {
         return `Visto ontem às ${format(date, 'HH:mm', { locale: ptBR })}`;
     }
-    // FIX: Cast options to 'any' to bypass a potential TypeScript type definition issue
-    // where 'locale' is not recognized in 'FormatDistanceOptions', even though it's valid at runtime.
-    return `Visto ${formatDistanceToNow(date, { addSuffix: true, locale: ptBR } as any)}`;
+    return `Visto ${formatDistanceToNow(date, { addSuffix: true, locale: ptBR })}`;
 };
 
 /**

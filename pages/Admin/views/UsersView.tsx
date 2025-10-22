@@ -3,7 +3,8 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useAdminStore } from '../../../stores/adminStore';
 import { Profile } from '../../../types';
 import { format, formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale/pt-BR';
+// Fix: Use the explicit file path for the locale import to ensure correct module resolution in browser environments with import maps.
+import { ptBR } from 'date-fns/locale/pt-BR/index.js';
 import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import toast from 'react-hot-toast';
 

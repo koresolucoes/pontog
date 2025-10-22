@@ -1,11 +1,8 @@
-import React, { useEffect, useMemo, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useHomeStore } from '../stores/homeStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
 import { User } from '../types';
-import { geocodeLocation } from '../services/geminiService';
-import toast from 'react-hot-toast';
-
 
 const GridLoader: React.FC = () => (
     <>
@@ -17,11 +14,9 @@ const GridLoader: React.FC = () => (
 
 export const HomeView: React.FC = () => {
     const { popularUsers, loading, error, hasMore, loadingMore, fetchPopularUsers, fetchMorePopularUsers } = useHomeStore();
-    const { onlineUsers, setSelectedUser, myLocation, simulatedLocation, setSimulatedLocation } = useMapStore();
+    const { onlineUsers, setSelectedUser, myLocation } = useMapStore();
     const { agoraUserIds } = useAgoraStore();
 
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isGeocoding, setIsGeocoding] = useState(false);
     const initialFetchDone = useRef(false);
 
     useEffect(() => {
@@ -30,34 +25,6 @@ export const HomeView: React.FC = () => {
             initialFetchDone.current = true;
         }
     }, [myLocation, fetchPopularUsers]);
-
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!searchQuery.trim() || isGeocoding) return;
-
-        setIsGeocoding(true);
-        const toastId = toast.loading(`Buscando por "${searchQuery}"...`);
-
-        const coords = await geocodeLocation(searchQuery);
-        
-        setIsGeocoding(false);
-
-        if (coords) {
-            const locationName = searchQuery.trim();
-            toast.success(`Mostrando perfis perto de ${locationName}.`, { id: toastId });
-            setSimulatedLocation({ name: locationName, coords });
-            fetchPopularUsers(); 
-        } else {
-            toast.error(`Não foi possível encontrar a localização "${searchQuery}".`, { id: toastId });
-        }
-    };
-
-    const handleResetLocation = () => {
-        setSearchQuery('');
-        setSimulatedLocation(null);
-        fetchPopularUsers();
-        toast.success('Mostrando perfis perto de você.');
-    };
 
     const observer = useRef<IntersectionObserver>();
     const lastUserElementRef = useCallback((node: HTMLDivElement) => {
@@ -112,45 +79,16 @@ export const HomeView: React.FC = () => {
 
     return (
         <div className="h-full flex flex-col bg-slate-900">
-            <header className="p-4 space-y-4 relative">
-                <div>
-                    <h1 className="text-xl font-bold">Destaques</h1>
-                    {simulatedLocation ? (
-                        <p className="text-sm text-slate-400">
-                            Mostrando perfis perto de <span className="font-bold text-pink-400">{simulatedLocation.name}</span>
-                        </p>
-                    ) : (
-                         <p className="text-sm text-slate-400">Perfis populares na sua região.</p>
-                    )}
-                </div>
-                <div className="relative">
-                    <form onSubmit={handleSearch}>
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Buscar por cidade, estado ou país..."
-                            className="w-full bg-slate-800 rounded-lg py-2 pl-10 pr-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                        />
-                         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
-                            travel_explore
-                         </span>
-                         {isGeocoding && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 border-2 border-dashed rounded-full animate-spin border-white"></div>}
-                    </form>
-                    {simulatedLocation && (
-                        <button onClick={handleResetLocation} className="absolute mt-2 right-0 text-xs text-pink-400 hover:underline flex items-center gap-1">
-                            <span className="material-symbols-outlined !text-sm">my_location</span>
-                            Voltar à minha localização
-                        </button>
-                    )}
-                </div>
+            <header className="p-4">
+                <h1 className="text-xl font-bold">Destaques</h1>
+                <p className="text-sm text-slate-400">Perfis populares na sua região.</p>
             </header>
             
-            <div className={`flex-1 overflow-y-auto bg-slate-800 ${simulatedLocation ? 'pt-8' : 'pt-2'}`}>
+            <div className="flex-1 overflow-y-auto bg-slate-800">
                 {sortedUsers.length === 0 && !loading ? (
                     <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
                         <h2 className="text-xl font-bold">Nenhum perfil encontrado.</h2>
-                        <p className="mt-2">Tente buscar em outro lugar ou explore o mapa.</p>
+                        <p className="mt-2">Explore o mapa ou a grade para encontrar mais pessoas.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px content-start">

@@ -2,7 +2,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { User } from '../types';
-import { useMapStore } from './mapStore';
 import { transformProfileToUser } from '../lib/utils';
 
 const USERS_PER_PAGE = 21;
@@ -29,7 +28,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
   fetchPopularUsers: async () => {
     set({ loading: true, error: null, popularUsers: [], currentPage: 0, hasMore: true });
     
-    const myLocation = useMapStore.getState().myLocation;
+    const myLocation = (await import('./mapStore')).useMapStore.getState().myLocation;
     if (!myLocation) {
         console.warn("Cannot fetch popular users without location.");
         set({ loading: false, error: "Sua localização é necessária para ver os perfis." });
@@ -65,7 +64,7 @@ export const useHomeStore = create<HomeState>((set, get) => ({
       if (!hasMore || loadingMore) return;
 
       set({ loadingMore: true });
-      const myLocation = useMapStore.getState().myLocation;
+      const myLocation = (await import('./mapStore')).useMapStore.getState().myLocation;
       if (!myLocation) {
           set({ loadingMore: false });
           return;

@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { Coordinates } from "../types";
 
 // FIX: Switched from `process.env.API_KEY` to `import.meta.env.VITE_API_KEY`
@@ -26,54 +26,4 @@ export const generateIcebreaker = async (userName: string): Promise<string> => {
     // Provide a fallback message in case of an API error
     return "Oi! Tudo bem?";
   }
-};
-
-const locationSchema = {
-    type: Type.OBJECT,
-    properties: {
-        lat: {
-            type: Type.NUMBER,
-            description: 'A latitude da localização.',
-        },
-        lng: {
-            type: Type.NUMBER,
-            description: 'A longitude da localização.',
-        },
-    },
-    required: ["lat", "lng"],
-};
-
-/**
- * Converte o nome de uma localização em coordenadas geográficas usando Gemini.
- * @param locationName O nome do local (ex: "São Paulo, Brasil").
- * @returns Uma promessa que resolve para um objeto de Coordenadas ou nulo.
- */
-export const geocodeLocation = async (locationName: string): Promise<Coordinates | null> => {
-    try {
-        const prompt = `Encontre as coordenadas geográficas (latitude e longitude) para a seguinte localização: "${locationName}". Responda apenas com o objeto JSON contendo as chaves "lat" e "lng".`;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: locationSchema,
-            },
-        });
-        
-        const jsonText = response.text.trim();
-        const parsedJson = JSON.parse(jsonText);
-
-        if (parsedJson && typeof parsedJson.lat === 'number' && typeof parsedJson.lng === 'number') {
-            return {
-                lat: parsedJson.lat,
-                lng: parsedJson.lng,
-            };
-        }
-        console.warn("Geocoding response was not in the expected format:", jsonText);
-        return null;
-    } catch (error) {
-        console.error("Error geocoding location with Gemini:", error);
-        return null;
-    }
 };

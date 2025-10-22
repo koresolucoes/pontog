@@ -6,9 +6,7 @@ import { transformProfileToUser } from '../lib/utils';
 
 interface MapState {
   users: User[];
-  myLocation: Coordinates | null; // A localização efetiva (real ou simulada)
-  gpsLocation: Coordinates | null; // A localização real do GPS
-  simulatedLocation: { name: string; coords: Coordinates } | null; // A localização buscada pelo usuário
+  myLocation: Coordinates | null; // A localização do GPS do usuário
   onlineUsers: string[];
   loading: boolean;
   error: string | null;
@@ -27,7 +25,6 @@ interface MapState {
   setMyLocation: (coords: Coordinates) => void;
   setSelectedUser: (user: User | null) => void;
   setFilters: (newFilters: Partial<MapState['filters']>) => void;
-  setSimulatedLocation: (location: { name: string; coords: Coordinates } | null) => void;
   requestLocationPermission: () => void;
   stopLocationWatch: () => void;
   updateMyLocationInDb: (coords: Coordinates) => Promise<void>;
@@ -39,8 +36,6 @@ interface MapState {
 export const useMapStore = create<MapState>((set, get) => ({
   users: [],
   myLocation: null,
-  gpsLocation: null,
-  simulatedLocation: null,
   onlineUsers: [],
   loading: true,
   error: null,
@@ -60,16 +55,6 @@ export const useMapStore = create<MapState>((set, get) => ({
   setSelectedUser: (user) => set({ selectedUser: user }),
   setFilters: (newFilters) => set(state => ({ filters: { ...state.filters, ...newFilters } })),
 
-  setSimulatedLocation: (location) => {
-    set({ simulatedLocation: location });
-    if (location === null) {
-      const gpsLoc = get().gpsLocation;
-      set({ myLocation: gpsLoc });
-    } else {
-      set({ myLocation: location.coords });
-    }
-  },
-
   requestLocationPermission: () => {
     if (get().watchId) {
       get().stopLocationWatch();
@@ -80,24 +65,20 @@ export const useMapStore = create<MapState>((set, get) => ({
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
-            const newGpsLocation = { lat: latitude, lng: longitude };
-            set({ gpsLocation: newGpsLocation });
+            const newLocation = { lat: latitude, lng: longitude };
             
-            // Apenas atualiza myLocation se não houver simulação ativa
-            if (!get().simulatedLocation) {
-              const oldLocation = get().myLocation;
-              if (!oldLocation || 
-                  Math.abs(oldLocation.lat - newGpsLocation.lat) > 0.0005 || 
-                  Math.abs(oldLocation.lng - newGpsLocation.lng) > 0.0005) {
-                  
-                set({ myLocation: newGpsLocation, loading: false, error: null });
-                get().updateMyLocationInDb(newGpsLocation);
-                get().fetchNearbyUsers(newGpsLocation);
-              } else if (get().loading) {
-                set({ loading: false });
-              }
+            const oldLocation = get().myLocation;
+            // Apenas atualiza se a localização mudou significativamente ou se é a primeira vez
+            if (!oldLocation || 
+                Math.abs(oldLocation.lat - newLocation.lat) > 0.0005 || 
+                Math.abs(oldLocation.lng - newLocation.lng) > 0.0005) {
+                
+              set({ myLocation: newLocation, loading: false, error: null });
+              get().updateMyLocationInDb(newLocation);
+              get().fetchNearbyUsers(newLocation);
             } else if (get().loading) {
-                 set({loading: false});
+              // Se a localização não mudou, mas ainda estávamos carregando, para de carregar.
+              set({ loading: false });
             }
           },
           (error) => {
@@ -132,7 +113,7 @@ export const useMapStore = create<MapState>((set, get) => ({
 
   updateMyLocationInDb: async (coords: Coordinates) => {
     const user = useAuthStore.getState().user;
-    if (!user || get().simulatedLocation) return; // Não atualiza o DB com localização simulada
+    if (!user) return;
     const { lat, lng } = coords;
     await supabase.rpc('update_my_location', {
         new_lat: lat,

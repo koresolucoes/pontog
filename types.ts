@@ -1,5 +1,22 @@
 // types.ts
 
+// Novo tipo para Anúncios
+export interface Ad {
+  id: number;
+  ad_type: 'feed' | 'inbox';
+  title: string;
+  description: string;
+  image_url: string;
+  cta_text: string;
+  cta_url: string;
+}
+
+// Novo tipo para benefícios temporários
+export interface TemporaryPerk {
+  perk: 'view_winks' | 'view_profile_views';
+  expires_at: string; // ISO string
+}
+
 export interface Coordinates {
   lat: number;
   lng: number;

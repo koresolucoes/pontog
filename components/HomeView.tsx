@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useHomeStore } from '../stores/homeStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
-import { User } from '../types';
+import { User, Ad } from '../types';
+import { useAdStore } from '../stores/adStore';
+import { FeedAdCard } from './FeedAdCard';
+
 
 const GridLoader: React.FC = () => (
     <>
@@ -16,15 +19,17 @@ export const HomeView: React.FC = () => {
     const { popularUsers, loading, error, hasMore, loadingMore, fetchPopularUsers, fetchMorePopularUsers } = useHomeStore();
     const { onlineUsers, setSelectedUser, myLocation } = useMapStore();
     const { agoraUserIds } = useAgoraStore();
+    const { feedAd, fetchAds } = useAdStore();
 
     const initialFetchDone = useRef(false);
 
     useEffect(() => {
         if (myLocation && !initialFetchDone.current) {
             fetchPopularUsers();
+            fetchAds();
             initialFetchDone.current = true;
         }
-    }, [myLocation, fetchPopularUsers]);
+    }, [myLocation, fetchPopularUsers, fetchAds]);
 
     const observer = useRef<IntersectionObserver>();
     const lastUserElementRef = useCallback((node: HTMLDivElement) => {
@@ -42,8 +47,8 @@ export const HomeView: React.FC = () => {
         setSelectedUser(user);
     };
     
-    const sortedUsers = useMemo(() => {
-        return [...popularUsers].sort((a, b) => {
+    const itemsWithAds = useMemo(() => {
+        let items: (User | Ad)[] = [...popularUsers].sort((a, b) => {
             const aIsAgora = agoraUserIds.includes(a.id);
             const bIsAgora = agoraUserIds.includes(b.id);
             if (aIsAgora && !bIsAgora) return -1;
@@ -56,7 +61,13 @@ export const HomeView: React.FC = () => {
             
             return 0;
         });
-    }, [popularUsers, onlineUsers, agoraUserIds]);
+
+        if (feedAd && items.length > 8) {
+            items.splice(8, 0, feedAd);
+        }
+
+        return items;
+    }, [popularUsers, onlineUsers, agoraUserIds, feedAd]);
 
 
     if (loading && popularUsers.length === 0) {
@@ -85,15 +96,19 @@ export const HomeView: React.FC = () => {
             </header>
             
             <div className="flex-1 overflow-y-auto bg-slate-800">
-                {sortedUsers.length === 0 && !loading ? (
+                {itemsWithAds.length === 0 && !loading ? (
                     <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
                         <h2 className="text-xl font-bold">Nenhum perfil encontrado.</h2>
                         <p className="mt-2">Explore o mapa ou a grade para encontrar mais pessoas.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px content-start">
-                        {sortedUsers.map((user, index) => {
-                            const isLast = index === sortedUsers.length - 1;
+                        {itemsWithAds.map((item, index) => {
+                            if ('ad_type' in item) {
+                                return <FeedAdCard key={`ad-${item.id}`} ad={item} />;
+                            }
+                            const user = item as User;
+                            const isLast = index === itemsWithAds.length - 1;
                             const isAgora = agoraUserIds.includes(user.id);
                             const isPlus = user.subscription_tier === 'plus';
                             return (

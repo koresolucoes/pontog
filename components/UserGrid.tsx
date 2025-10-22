@@ -1,17 +1,21 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
-import { User } from '../types';
+import { User, Ad } from '../types';
 import { FilterModal } from './FilterModal';
+import { useAdStore } from '../stores/adStore';
+import { FeedAdCard } from './FeedAdCard';
 
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();
     const { agoraUserIds, fetchAgoraPosts } = useAgoraStore();
+    const { feedAd, fetchAds } = useAdStore();
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
     useEffect(() => {
         fetchAgoraPosts();
-    }, [fetchAgoraPosts]);
+        fetchAds();
+    }, [fetchAgoraPosts, fetchAds]);
 
     const handleUserClick = (user: User) => {
         setSelectedUser(user);
@@ -65,6 +69,14 @@ export const UserGrid: React.FC = () => {
         return finalUsers;
     }, [users, onlineUsers, filters, agoraUserIds]);
     
+    const itemsWithAds = useMemo(() => {
+        let items: (User | Ad)[] = [...filteredUsers];
+        if (feedAd && items.length > 8) {
+            items.splice(8, 0, feedAd);
+        }
+        return items;
+    }, [filteredUsers, feedAd]);
+
     // Check if any filter is active to highlight the button
     const isAgeFilterActive = filters.minAge !== 18 || filters.maxAge !== 99;
     const arePositionsFiltered = filters.positions.length > 0;
@@ -99,7 +111,7 @@ export const UserGrid: React.FC = () => {
                  <FilterButton label="Filtros" isActive={areAnyFiltersActive} />
             </div>
             
-            {filteredUsers.length === 0 ? (
+            {itemsWithAds.length === 0 ? (
                  <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
                     <h2 className="text-xl font-bold">Ninguém encontrado</h2>
                     <p className="mt-2">Tente ajustar seus filtros ou volte mais tarde.</p>
@@ -107,7 +119,11 @@ export const UserGrid: React.FC = () => {
             ) : (
                 <div className="flex-1 overflow-y-auto bg-slate-800">
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px">
-                        {filteredUsers.map((user) => {
+                        {itemsWithAds.map((item) => {
+                             if ('ad_type' in item) {
+                                return <FeedAdCard key={`ad-${item.id}`} ad={item} />;
+                            }
+                            const user = item as User;
                             const isAgora = agoraUserIds.includes(user.id);
                             const isPlus = user.subscription_tier === 'plus';
                             return (

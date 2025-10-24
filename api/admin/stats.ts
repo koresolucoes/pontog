@@ -41,8 +41,8 @@ export default async function handler(
     ).length;
     
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const dailySignups = authUsersData.users.filter((u: SupabaseAuthUser) => 
-        new Date(u.created_at) > twentyFourHoursAgo
+    const dailySignups = authUsersData.users.filter((user: { created_at: string }) => 
+        new Date(user.created_at) > twentyFourHoursAgo
     ).length;
 
     const { data: totalRevenueData, error: revenueError } = await supabaseAdmin

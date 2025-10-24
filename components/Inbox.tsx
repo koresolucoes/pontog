@@ -3,11 +3,14 @@ import { useInboxStore } from '../stores/inboxStore';
 import { useUiStore } from '../stores/uiStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
+import { useAdStore } from '../stores/adStore';
 import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest, ProfileViewWithProfile } from '../types';
 import { formatDistanceToNow } from 'date-fns';
-// Fix: Correctly import the pt-BR locale from its specific module path.
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { ConfirmationModal } from './ConfirmationModal';
+import { AdSenseUnit } from './AdSenseUnit';
+import { UnlockFeatureModal } from './UnlockFeatureModal';
+import { RewardAdModal } from './RewardAdModal';
 
 
 type ActiveTab = 'messages' | 'winks' | 'views' | 'requests';
@@ -51,11 +54,12 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const { setChatUser, setSubscriptionModalOpen } = useUiStore();
     const { setSelectedUser } = useMapStore();
     const { user: currentUser } = useAuthStore();
+    const { grantTemporaryPerk } = useAdStore();
     
     const [confirmDelete, setConfirmDelete] = useState<ConversationPreview | null>(null);
+    const [unlockModal, setUnlockModal] = useState<'winks' | 'views' | null>(null);
+    const [rewardModal, setRewardModal] = useState<'winks' | 'views' | null>(null);
 
-    // FIX: A lógica foi dividida em múltiplos `useEffect` para evitar o loop infinito.
-    // Este efeito é responsável por buscar os dados apropriados quando o usuário troca de aba.
     useEffect(() => {
         if (activeTab === 'winks') {
             fetchWinks();
@@ -68,15 +72,12 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         }
     }, [activeTab, fetchWinks, fetchAccessRequests, fetchProfileViews]);
     
-    // FIX: Este efeito é responsável por limpar a contagem de notificações de 'winks'
-    // assim que os dados são carregados na tela. Ele não causa mais um loop.
     useEffect(() => {
         if (activeTab === 'winks' && winks.length > 0) {
             clearWinks();
         }
     }, [activeTab, winks, clearWinks]);
 
-    // FIX: Efeito similar para limpar as notificações de 'solicitações de acesso'.
     useEffect(() => {
         if (activeTab === 'requests' && accessRequests.length > 0) {
             clearAccessRequests();
@@ -84,9 +85,6 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     }, [activeTab, accessRequests, clearAccessRequests]);
 
     const handleConversationClick = (convo: ConversationPreview) => {
-        // FIX: Adiciona as propriedades que faltavam para que o objeto corresponda ao tipo `User`.
-        // Como `ConversationPreview` não tem todos os dados de um perfil completo,
-        // preenchemos os campos restantes com valores padrão/dummy para satisfazer o TypeScript.
         const chatPartner: User = {
             id: convo.other_participant_id, username: convo.other_participant_username,
             avatar_url: convo.other_participant_avatar_url, last_seen: convo.other_participant_last_seen,
@@ -96,7 +94,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             subscription_tier: convo.other_participant_subscription_tier,
             subscription_expires_at: null, is_incognito: false,
             has_completed_onboarding: true,
-            has_private_albums: false, // Defaulting, as this info is not in convo preview
+            has_private_albums: false,
             email: '',
             created_at: '',
             status: 'active',
@@ -114,7 +112,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     
     const handlePremiumFeatureClick = (feature: 'winks' | 'views') => {
         if (currentUser?.subscription_tier !== 'plus') {
-            setSubscriptionModalOpen(true);
+            setUnlockModal(feature);
         } else {
             setActiveTab(feature);
         }
@@ -165,7 +163,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                         loading={loadingWinks}
                         isPlus={currentUser?.subscription_tier === 'plus'}
                         onWinkClick={handlePremiumUserClick}
-                        onUpgradeClick={() => setSubscriptionModalOpen(true)}
+                        onUpgradeClick={() => setUnlockModal('winks')}
                     />
                 )}
                  {activeTab === 'views' && (
@@ -174,7 +172,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                         loading={loadingProfileViews}
                         isPlus={currentUser?.subscription_tier === 'plus'}
                         onViewClick={handlePremiumUserClick}
-                        onUpgradeClick={() => setSubscriptionModalOpen(true)}
+                        onUpgradeClick={() => setUnlockModal('views')}
                     />
                 )}
                 {activeTab === 'requests' && (
@@ -196,6 +194,24 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                 confirmText="Apagar"
              />
         )}
+        {unlockModal && (
+            <UnlockFeatureModal
+                title={unlockModal === 'winks' ? 'Veja quem te chamou' : 'Descubra quem te viu'}
+                description="Assine o Plus para acesso ilimitado ou veja um anúncio para liberar por 1 hora."
+                onClose={() => setUnlockModal(null)}
+                onUpgrade={() => { setSubscriptionModalOpen(true); setUnlockModal(null); }}
+                onWatchAd={() => { setRewardModal(unlockModal); setUnlockModal(null); }}
+            />
+        )}
+        {rewardModal && (
+            <RewardAdModal
+                onClose={() => setRewardModal(null)}
+                onReward={() => {
+                    grantTemporaryPerk(rewardModal === 'winks' ? 'view_winks' : 'view_profile_views', 1);
+                    setActiveTab(rewardModal);
+                }}
+            />
+        )}
         </>
     );
 };
@@ -212,12 +228,32 @@ interface ConversationListProps {
 const ConversationList: React.FC<ConversationListProps> = ({ conversations, loading, onConversationClick, onDeleteClick, currentUserId }) => {
     const onlineUsers = useMapStore((state) => state.onlineUsers);
 
+    const itemsWithAd = useMemo(() => {
+        const items: (ConversationPreview | { type: 'ad' })[] = [...conversations];
+        if (items.length > 3) {
+            items.splice(3, 0, { type: 'ad' });
+        }
+        return items;
+    }, [conversations]);
+
     if (loading) return <p className="text-center p-8 text-slate-400">Carregando conversas...</p>;
     if (conversations.length === 0) return <p className="text-center p-8 text-slate-400">Nenhuma conversa iniciada.</p>;
     
     return (
         <div className="divide-y divide-slate-800">
-            {conversations.map(convo => {
+            {itemsWithAd.map(item => {
+                 if ('type' in item && item.type === 'ad') {
+                    return (
+                        <div key="ad-inbox" className="p-1">
+                            <AdSenseUnit
+                                client="ca-pub-9015745232467355"
+                                slot="3561488011"
+                                format="fluid"
+                            />
+                        </div>
+                    );
+                }
+                const convo = item as ConversationPreview;
                 const isOnline = onlineUsers.includes(convo.other_participant_id);
                 return (
                     <div key={convo.conversation_id} className="p-4 flex items-center space-x-3 group hover:bg-slate-800">
@@ -236,7 +272,6 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
                                         {isOnline && <div className="w-2 h-2 rounded-full bg-green-400"></div>}
                                         <h3 className="font-bold truncate text-base">{convo.other_participant_username}</h3>
                                     </div>
-                                    {/* FIX: Cast options to 'any' to bypass a TypeScript type definition issue where 'locale' is not recognized. */}
                                     <span className="text-xs text-slate-500 flex-shrink-0 ml-2">{formatDistanceToNow(new Date(convo.last_message_created_at), { addSuffix: true, locale: ptBR } as any)}</span>
                                 </div>
                                 <p className={`text-sm truncate ${convo.unread_count > 0 ? 'text-white' : 'text-slate-400'}`}>
@@ -261,10 +296,13 @@ interface WinkListProps {
     onUpgradeClick: () => void;
 }
 const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick, onUpgradeClick }) => {
-    if (loading) return <p className="text-center p-8 text-slate-400">Carregando chamados...</p>;
-    if (!isPlus && winks.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém te chamou ainda.</p>;
+    const hasWinkPerk = useAdStore(state => state.hasPerk('view_winks'));
+    const canView = isPlus || hasWinkPerk;
 
-    if (!isPlus) {
+    if (loading) return <p className="text-center p-8 text-slate-400">Carregando chamados...</p>;
+    if (!canView && winks.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém te chamou ainda.</p>;
+
+    if (!canView) {
         return (
             <div className="relative p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
                 {winks.slice(0, 10).map(wink => (
@@ -275,9 +313,9 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
                 <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
                     <span className="material-symbols-outlined text-5xl text-pink-400 mb-4">lock</span>
                     <h3 className="text-lg font-bold text-white">Veja quem te chamou</h3>
-                    <p className="text-slate-300 my-2">Assine o Ponto G Plus para desbloquear esta e outras funcionalidades.</p>
+                    <p className="text-slate-300 my-2">Assine o Ponto G Plus para desbloquear ou veja um anúncio.</p>
                     <button onClick={onUpgradeClick} className="mt-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-2 px-6 rounded-lg">
-                        Fazer Upgrade
+                        Desbloquear Opções
                     </button>
                 </div>
             </div>
@@ -294,7 +332,6 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                     <div className="absolute bottom-2 left-2 right-2 text-white">
                         <h3 className="font-semibold text-sm truncate">{wink.username}</h3>
-                        {/* FIX: Cast options to 'any' to bypass a TypeScript type definition issue where 'locale' is not recognized. */}
                         <p className="text-xs text-slate-300">{formatDistanceToNow(new Date(wink.wink_created_at), { addSuffix: true, locale: ptBR } as any)}</p>
                     </div>
                 </div>
@@ -309,10 +346,13 @@ interface ProfileViewListProps {
     onUpgradeClick: () => void;
 }
 const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlus, onViewClick, onUpgradeClick }) => {
-    if (loading) return <p className="text-center p-8 text-slate-400">Carregando visitantes...</p>;
-    if (!isPlus && views.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém visitou seu perfil ainda.</p>;
+    const hasViewPerk = useAdStore(state => state.hasPerk('view_profile_views'));
+    const canView = isPlus || hasViewPerk;
 
-    if (!isPlus) {
+    if (loading) return <p className="text-center p-8 text-slate-400">Carregando visitantes...</p>;
+    if (!canView && views.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém visitou seu perfil ainda.</p>;
+
+    if (!canView) {
         return (
             <div className="relative p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
                 {views.slice(0, 10).map(view => (
@@ -323,9 +363,9 @@ const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlu
                 <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
                     <span className="material-symbols-outlined text-5xl text-pink-400 mb-4">visibility</span>
                     <h3 className="text-lg font-bold text-white">Descubra quem te viu</h3>
-                    <p className="text-slate-300 my-2">Veja todos que visitaram seu perfil com o Ponto G Plus.</p>
+                    <p className="text-slate-300 my-2">Veja quem visitou seu perfil com o Plus ou assistindo a um anúncio.</p>
                     <button onClick={onUpgradeClick} className="mt-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-2 px-6 rounded-lg">
-                        Fazer Upgrade
+                        Desbloquear Opções
                     </button>
                 </div>
             </div>
@@ -342,7 +382,6 @@ const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlu
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                     <div className="absolute bottom-2 left-2 right-2 text-white">
                         <h3 className="font-semibold text-sm truncate">{view.username}</h3>
-                         {/* FIX: Cast options to 'any' to bypass a TypeScript type definition issue where 'locale' is not recognized. */}
                          <p className="text-xs text-slate-300">{formatDistanceToNow(new Date(view.viewed_at), { addSuffix: true, locale: ptBR } as any)}</p>
                     </div>
                 </div>
@@ -368,7 +407,6 @@ const RequestList: React.FC<RequestListProps> = ({ requests, loading, onRespond 
                         <p className="text-sm">
                             <span className="font-bold">{req.username}</span> solicitou acesso aos seus álbuns.
                         </p>
-                        {/* FIX: Cast options to 'any' to bypass a TypeScript type definition issue where 'locale' is not recognized. */}
                         <span className="text-xs text-slate-500">{formatDistanceToNow(new Date(req.created_at), { addSuffix: true, locale: ptBR } as any)}</span>
                     </div>
                     <div className="flex gap-3">

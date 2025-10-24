@@ -3,6 +3,7 @@ import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
 import { User } from '../types';
 import { FilterModal } from './FilterModal';
+import { AdSenseUnit } from './AdSenseUnit';
 
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();
@@ -25,7 +26,7 @@ export const UserGrid: React.FC = () => {
         setIsFilterModalOpen(true);
     }
 
-    const filteredUsers = useMemo(() => {
+    const itemsWithAds = useMemo(() => {
         let sortedUsers = [...users].sort((a, b) => {
             const aIsAgora = agoraUserIds.includes(a.id);
             const bIsAgora = agoraUserIds.includes(b.id);
@@ -62,7 +63,11 @@ export const UserGrid: React.FC = () => {
             );
         }
         
-        return finalUsers;
+        const items: (User | { type: 'ad' })[] = [...finalUsers];
+        if (items.length > 8) {
+            items.splice(8, 0, { type: 'ad' });
+        }
+        return items;
     }, [users, onlineUsers, filters, agoraUserIds]);
 
     // Check if any filter is active to highlight the button
@@ -99,7 +104,7 @@ export const UserGrid: React.FC = () => {
                  <FilterButton label="Filtros" isActive={areAnyFiltersActive} />
             </div>
             
-            {filteredUsers.length === 0 ? (
+            {itemsWithAds.length === 0 ? (
                  <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
                     <h2 className="text-xl font-bold">Ninguém encontrado</h2>
                     <p className="mt-2">Tente ajustar seus filtros ou volte mais tarde.</p>
@@ -107,7 +112,20 @@ export const UserGrid: React.FC = () => {
             ) : (
                 <div className="flex-1 overflow-y-auto bg-slate-800">
                     <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px">
-                        {filteredUsers.map((user) => {
+                        {itemsWithAds.map((item, index) => {
+                            if ('type' in item && item.type === 'ad') {
+                                return (
+                                    <div key={`ad-${index}`} className="relative aspect-square bg-slate-900 p-1">
+                                        <AdSenseUnit
+                                            client="ca-pub-9015745232467355"
+                                            slot="8953415490"
+                                            format="fluid"
+                                            className="w-full h-full"
+                                        />
+                                    </div>
+                                );
+                            }
+                            const user = item as User;
                             const isAgora = agoraUserIds.includes(user.id);
                             const isPlus = user.subscription_tier === 'plus';
                             return (

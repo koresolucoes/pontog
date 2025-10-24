@@ -9,6 +9,7 @@ import { NotificationType } from '../types';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { BlockedUsersModal } from './BlockedUsersModal';
+import { AdSenseUnit } from './AdSenseUnit';
 
 const ToggleSwitch: React.FC<{
     label: string;
@@ -214,6 +215,14 @@ export const ProfileView: React.FC = () => {
                                 <span className="material-symbols-outlined text-pink-400">volunteer_activism</span>
                                 Apoie o Desenvolvedor
                             </button>
+                             <div className="px-3 pt-2">
+                                <AdSenseUnit
+                                    client="ca-pub-9015745232467355"
+                                    slot="4962199596"
+                                    format="auto"
+                                    responsive={true}
+                                />
+                            </div>
                             <button onClick={signOut} className="w-full text-left p-3 rounded-lg hover:bg-slate-800 font-semibold text-red-400">Sair</button>
                         </div>
                     </div>

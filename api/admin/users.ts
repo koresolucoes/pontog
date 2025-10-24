@@ -2,6 +2,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 
 const verifyAdmin = (req: VercelRequest) => {
     const token = req.headers.authorization?.split(' ')[1];
@@ -49,7 +50,7 @@ export default async function handler(
     if (authUsersError) throw authUsersError;
     if (profilesError) throw profilesError;
 
-    const authUserMap = new Map(authUsers.map(u => [u.id, u]));
+    const authUserMap = new Map(authUsers.map((u: SupabaseAuthUser) => [u.id, u]));
         
     const processedData = profiles.map((profile: any) => {
         const authUser = authUserMap.get(profile.id);

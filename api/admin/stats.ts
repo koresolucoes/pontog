@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
+import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 
 const verifyAdmin = (req: VercelRequest) => {
     const token = req.headers.authorization?.split(' ')[1];
@@ -40,7 +41,7 @@ export default async function handler(
     ).length;
     
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const dailySignups = authUsersData.users.filter(u => 
+    const dailySignups = authUsersData.users.filter((u: SupabaseAuthUser) => 
         new Date(u.created_at) > twentyFourHoursAgo
     ).length;
 

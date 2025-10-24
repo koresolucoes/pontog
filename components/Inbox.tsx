@@ -248,7 +248,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
                             <AdSenseUnit
                                 client="ca-pub-9015745232467355"
                                 slot="3561488011"
-                                format="fluid"
+                                format="auto"
                             />
                         </div>
                     );

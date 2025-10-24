@@ -119,7 +119,7 @@ export const UserGrid: React.FC = () => {
                                         <AdSenseUnit
                                             client="ca-pub-9015745232467355"
                                             slot="8953415490"
-                                            format="fluid"
+                                            format="auto"
                                             className="w-full h-full"
                                         />
                                     </div>

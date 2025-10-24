@@ -50,7 +50,7 @@ export default async function handler(
     if (authUsersError) throw authUsersError;
     if (profilesError) throw profilesError;
 
-    const authUserMap = new Map(authUsers.map((u: { id: string }) => [u.id, u]));
+    const authUserMap = new Map(authUsers.map((u: SupabaseAuthUser): [string, SupabaseAuthUser] => [u.id, u]));
         
     const processedData = profiles.map((profile: any) => {
         const authUser = authUserMap.get(profile.id);
@@ -58,10 +58,8 @@ export default async function handler(
         
         return {
             ...rest,
-            // FIX: Cast `authUser` to `any` to resolve TypeScript error where its type is inferred as 'unknown'.
-            // This allows safe access to properties that are known to exist on the auth user object.
-            email: (authUser as any)?.email,
-            created_at: (authUser as any)?.created_at,
+            email: authUser?.email,
+            created_at: authUser?.created_at,
             tribes: profile_tribes.map((pt: any) => pt.tribes.name),
             lat: location?.coordinates?.[1] ?? null,
             lng: location?.coordinates?.[0] ?? null,

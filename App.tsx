@@ -188,7 +188,13 @@ const App: React.FC = () => {
                         <span className="material-symbols-rounded">menu</span>
                     </button>
 
-                    <main className="flex-1 overflow-hidden pb-0 z-10">{renderActiveView()}</main>
+                    {/* Main Content Area with Transition Wrapper */}
+                    <main className="flex-1 overflow-hidden pb-0 z-10 relative">
+                        {/* A prop 'key' força o React a recriar o componente, disparando a animação CSS novamente */}
+                        <div key={activeView} className="w-full h-full animate-fade-in">
+                            {renderActiveView()}
+                        </div>
+                    </main>
                     
                     {selectedUser && (
                         <ProfileModal 

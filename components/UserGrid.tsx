@@ -1,3 +1,4 @@
+
 import React, { useMemo, useEffect, useState } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
@@ -78,57 +79,58 @@ export const UserGrid: React.FC = () => {
     const FilterButton = ({ label, isActive }: { label: string, isActive: boolean }) => (
         <button 
             onClick={handleFilterClick} 
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 shadow-lg backdrop-blur-md ${
                 isActive 
-                    ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg shadow-pink-900/20 border border-pink-500/50' 
-                    : 'bg-slate-800/80 text-slate-300 border border-slate-700 hover:bg-slate-700'
+                    ? 'bg-pink-600/90 text-white shadow-pink-900/30 border border-pink-500/50' 
+                    : 'bg-slate-800/60 text-slate-300 border border-white/10 hover:bg-slate-700/80'
             }`}
         >
-            <span className="material-symbols-rounded !text-[16px]">tune</span>
+            <span className="material-symbols-rounded !text-[18px]">tune</span>
             {label}
         </button>
     );
 
     return (
         <>
-        <div className="h-full flex flex-col pb-20"> {/* Added padding bottom for floating nav */}
-            <div className="p-4 flex items-center space-x-3 overflow-x-auto sticky top-0 z-10 bg-dark-900/90 backdrop-blur-md border-b border-white/5">
+        <div className="h-full flex flex-col pb-24 bg-dark-900"> {/* Background mais profundo */}
+            {/* Header Flutuante com Glassmorphism */}
+            <div className="px-4 py-3 flex items-center space-x-3 overflow-x-auto sticky top-0 z-20 bg-dark-900/80 backdrop-blur-xl border-b border-white/5 mask-image-b">
                 <button
                     onClick={toggleOnlineOnly}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 shadow-lg backdrop-blur-md ${
                         filters.onlineOnly 
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/50 shadow-[0_0_10px_rgba(74,222,128,0.2)]' 
-                            : 'bg-slate-800/80 text-slate-300 border border-slate-700 hover:bg-slate-700'
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/50 shadow-[0_0_15px_rgba(74,222,128,0.15)]' 
+                            : 'bg-slate-800/60 text-slate-300 border border-white/10 hover:bg-slate-700/80'
                     }`}
                 >
-                    <div className={`w-2 h-2 rounded-full ${filters.onlineOnly ? 'bg-green-400 animate-pulse' : 'bg-slate-400'}`}></div>
+                    <div className={`w-2 h-2 rounded-full ${filters.onlineOnly ? 'bg-green-400 animate-pulse shadow-[0_0_8px_#4ade80]' : 'bg-slate-400'}`}></div>
                     Online
                 </button>
                  <FilterButton label="Filtros" isActive={areAnyFiltersActive} />
             </div>
             
             {itemsWithAds.length === 0 ? (
-                 <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
-                    <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                        <span className="material-symbols-rounded text-4xl text-slate-600">search_off</span>
+                 <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8 animate-fade-in">
+                    <div className="w-24 h-24 bg-slate-800/50 rounded-full flex items-center justify-center mb-6 border border-white/5">
+                        <span className="material-symbols-rounded text-5xl text-slate-600">search_off</span>
                     </div>
-                    <h2 className="text-xl font-bold text-slate-300">Ninguém encontrado</h2>
-                    <p className="mt-2 text-slate-400">Tente ajustar seus filtros ou volte mais tarde.</p>
+                    <h2 className="text-2xl font-bold text-slate-200 tracking-tight">Ninguém por aqui</h2>
+                    <p className="mt-3 text-slate-400 max-w-xs mx-auto leading-relaxed">Tente ajustar seus filtros ou expanda a busca para encontrar alguém.</p>
                 </div>
             ) : (
-                <div className="flex-1 overflow-y-auto px-2 sm:px-4 pt-2">
-                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
+                <div className="flex-1 overflow-y-auto px-3 pt-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pb-4">
                         {itemsWithAds.map((item, index) => {
                             if ('type' in item && item.type === 'ad') {
                                 return (
-                                    <div key={`ad-${index}`} className="relative aspect-[3/4] bg-slate-800 rounded-2xl overflow-hidden flex items-center justify-center">
+                                    <div key={`ad-${index}`} className="relative aspect-[3/4] bg-slate-800/50 rounded-3xl overflow-hidden flex items-center justify-center border border-white/5">
                                         <AdSenseUnit
                                             client="ca-pub-9015745232467355"
                                             slot="8953415490"
                                             format="auto"
                                             className="w-full h-full"
                                         />
-                                        <div className="absolute top-2 right-2 bg-black/50 px-1.5 rounded text-[10px] text-white/70">Ad</div>
+                                        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-md text-[9px] font-bold text-white/50 tracking-widest border border-white/5">ADS</div>
                                     </div>
                                 );
                             }
@@ -140,48 +142,53 @@ export const UserGrid: React.FC = () => {
                             return (
                                 <div 
                                     key={user.id} 
-                                    className={`relative aspect-[3/4] cursor-pointer group rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${isAgora ? 'ring-2 ring-red-500 shadow-[0_0_15px_rgba(220,38,38,0.3)]' : ''}`}
+                                    className={`relative aspect-[3/4] cursor-pointer group rounded-3xl overflow-hidden transition-all duration-500 bg-slate-800 ${isAgora ? 'ring-2 ring-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)]' : 'hover:shadow-2xl hover:shadow-black/50'}`}
                                     onClick={() => handleUserClick(user)}
                                 >
                                     <img 
                                         src={user.avatar_url} 
                                         alt={user.username} 
                                         loading="lazy"
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                                        className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" 
                                     />
                                     
-                                    {/* Gradient Overlay */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
+                                    {/* Cinematic Gradient Overlay */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
                                     
-                                    {/* Status Badge Top Right */}
-                                    <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+                                    {/* Badges Container - Top Right */}
+                                    <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
                                         {isAgora && (
-                                            <div className="bg-red-600 text-white rounded-full p-1.5 shadow-lg animate-pulse-fire">
-                                                <span className="material-symbols-rounded filled !text-[14px] block">local_fire_department</span>
+                                            <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-full p-1.5 shadow-lg shadow-red-900/50 animate-pulse-fire border border-white/20">
+                                                <span className="material-symbols-rounded filled !text-[16px] block">local_fire_department</span>
                                             </div>
                                         )}
                                         {isPlus && !isAgora && (
-                                            <div className="bg-yellow-500/90 backdrop-blur-sm text-black rounded-full p-1 shadow-lg">
-                                                <span className="material-symbols-rounded filled !text-[12px] block">auto_awesome</span>
+                                            <div className="bg-yellow-500/90 backdrop-blur-md text-black rounded-full p-1.5 shadow-lg border border-yellow-300/50">
+                                                <span className="material-symbols-rounded filled !text-[14px] block">auto_awesome</span>
                                             </div>
                                         )}
                                     </div>
 
-                                    {/* Online Indicator Top Left */}
+                                    {/* Online Indicator - Top Left */}
                                     {isOnline && (
-                                        <div className="absolute top-3 left-3 w-3 h-3 bg-green-500 border-2 border-black rounded-full shadow-sm"></div>
+                                        <div className="absolute top-4 left-4">
+                                            <span className="relative flex h-3 w-3">
+                                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500 shadow-[0_0_8px_rgba(74,222,128,0.8)] border border-white/20"></span>
+                                            </span>
+                                        </div>
                                     )}
 
-                                    {/* User Info Bottom */}
-                                    <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                                        <h3 className="font-bold text-sm truncate leading-tight drop-shadow-md">{user.username}</h3>
-                                        <div className="flex items-center gap-1 text-xs text-slate-300 font-medium mt-0.5">
-                                            <span>{user.age}</span>
+                                    {/* User Info - Bottom */}
+                                    <div className="absolute bottom-0 left-0 right-0 p-4 text-white transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
+                                        <h3 className="font-extrabold text-lg truncate leading-none drop-shadow-lg tracking-tight font-outfit">{user.username}</h3>
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium mt-1.5 opacity-90">
+                                            <span className="bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/5">{user.age}</span>
                                             {user.distance_km != null && (
-                                                <>
-                                                    <span className="text-slate-500">•</span>
-                                                    <span>{user.distance_km < 1 ? `${Math.round(user.distance_km * 1000)}m` : `${user.distance_km.toFixed(0)}km`}</span>
-                                                </>
+                                                <span className="bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/5 flex items-center gap-1">
+                                                    <span className="material-symbols-rounded !text-[10px]">location_on</span>
+                                                    {user.distance_km < 1 ? `${Math.round(user.distance_km * 1000)}m` : `${user.distance_km.toFixed(0)}km`}
+                                                </span>
                                             )}
                                         </div>
                                     </div>

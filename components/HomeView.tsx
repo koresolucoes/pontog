@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useHomeStore } from '../stores/homeStore';
 import { useMapStore } from '../stores/mapStore';
@@ -9,7 +10,7 @@ import { AdSenseUnit } from './AdSenseUnit';
 const GridLoader: React.FC = () => (
     <>
         {Array.from({ length: 3 }).map((_, i) => (
-             <div key={i} className="relative aspect-square bg-slate-700 animate-pulse"></div>
+             <div key={i} className="relative aspect-[3/4] bg-slate-800/50 rounded-3xl animate-pulse border border-white/5"></div>
         ))}
     </>
 );
@@ -28,7 +29,6 @@ export const HomeView: React.FC = () => {
         }
     }, [myLocation, fetchPopularUsers]);
 
-    // FIX: Initialize useRef with null to fix "Expected 1 arguments, but got 0" error.
     const observer = useRef<IntersectionObserver | null>(null);
     const lastUserElementRef = useCallback((node: HTMLDivElement) => {
         if (loadingMore) return;
@@ -71,47 +71,52 @@ export const HomeView: React.FC = () => {
 
     if (loading && popularUsers.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
-                <div className="w-12 h-12 border-4 border-dashed rounded-full animate-spin border-pink-500"></div>
-                <h2 className="text-lg font-bold mt-4">Buscando perfis...</h2>
+            <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8 bg-dark-900">
+                <div className="w-14 h-14 border-4 border-dashed rounded-full animate-spin border-pink-600 mb-4 opacity-80"></div>
+                <h2 className="text-lg font-bold text-slate-300 tracking-wide">Buscando destaques...</h2>
             </div>
         );
     }
     
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center h-full text-center text-red-400 p-8">
-                <h2 className="text-xl font-bold">Ocorreu um erro</h2>
-                <p className="mt-2">{error}</p>
+            <div className="flex flex-col items-center justify-center h-full text-center text-red-400 p-8 bg-dark-900">
+                <div className="bg-red-500/10 p-4 rounded-full mb-4">
+                    <span className="material-symbols-rounded text-4xl">error_outline</span>
+                </div>
+                <h2 className="text-xl font-bold text-white">Ops!</h2>
+                <p className="mt-2 text-slate-400 max-w-xs">{error}</p>
             </div>
         );
     }
 
     return (
-        <div className="h-full flex flex-col bg-slate-900">
-            <header className="p-4">
-                <h1 className="text-xl font-bold">Destaques</h1>
-                <p className="text-sm text-slate-400">Perfis populares na sua região.</p>
+        <div className="h-full flex flex-col bg-dark-900 pb-24">
+            <header className="p-5 pb-3 bg-dark-900/90 backdrop-blur-xl sticky top-0 z-10 border-b border-white/5">
+                <h1 className="text-2xl font-black text-white tracking-tight font-outfit">Destaques</h1>
+                <p className="text-sm text-slate-400 font-medium">Perfis em alta na sua região 🔥</p>
             </header>
             
-            <div className="flex-1 overflow-y-auto bg-slate-800">
+            <div className="flex-1 overflow-y-auto px-3 pt-3">
                 {itemsWithAds.length === 0 && !loading ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
-                        <h2 className="text-xl font-bold">Nenhum perfil encontrado.</h2>
-                        <p className="mt-2">Explore o mapa ou a grade para encontrar mais pessoas.</p>
+                    <div className="flex flex-col items-center justify-center h-64 text-center text-slate-500 p-8">
+                        <span className="material-symbols-rounded text-5xl mb-3 text-slate-700">explore_off</span>
+                        <h2 className="text-lg font-bold text-slate-300">Nenhum perfil encontrado.</h2>
+                        <p className="mt-2 text-sm">Explore o mapa para encontrar mais pessoas.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px content-start">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pb-4">
                         {itemsWithAds.map((item, index) => {
                             if ('type' in item && item.type === 'ad') {
                                 return (
-                                    <div key={`ad-${index}`} className="relative aspect-square bg-slate-900 p-1">
+                                    <div key={`ad-${index}`} className="relative aspect-[3/4] bg-slate-800/50 rounded-3xl overflow-hidden flex items-center justify-center border border-white/5">
                                         <AdSenseUnit
                                             client="ca-pub-9015745232467355"
                                             slot="8953415490"
                                             format="auto"
                                             className="w-full h-full"
                                         />
+                                        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-md text-[9px] font-bold text-white/50 tracking-widest border border-white/5">ADS</div>
                                     </div>
                                 );
                             }
@@ -125,32 +130,37 @@ export const HomeView: React.FC = () => {
                                 <div 
                                     ref={isLastUser ? lastUserElementRef : null}
                                     key={user.id} 
-                                    className={`isolate relative aspect-square cursor-pointer group overflow-hidden bg-slate-900 ${isAgora ? 'border-2 border-red-600 animate-pulse-fire' : ''} ${isPlus && !isAgora ? 'border-2 border-yellow-400/80' : ''}`}
+                                    className={`relative aspect-[3/4] cursor-pointer group rounded-3xl overflow-hidden transition-all duration-500 bg-slate-800 ${isAgora ? 'ring-2 ring-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)]' : 'hover:shadow-2xl hover:shadow-black/50'}`}
                                     onClick={() => handleUserClick(user)}
                                 >
-                                    <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                                    <div className="absolute bottom-2 left-2 right-2 text-white">
-                                        <div className="flex items-center space-x-1.5">
-                                            {isPlus && <span className="material-symbols-outlined !text-[14px] text-yellow-400">auto_awesome</span>}
-                                            {onlineUsers.includes(user.id) && (
-                                                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                            )}
-                                            <h3 className="font-bold text-sm truncate">{user.username}</h3>
+                                    <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
+                                    
+                                    <div className="absolute bottom-0 left-0 right-0 p-4 text-white transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="font-extrabold text-lg truncate leading-none font-outfit drop-shadow-md">{user.username}</h3>
+                                            {isPlus && <span className="material-symbols-rounded filled !text-[14px] text-yellow-400 drop-shadow-lg">auto_awesome</span>}
                                         </div>
-                                        <div className="flex items-center gap-2 text-xs text-slate-300 truncate">
-                                            <span>{user.age} anos</span>
+                                        
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium opacity-90">
+                                            {onlineUsers.includes(user.id) && (
+                                                <span className="relative flex h-2 w-2 mr-0.5">
+                                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                                </span>
+                                            )}
+                                            <span className="bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/5">{user.age}</span>
                                             {user.distance_km != null && (
-                                                <>
-                                                    <span>&middot;</span>
-                                                    <span>{user.distance_km < 1 ? `${Math.round(user.distance_km * 1000)} m` : `${user.distance_km.toFixed(1)} km`}</span>
-                                                </>
+                                                <span className="bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/5">
+                                                    {user.distance_km < 1 ? `${Math.round(user.distance_km * 1000)}m` : `${user.distance_km.toFixed(0)}km`}
+                                                </span>
                                             )}
                                         </div>
                                     </div>
+                                    
                                     {isAgora && (
-                                        <div className="absolute top-1 right-1 bg-red-600/80 rounded-full p-1 shadow-lg">
-                                            <span className="material-symbols-outlined text-white !text-[16px]">local_fire_department</span>
+                                        <div className="absolute top-3 right-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-full p-1.5 shadow-lg shadow-red-900/50 animate-pulse-fire border border-white/20">
+                                            <span className="material-symbols-rounded text-white filled !text-[16px] block">local_fire_department</span>
                                         </div>
                                     )}
                                 </div>

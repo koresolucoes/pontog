@@ -133,7 +133,13 @@ export const HomeView: React.FC = () => {
                                     className={`relative aspect-[3/4] cursor-pointer group rounded-3xl overflow-hidden transition-all duration-500 bg-slate-800 ${isAgora ? 'ring-2 ring-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)]' : 'hover:shadow-2xl hover:shadow-black/50'}`}
                                     onClick={() => handleUserClick(user)}
                                 >
-                                    <img src={user.avatar_url} alt={user.username} className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" />
+                                    <img 
+                                        src={user.avatar_url} 
+                                        alt={user.username} 
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" 
+                                    />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
                                     
                                     <div className="absolute bottom-0 left-0 right-0 p-4 text-white transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300">

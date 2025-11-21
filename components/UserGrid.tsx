@@ -149,6 +149,7 @@ export const UserGrid: React.FC = () => {
                                         src={user.avatar_url} 
                                         alt={user.username} 
                                         loading="lazy"
+                                        decoding="async"
                                         className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" 
                                     />
                                     

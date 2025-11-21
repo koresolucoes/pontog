@@ -21,6 +21,7 @@ import { DonationModal } from './components/DonationModal';
 import { AdminPanel } from './pages/Admin/AdminPanel';
 import { Onboarding } from './components/Onboarding';
 import { Sidebar } from './components/Sidebar';
+import { BackgroundParticles } from './components/BackgroundParticles';
 
 const App: React.FC = () => {
     // Roteamento simples para o painel de administração
@@ -173,6 +174,9 @@ const App: React.FC = () => {
             ) : (
                 <div className="h-screen w-screen bg-gradient-to-b from-dark-900 to-slate-900 text-slate-50 flex flex-col antialiased overflow-hidden relative">
                     
+                    {/* Animated Particle Background */}
+                    <BackgroundParticles />
+
                     {/* Sidebar Navigation Drawer */}
                     <Sidebar />
 

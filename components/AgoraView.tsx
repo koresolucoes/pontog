@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAgoraStore } from '../stores/agoraStore';
 import { useAuthStore } from '../stores/authStore';
@@ -129,7 +130,9 @@ export const AgoraView: React.FC = () => {
                             >
                                 <img 
                                     src={post.photo_url} 
-                                    alt={`Post de ${post.username}`} 
+                                    alt={`Post de ${post.username}`}
+                                    loading="lazy"
+                                    decoding="async"
                                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                 />
                                 

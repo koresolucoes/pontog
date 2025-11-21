@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 // As variáveis de ambiente são injetadas pelo Vercel (ou seu bundler como o Vite)
@@ -26,17 +27,16 @@ export const getPublicImageUrl = (path: string | null | undefined): string => {
     // Retorna um placeholder elegante se não houver caminho
     if (!path) return 'https://placehold.co/400x400/1f2937/d1d5db/png?text=G'; 
     
-    // Se já for uma URL completa, retorna ela mesma para evitar erros.
+    // Se já for uma URL completa, retorna ela mesma.
     if (path.startsWith('http')) {
-        // Mesmo se for uma URL completa, adiciona cache busting se não tiver
-        if (path.includes('?t=')) return path;
-        return `${path}?t=${new Date().getTime()}`;
+        return path;
     }
     
     const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
 
-    // FIX: Adiciona um timestamp para cache-busting.
-    // Isso força o navegador a buscar a imagem novamente em vez de usar uma versão
-    // antiga e quebrada do cache, garantindo que a imagem sempre apareça.
-    return `${data.publicUrl}?t=${new Date().getTime()}`;
+    // OTIMIZAÇÃO DE PERFORMANCE:
+    // Removemos o timestamp (?t=...) para permitir que o navegador faça cache das imagens (Browser Caching).
+    // Como o upload de novas fotos gera nomes de arquivos únicos (timestamp no nome do arquivo),
+    // a URL mudará naturalmente quando a foto for atualizada, forçando o download apenas quando necessário.
+    return data.publicUrl;
 };

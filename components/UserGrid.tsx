@@ -156,8 +156,8 @@ export const UserGrid: React.FC = () => {
                                     {/* Cinematic Gradient Overlay */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
                                     
-                                    {/* Badges Container - Top Right */}
-                                    <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
+                                    {/* Badges Container - Top Right (z-10 to be above gradient) */}
+                                    <div className="absolute top-3 right-3 flex flex-col gap-2 items-end z-10">
                                         {isAgora && (
                                             <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-full p-1.5 shadow-lg shadow-red-900/50 animate-pulse-fire border border-white/20">
                                                 <span className="material-symbols-rounded filled !text-[16px] block">local_fire_department</span>

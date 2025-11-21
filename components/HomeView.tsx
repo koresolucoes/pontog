@@ -140,12 +140,31 @@ export const HomeView: React.FC = () => {
                                         decoding="async"
                                         className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" 
                                     />
+                                    
+                                    {/* Badges Container - Top Right (z-10 to ensure visibility over overlay) */}
+                                    <div className="absolute top-3 right-3 flex flex-col gap-2 items-end z-10">
+                                        {isAgora && (
+                                            <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-full p-1.5 shadow-lg shadow-red-900/50 animate-pulse-fire border border-white/20">
+                                                <span className="material-symbols-rounded filled !text-[16px] block">local_fire_department</span>
+                                            </div>
+                                        )}
+                                        {isPlus && !isAgora && (
+                                            <div className="bg-yellow-500/90 backdrop-blur-md text-black rounded-full p-1.5 shadow-lg border border-yellow-300/50">
+                                                <span className="material-symbols-rounded filled !text-[14px] block">auto_awesome</span>
+                                            </div>
+                                        )}
+                                        {user.can_host && (
+                                            <div className="bg-green-600/90 backdrop-blur-md text-white rounded-full p-1.5 shadow-lg border border-green-400/50" title="Tem Local">
+                                                <span className="material-symbols-rounded filled !text-[14px] block">home</span>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
                                     
                                     <div className="absolute bottom-0 left-0 right-0 p-4 text-white transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
                                         <div className="flex items-center gap-2 mb-1">
                                             <h3 className="font-extrabold text-lg truncate leading-none font-outfit drop-shadow-md">{user.username}</h3>
-                                            {isPlus && <span className="material-symbols-rounded filled !text-[14px] text-yellow-400 drop-shadow-lg">auto_awesome</span>}
                                         </div>
                                         
                                         <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium opacity-90">
@@ -163,12 +182,6 @@ export const HomeView: React.FC = () => {
                                             )}
                                         </div>
                                     </div>
-                                    
-                                    {isAgora && (
-                                        <div className="absolute top-3 right-3 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-full p-1.5 shadow-lg shadow-red-900/50 animate-pulse-fire border border-white/20">
-                                            <span className="material-symbols-rounded text-white filled !text-[16px] block">local_fire_department</span>
-                                        </div>
-                                    )}
                                 </div>
                             );
                         })}

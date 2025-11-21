@@ -2,7 +2,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
-import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 
 const verifyAdmin = (req: VercelRequest) => {
     const token = req.headers.authorization?.split(' ')[1];
@@ -20,7 +19,7 @@ export default async function handler(
     const supabaseAdmin = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    ) as any;
 
     // FIX: Fetch profiles and auth users separately to avoid the schema cache issue with joins
     const [{ data: allProfiles, error: profilesError }, { data: authUsersData, error: authUsersError }] = await Promise.all([
@@ -34,7 +33,7 @@ export default async function handler(
 
     const totalUsers = allProfiles.length;
 
-    const activeSubscriptions = allProfiles.filter(p => 
+    const activeSubscriptions = allProfiles.filter((p: any) => 
         p.subscription_tier === 'plus' &&
         p.subscription_expires_at &&
         new Date(p.subscription_expires_at) > new Date()
@@ -51,7 +50,7 @@ export default async function handler(
         .eq('status', 'approved');
         
     if (revenueError) throw revenueError;
-    const totalRevenue = totalRevenueData.reduce((sum, item) => sum + item.amount, 0);
+    const totalRevenue = totalRevenueData.reduce((sum: number, item: any) => sum + item.amount, 0);
         
     res.status(200).json({
         totalUsers: totalUsers,

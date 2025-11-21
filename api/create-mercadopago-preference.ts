@@ -20,7 +20,7 @@ export default async function handler(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false } }
-    );
+    ) as any;
     
     // Busca o plano do banco de dados para garantir que os dados estão corretos
     const { data: planData, error: planError } = await supabaseAdmin

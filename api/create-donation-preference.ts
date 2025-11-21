@@ -21,7 +21,7 @@ export default async function handler(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false } }
-    );
+    ) as any;
 
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'Autorização ausente.' });

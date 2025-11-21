@@ -23,7 +23,7 @@ export default async function handler(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false, autoRefreshToken: false } }
-    );
+    ) as any;
 
     // Get the user from the JWT token sent in the Authorization header
     const authHeader = req.headers.authorization;

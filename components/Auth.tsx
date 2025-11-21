@@ -19,6 +19,9 @@ const features = [
 export const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -32,6 +35,35 @@ export const Auth: React.FC = () => {
     if (error) {
       setError(error.message);
       setLoading(false);
+    }
+  };
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+        if (isSignUp) {
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+            });
+            if (error) throw error;
+            if (data.user && !data.session) {
+                setError("Verifique seu email para confirmar o cadastro.");
+            }
+        } else {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+            if (error) throw error;
+        }
+    } catch (err: any) {
+        setError(err.message || 'Ocorreu um erro.');
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -58,11 +90,58 @@ export const Auth: React.FC = () => {
             className="w-full flex items-center justify-center gap-3 bg-white text-slate-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-200 transition-all transform hover:scale-105 disabled:opacity-50"
           >
             <GoogleIcon className="w-6 h-6" />
-            <span className="text-base">{loading ? 'Aguarde...' : 'Cadastre-se ou Entre com Google'}</span>
+            <span className="text-base">{loading ? 'Aguarde...' : 'Entrar com Google'}</span>
           </button>
         </div>
 
-        {error && <p className="mt-4 text-center text-red-400">{error}</p>}
+        <div className="my-4 flex items-center w-full">
+            <div className="flex-grow h-px bg-white/20"></div>
+            <span className="px-3 text-sm text-slate-400">OU</span>
+            <div className="flex-grow h-px bg-white/20"></div>
+        </div>
+
+        <form onSubmit={handleEmailAuth} className="space-y-4">
+            <div>
+                <input 
+                    type="email" 
+                    placeholder="Email" 
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    required
+                />
+            </div>
+            <div>
+                <input 
+                    type="password" 
+                    placeholder="Senha" 
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    required
+                    minLength={6}
+                />
+            </div>
+            <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full bg-pink-600 text-white font-bold py-3 rounded-lg hover:bg-pink-700 transition-all disabled:opacity-50"
+            >
+                {loading ? 'Processando...' : (isSignUp ? 'Criar Conta' : 'Entrar')}
+            </button>
+        </form>
+
+        <div className="mt-4 text-center">
+            <button 
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-sm text-pink-400 hover:text-pink-300 underline"
+            >
+                {isSignUp ? 'Já tem uma conta? Entre.' : 'Não tem conta? Cadastre-se.'}
+            </button>
+        </div>
+
+        {error && <p className="mt-4 text-center text-red-400 text-sm">{error}</p>}
         
         <p className="mt-8 text-center text-xs text-slate-400">
           Ao continuar, você confirma que tem mais de 18 anos e concorda com nossos Termos de Serviço e Política de Privacidade.

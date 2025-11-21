@@ -2,7 +2,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
-import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 
 const verifyAdmin = (req: VercelRequest) => {
     const token = req.headers.authorization?.split(' ')[1];
@@ -12,7 +11,7 @@ const verifyAdmin = (req: VercelRequest) => {
 };
 
 // Server-safe function to construct public image URLs
-const getPublicImageUrlServer = (supabaseClient: SupabaseClient, path: string | null | undefined): string => {
+const getPublicImageUrlServer = (supabaseClient: any, path: string | null | undefined): string => {
     const BUCKET_NAME = 'user_uploads';
     if (!path) return 'https://placehold.co/400x400/1f2937/d1d5db/png?text=G'; 
     
@@ -36,7 +35,7 @@ export default async function handler(
     const supabaseAdmin = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    ) as any;
 
     // FIX: Fetch auth users and profiles separately and merge them in code.
     // This bypasses the PostgREST error "Could not find a relationship between 'profiles' and 'users'".
@@ -50,7 +49,7 @@ export default async function handler(
     if (authUsersError) throw authUsersError;
     if (profilesError) throw profilesError;
 
-    const authUserMap = new Map(authUsers.map((u: SupabaseAuthUser): [string, SupabaseAuthUser] => [u.id, u]));
+    const authUserMap = new Map<string, any>(authUsers.map((u: any) => [u.id, u]));
         
     const processedData = profiles.map((profile: any) => {
         const authUser = authUserMap.get(profile.id);
@@ -67,7 +66,7 @@ export default async function handler(
             avatar_url: getPublicImageUrlServer(supabaseAdmin, profile.avatar_url),
             public_photos: (profile.public_photos || []).map((p: string) => getPublicImageUrlServer(supabaseAdmin, p)),
         }
-    }).sort((a, b) => {
+    }).sort((a: any, b: any) => {
         // Sort by creation date descending, handling cases where it might be null
         if (!a.created_at) return 1;
         if (!b.created_at) return -1;

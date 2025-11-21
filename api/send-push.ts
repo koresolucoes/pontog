@@ -29,7 +29,7 @@ export default async function handler(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false, autoRefreshToken: false } }
-    );
+    ) as any;
 
     // Obtém o usuário remetente a partir do token de autenticação
     const authHeader = req.headers.authorization;
@@ -90,7 +90,7 @@ export default async function handler(
     });
     
     // Envia a notificação para cada inscrição do usuário
-    const sendPromises = subscriptions.map(sub => {
+    const sendPromises = subscriptions.map((sub: any) => {
         const subscription = sub.subscription_details as any;
         return webpush.sendNotification(subscription, payload)
             .catch(async (error) => {

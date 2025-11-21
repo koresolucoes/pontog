@@ -76,14 +76,12 @@ const App: React.FC = () => {
         if (paymentStatus) {
             if (paymentStatus === 'success') {
                 toast.success('Pagamento aprovado! Seu plano Plus está ativo.');
-                // Atualiza o perfil para refletir o novo status de assinatura
                 if(session?.user) fetchProfile(session.user);
             } else if (paymentStatus === 'success_donation') {
                 toast.success('Muito obrigado pelo seu apoio!');
             } else if (paymentStatus === 'failure') {
                 toast.error('O pagamento falhou. Tente novamente.');
             }
-            // Limpa os parâmetros da URL para evitar que o toast apareça novamente
             window.history.replaceState({}, document.title, "/");
         }
     }, [session, fetchProfile]);
@@ -91,7 +89,6 @@ const App: React.FC = () => {
     useEffect(() => {
         if (session) {
             requestLocationPermission();
-            // Carrega os dados da caixa de entrada para ter a contagem de notificações
             fetchConversations();
             fetchWinks();
             fetchAccessRequests();
@@ -104,8 +101,11 @@ const App: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-                <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-pink-500"></div>
+            <div className="min-h-screen bg-dark-900 flex items-center justify-center">
+                <div className="relative">
+                    <div className="w-16 h-16 rounded-full border-4 border-slate-700 opacity-30"></div>
+                    <div className="absolute top-0 left-0 w-16 h-16 rounded-full border-4 border-t-pink-600 animate-spin"></div>
+                </div>
             </div>
         );
     }
@@ -131,19 +131,23 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="h-screen w-screen bg-slate-900 text-white flex flex-col antialiased overflow-hidden">
+        <div className="h-screen w-screen bg-gradient-to-b from-dark-900 to-slate-900 text-slate-50 flex flex-col antialiased overflow-hidden relative">
             <Toaster
                 position="top-center"
                 toastOptions={{
+                    className: '!bg-slate-800 !text-white !border !border-slate-700 !rounded-xl',
+                    duration: 3000,
                     style: {
-                        background: '#1e293b', // slate-800
+                        background: 'rgba(30, 41, 59, 0.9)',
+                        backdropFilter: 'blur(8px)',
                         color: '#fff',
-                        border: '1px solid #334155' // slate-700
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '12px'
                     },
                 }}
             />
             
-            <main className="flex-1 overflow-hidden pb-20 z-10">{renderActiveView()}</main>
+            <main className="flex-1 overflow-hidden pb-0 z-10">{renderActiveView()}</main>
             
             {selectedUser && (
                 <ProfileModal 
@@ -171,16 +175,19 @@ const App: React.FC = () => {
 
             <PwaInstallButton />
 
-            <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 z-20">
-                <div className="max-w-md mx-auto grid grid-cols-6">
-                   <NavButton icon="home" label="Início" isActive={activeView === 'home'} onClick={() => setActiveView('home')} />
-                   <NavButton icon="search" label="Buscar" isActive={activeView === 'grid'} onClick={() => setActiveView('grid')} />
-                   <NavButton icon="travel_explore" label="Mapa" isActive={activeView === 'map'} onClick={() => setActiveView('map')} />
-                   <NavButton icon="whatshot" label="Agora" isActive={activeView === 'agora'} onClick={() => setActiveView('agora')} />
-                   <NavButton icon="image" label="Entrada" isActive={activeView === 'inbox'} onClick={() => setActiveView('inbox')} notificationCount={totalUnreadCount} />
-                   <NavButton icon="person" label="Perfil" isActive={activeView === 'profile'} onClick={() => setActiveView('profile')} isPlus={user.subscription_tier === 'plus'} />
-                </div>
-            </nav>
+            {/* Modern Floating Navigation Bar */}
+            <div className="fixed bottom-4 left-4 right-4 z-20 flex justify-center pointer-events-none">
+                <nav className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 pointer-events-auto max-w-md w-full">
+                    <div className="grid grid-cols-6 p-1.5">
+                       <NavButton icon="home" label="Início" isActive={activeView === 'home'} onClick={() => setActiveView('home')} />
+                       <NavButton icon="grid_view" label="Grade" isActive={activeView === 'grid'} onClick={() => setActiveView('grid')} />
+                       <NavButton icon="map" label="Mapa" isActive={activeView === 'map'} onClick={() => setActiveView('map')} />
+                       <NavButton icon="local_fire_department" label="Agora" isActive={activeView === 'agora'} onClick={() => setActiveView('agora')} isFire />
+                       <NavButton icon="chat_bubble" label="Chat" isActive={activeView === 'inbox'} onClick={() => setActiveView('inbox')} notificationCount={totalUnreadCount} />
+                       <NavButton icon="person" label="Perfil" isActive={activeView === 'profile'} onClick={() => setActiveView('profile')} isPlus={user.subscription_tier === 'plus'} />
+                    </div>
+                </nav>
+            </div>
         </div>
     );
 };
@@ -191,44 +198,43 @@ interface NavButtonProps {
     isActive: boolean;
     onClick: () => void;
     isPlus?: boolean;
+    isFire?: boolean;
     notificationCount?: number;
 }
 
-const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, isPlus = false, notificationCount = 0 }) => (
+const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, isPlus = false, isFire = false, notificationCount = 0 }) => (
     <button
         onClick={onClick}
-        className="relative flex flex-col items-center justify-center py-2 w-full transition-colors group focus:outline-none"
+        className="relative flex flex-col items-center justify-center py-2 w-full transition-all duration-300 group focus:outline-none rounded-xl"
         aria-label={label}
     >
-        <div className="relative">
+        <div className="relative transition-transform duration-300 group-active:scale-90">
             <div 
-                className={`flex items-center justify-center w-16 h-8 rounded-xl transition-colors
-                    ${isActive ? 'bg-fuchsia-950' : ''}`
+                className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300
+                    ${isActive 
+                        ? isFire ? 'bg-gradient-to-tr from-red-600 to-orange-600 shadow-[0_0_15px_rgba(220,38,38,0.5)]' 
+                        : 'bg-gradient-to-tr from-pink-600 to-purple-600 shadow-[0_0_15px_rgba(219,39,119,0.5)]' 
+                        : 'bg-transparent'}`
                 }
             >
                 <span 
-                    className={`material-symbols-outlined text-2xl transition-colors 
-                        ${isActive ? 'text-pink-400' : 'text-slate-400 group-hover:text-white'}`
+                    className={`material-symbols-rounded text-[26px] transition-colors duration-300
+                        ${isActive 
+                            ? 'text-white filled' 
+                            : 'text-slate-400 group-hover:text-slate-200'}`
                     }
                 >
                     {icon}
                 </span>
             </div>
             {notificationCount > 0 && (
-                <span className="absolute -top-1 right-0 h-5 min-w-[20px] px-1 bg-red-600 rounded-full text-white text-[10px] font-bold flex items-center justify-center border-2 border-slate-900 z-10">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center border-2 border-slate-900 z-10 animate-bounce">
                     {notificationCount > 9 ? '9+' : notificationCount}
                 </span>
              )}
         </div>
-        <span 
-            className={`text-xs mt-1 font-medium transition-colors 
-                ${isActive ? 'text-pink-400' : 'text-slate-400 group-hover:text-white'}`
-            }
-        >
-            {label}
-        </span>
         {isPlus && (
-            <span className="absolute top-1 right-2 material-symbols-outlined !text-[12px] text-yellow-400">auto_awesome</span>
+            <span className="absolute top-1 right-2 material-symbols-rounded !text-[10px] text-yellow-400 filled shadow-black drop-shadow-md">auto_awesome</span>
         )}
     </button>
 );

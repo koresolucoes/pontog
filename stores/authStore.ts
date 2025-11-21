@@ -1,10 +1,14 @@
 import { create } from 'zustand';
 import { supabase, getPublicImageUrl } from '../lib/supabase';
-import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+// import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { Profile, User } from '../types';
 import { calculateAge } from '../lib/utils';
 import { usePwaStore } from './pwaStore';
 import toast from 'react-hot-toast';
+
+// FIX: Define types as any since the library exports are missing or conflicting in this environment
+type Session = any;
+type SupabaseUser = any;
 
 interface AuthState {
   session: Session | null;
@@ -186,7 +190,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 }));
 
 // Initial check for session on app load
-supabase.auth.getSession().then(({ data: { session } }) => {
+supabase.auth.getSession().then(({ data: { session } }: any) => {
   useAuthStore.getState().setSession(session);
   if (session?.user) {
     useAuthStore.getState().fetchProfile(session.user);
@@ -196,7 +200,7 @@ supabase.auth.getSession().then(({ data: { session } }) => {
 });
 
 // Listen to auth state changes
-supabase.auth.onAuthStateChange(async (_event, session) => {
+supabase.auth.onAuthStateChange(async (_event: string, session: Session) => {
   useAuthStore.getState().setSession(session);
   if (session?.user) {
     useAuthStore.getState().fetchProfile(session.user);
@@ -210,7 +214,21 @@ supabase.auth.onAuthStateChange(async (_event, session) => {
     (await import('./notificationStore')).useNotificationStore.setState({ preferences: [], loading: false });
     (await import('./mapStore')).useMapStore.getState().stopLocationWatch();
     (await import('./mapStore')).useMapStore.getState().cleanupRealtime();
-    (await import('./mapStore')).useMapStore.setState({ users: [], myLocation: null, selectedUser: null, onlineUsers: [], loading: true, error: null, filters: { onlineOnly: false } });
+    (await import('./mapStore')).useMapStore.setState({ 
+        users: [], 
+        myLocation: null, 
+        selectedUser: null, 
+        onlineUsers: [], 
+        loading: true, 
+        error: null, 
+        filters: { 
+            onlineOnly: false,
+            minAge: 18,
+            maxAge: 99,
+            positions: [],
+            tribes: []
+        } 
+    });
     (await import('./agoraStore')).useAgoraStore.setState({ posts: [], agoraUserIds: [], isLoading: false, isActivating: false });
     (await import('./homeStore')).useHomeStore.setState({ popularUsers: [], loading: true, error: null });
     (await import('./uiStore')).useUiStore.setState({ chatUser: null, activeView: 'home', isSubscriptionModalOpen: false, isDonationModalOpen: false });

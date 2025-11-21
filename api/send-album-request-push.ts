@@ -28,7 +28,7 @@ export default async function handler(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false, autoRefreshToken: false } }
-    );
+    ) as any;
 
     const authHeader = req.headers.authorization;
     if (!authHeader) {
@@ -83,7 +83,7 @@ export default async function handler(
       body: `${senderProfile.username} pediu para ver os seus álbuns privados.`,
     });
     
-    const sendPromises = subscriptions.map(sub => {
+    const sendPromises = subscriptions.map((sub: any) => {
         const subscription = sub.subscription_details as any;
         return webpush.sendNotification(subscription, payload).catch(async (error) => {
             if (error.statusCode === 410 || error.statusCode === 404) {

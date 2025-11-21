@@ -6,6 +6,7 @@ import { useMapStore } from './mapStore';
 import { useHomeStore } from './homeStore';
 import { useInboxStore } from './inboxStore';
 import { useUiStore } from './uiStore';
+import { useAuthStore } from './authStore';
 
 // The same reasons from the DB enum
 export const reportReasons = [
@@ -39,8 +40,18 @@ export const useUserActionsStore = create<UserActionsState>((set, get) => ({
     
     blockUser: async (userToBlock) => {
         const { id: blocked_id, username } = userToBlock;
+        const currentUser = useAuthStore.getState().user;
+
+        if (!currentUser) {
+            toast.error("Você precisa estar logado para bloquear usuários.");
+            return;
+        }
         
-        const { error } = await supabase.from('blocks').insert({ blocked_id });
+        // FIX: Pass blocker_id explicitly to satisfy RLS policy (auth.uid() = blocker_id)
+        const { error } = await supabase.from('blocks').insert({ 
+            blocker_id: currentUser.id,
+            blocked_id: blocked_id 
+        });
 
         if (error) {
             toast.error(`Erro ao bloquear ${username}.`);
@@ -71,7 +82,15 @@ export const useUserActionsStore = create<UserActionsState>((set, get) => ({
     },
 
     reportUser: async (reportedId: string, reason: string, comments: string) => {
+        const currentUser = useAuthStore.getState().user;
+        if (!currentUser) {
+            toast.error("Você precisa estar logado para denunciar.");
+            return false;
+        }
+
+        // FIX: Pass reporter_id explicitly
         const { error } = await supabase.from('reports').insert({
+            reporter_id: currentUser.id,
             reported_id: reportedId,
             reason: reason,
             comments: comments || null,
@@ -95,7 +114,7 @@ export const useUserActionsStore = create<UserActionsState>((set, get) => ({
         set({ isFetchingBlocked: true });
         const { data, error } = await supabase.rpc('get_my_blocked_users');
         if (error) {
-            toast.error('Erro ao buscar usuários bloqueados.');
+            // Don't show toast on 404 or empty, just log
             console.error('Error fetching blocked users:', error);
         } else {
             set({ blockedUsers: data || [] });
@@ -104,7 +123,14 @@ export const useUserActionsStore = create<UserActionsState>((set, get) => ({
     },
 
     unblockUser: async (userId: string) => {
-        const { error } = await supabase.from('blocks').delete().eq('blocked_id', userId);
+        const currentUser = useAuthStore.getState().user;
+        if (!currentUser) return;
+
+        // FIX: Match both blocker_id and blocked_id for safety and RLS
+        const { error } = await supabase.from('blocks').delete().match({
+            blocker_id: currentUser.id,
+            blocked_id: userId
+        });
 
         if (error) {
             toast.error('Erro ao desbloquear usuário.');

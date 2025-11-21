@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 
 const GoogleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 48 48" {...props}>
@@ -17,9 +17,14 @@ const features = [
     { icon: "admin_panel_settings", text: "Discreto e 100% anônimo" }
 ];
 
-// Helper para traduzir erros do Supabase
+// Helper para traduzir erros do Supabase de forma segura
 const getFriendlyErrorMessage = (error: any) => {
-    const msg = error.message || error.error_description || '';
+    if (!error) return 'Ocorreu um erro desconhecido.';
+    
+    // Se for string, retorna ela mesma
+    if (typeof error === 'string') return error;
+
+    const msg = error.message || error.error_description || 'Erro ao processar solicitação.';
     
     if (msg.includes('Invalid login credentials')) return 'Email ou senha incorretos.';
     if (msg.includes('User already registered')) return 'Este email já possui cadastro.';
@@ -27,7 +32,7 @@ const getFriendlyErrorMessage = (error: any) => {
     if (msg.includes('rate limit')) return 'Muitas tentativas. Aguarde um pouco.';
     if (msg.includes('network')) return 'Erro de conexão. Verifique sua internet.';
     
-    return 'Algo deu errado. Tente novamente.';
+    return msg; // Retorna a mensagem original se não houver tradução específica
 };
 
 export const Auth: React.FC = () => {
@@ -38,15 +43,17 @@ export const Auth: React.FC = () => {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
-    if (error) {
-      toast.error(getFriendlyErrorMessage(error));
-      setLoading(false);
+    try {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin,
+          },
+        });
+        if (error) throw error;
+    } catch (error) {
+        toast.error(getFriendlyErrorMessage(error));
+        setLoading(false);
     }
   };
 
@@ -73,10 +80,9 @@ export const Auth: React.FC = () => {
                 password,
             });
             if (error) throw error;
-            // O toast de sucesso no login geralmente não é necessário pois a UI muda rápido, 
-            // mas pode ser adicionado se o redirecionamento for lento.
         }
     } catch (err: any) {
+        console.error("Auth Error:", err);
         toast.error(getFriendlyErrorMessage(err));
     } finally {
         setLoading(false);
@@ -191,7 +197,7 @@ export const Auth: React.FC = () => {
       </div>
 
       {/* Features List */}
-      <div className="w-full max-w-md mt-8 space-y-3 text-center z-10 animate-fade-in-up hidden sm:block" style={{ animationDelay: '0.2s' }}>
+      <div className="w-full max-w-md mt-8 space-y-3 text-center z-10 animate-fade-in hidden sm:block" style={{ animationDelay: '0.2s' }}>
         {features.map((feature, index) => (
             <div key={index} className="flex items-center justify-center gap-3 text-slate-300 bg-slate-900/40 backdrop-blur-md py-2 px-4 rounded-full border border-white/5 inline-flex mx-2 mb-2">
                 <span className="material-symbols-rounded text-xl text-pink-400">{feature.icon}</span>

@@ -161,93 +161,141 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
 
   if (!profile || !formData) return null;
 
+  const InputField = ({ label, name, type = "text", value, onChange, placeholder = "" }: any) => (
+      <div className="space-y-1.5">
+          <label htmlFor={name} className="block text-xs font-bold text-slate-400 uppercase ml-1">{label}</label>
+          <input 
+              type={type} 
+              name={name} 
+              id={name} 
+              value={value || ''} 
+              onChange={onChange} 
+              placeholder={placeholder}
+              className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all" 
+          />
+      </div>
+  );
+
+  const SelectField = ({ label, name, value, onChange, options }: any) => (
+      <div className="space-y-1.5">
+          <label htmlFor={name} className="block text-xs font-bold text-slate-400 uppercase ml-1">{label}</label>
+          <div className="relative">
+            <select 
+                name={name} 
+                id={name} 
+                value={value || ''} 
+                onChange={onChange} 
+                className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all"
+            >
+                {options.map((opt: string) => <option key={opt} value={opt === 'Não informado' ? '' : opt} className="bg-slate-800">{opt}</option>)}
+            </select>
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none material-symbols-rounded">expand_more</span>
+          </div>
+      </div>
+  );
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50 animate-fade-in" onClick={onClose}>
-      <div className="bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-2xl mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-[calc(100vh-5rem)] sm:h-auto sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-        <header className="p-6 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
-          <h2 className="text-xl font-bold text-white">Editar Perfil</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><span className="material-symbols-outlined">close</span></button>
+    <div className="fixed inset-0 bg-dark-900/80 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 animate-fade-in" onClick={onClose}>
+      <div className="bg-slate-800/90 backdrop-blur-xl rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-2xl mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh] border border-white/10" onClick={(e) => e.stopPropagation()}>
+        <header className="p-6 border-b border-white/10 flex justify-between items-center flex-shrink-0 bg-slate-800/50 rounded-t-3xl">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <span className="material-symbols-rounded text-pink-500">edit_note</span>
+              Editar Perfil
+          </h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors text-slate-400 hover:text-white">
+              <span className="material-symbols-rounded">close</span>
+          </button>
         </header>
 
         <main className="flex-1 overflow-y-auto p-6">
-            <form id="edit-profile-form" onSubmit={handleSubmit} className="space-y-6">
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <img src={profile.avatar_url} alt="Seu perfil" className="w-24 h-24 rounded-full object-cover" />
-                  <button type="button" onClick={() => avatarInputRef.current?.click()} className="absolute bottom-0 right-0 bg-pink-600 p-2 rounded-full text-white hover:bg-pink-700">
-                    <span className="material-symbols-outlined text-xl">photo_camera</span>
-                    <input type="file" accept="image/*" ref={avatarInputRef} onChange={handleAvatarUpload} className="hidden" />
-                  </button>
-                </div>
-                <div className="flex-1">
-                   <label htmlFor="username" className="block text-sm font-medium text-slate-300">Nome de usuário</label>
-                   <input type="text" name="username" id="username" value={formData.username || ''} onChange={handleChange} className="mt-1 w-full bg-slate-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" />
-                </div>
-              </div>
+            <form id="edit-profile-form" onSubmit={handleSubmit} className="space-y-8">
               
-              <div>
-                <label htmlFor="status_text" className="block text-sm font-medium text-slate-300">Texto de status (bio)</label>
-                <textarea name="status_text" id="status_text" rows={2} value={formData.status_text || ''} onChange={handleChange} className="mt-1 w-full bg-slate-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" />
+              {/* Avatar Section */}
+              <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
+                <div className="relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
+                  <div className="w-28 h-28 rounded-full p-1 bg-gradient-to-tr from-pink-500 to-purple-600">
+                      <img src={profile.avatar_url} alt="Seu perfil" className="w-full h-full rounded-full object-cover border-4 border-slate-800" />
+                  </div>
+                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="material-symbols-rounded text-white text-3xl">photo_camera</span>
+                  </div>
+                  <button type="button" className="absolute bottom-0 right-0 bg-white text-pink-600 p-2 rounded-full shadow-lg hover:bg-gray-100 transition-colors">
+                    <span className="material-symbols-rounded text-xl block">edit</span>
+                  </button>
+                  <input type="file" accept="image/*" ref={avatarInputRef} onChange={handleAvatarUpload} className="hidden" />
+                </div>
+                
+                <div className="flex-1 w-full space-y-4">
+                   <InputField label="Nome de usuário" name="username" value={formData.username} onChange={handleChange} />
+                   <div className="space-y-1.5">
+                        <label htmlFor="status_text" className="block text-xs font-bold text-slate-400 uppercase ml-1">Bio</label>
+                        <textarea 
+                            name="status_text" 
+                            id="status_text" 
+                            rows={3} 
+                            value={formData.status_text || ''} 
+                            onChange={handleChange} 
+                            className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all resize-none" 
+                        />
+                   </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="date_of_birth" className="block text-sm font-medium text-slate-300">Data de Nascimento</label>
-                  <input type="date" name="date_of_birth" id="date_of_birth" value={formData.date_of_birth?.split('T')[0] || ''} onChange={handleChange} className="mt-1 w-full bg-slate-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" />
-                </div>
-                 <div>
-                    <label htmlFor="position" className="block text-sm font-medium text-slate-300">Posição</label>
-                    <select name="position" id="position" value={formData.position || ''} onChange={handleChange} className="mt-1 w-full bg-slate-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500">
-                        <option value="">Não informado</option>
-                        {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                </div>
-                <div>
-                  <label htmlFor="height_cm" className="block text-sm font-medium text-slate-300">Altura (cm)</label>
-                  <input type="number" name="height_cm" id="height_cm" value={formData.height_cm || ''} onChange={handleChange} className="mt-1 w-full bg-slate-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" />
-                </div>
-                <div>
-                  <label htmlFor="weight_kg" className="block text-sm font-medium text-slate-300">Peso (kg)</label>
-                  <input type="number" name="weight_kg" id="weight_kg" value={formData.weight_kg || ''} onChange={handleChange} className="mt-1 w-full bg-slate-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500" />
-                </div>
+              <div className="h-px bg-white/5 my-6"></div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <InputField label="Data de Nascimento" name="date_of_birth" type="date" value={formData.date_of_birth?.split('T')[0]} onChange={handleChange} />
+                <SelectField label="Posição" name="position" value={formData.position} onChange={handleChange} options={['Não informado', ...POSITIONS]} />
+                <InputField label="Altura (cm)" name="height_cm" type="number" value={formData.height_cm} onChange={handleChange} />
+                <InputField label="Peso (kg)" name="weight_kg" type="number" value={formData.weight_kg} onChange={handleChange} />
                 <div className="sm:col-span-2">
-                    <label htmlFor="hiv_status" className="block text-sm font-medium text-slate-300">Status HIV</label>
-                    <select name="hiv_status" id="hiv_status" value={formData.hiv_status || ''} onChange={handleChange} className="mt-1 w-full bg-slate-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500">
-                        {HIV_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    <SelectField label="Status HIV" name="hiv_status" value={formData.hiv_status} onChange={handleChange} options={HIV_STATUSES} />
                 </div>
               </div>
               
+              <div className="h-px bg-white/5 my-6"></div>
+
               <div>
-                <h3 className="text-sm font-medium text-slate-300">Fotos Públicas</h3>
-                <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2">
+                <h3 className="text-sm font-bold text-slate-300 mb-4 uppercase flex items-center gap-2">
+                    <span className="material-symbols-rounded text-pink-500">photo_library</span> Fotos Públicas
+                </h3>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                     {formData.public_photos?.map(photoUrl => (
-                        <div key={photoUrl} className="relative group aspect-square">
-                            <img src={photoUrl} alt="Foto pública" className="w-full h-full object-cover rounded-lg" />
-                            <button type="button" onClick={() => handleRemovePublicPhoto(photoUrl)} className="absolute top-1 right-1 bg-red-600/70 p-1 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span className="material-symbols-outlined !text-sm">delete</span>
-                            </button>
+                        <div key={photoUrl} className="relative group aspect-[3/4] rounded-xl overflow-hidden shadow-md">
+                            <img src={photoUrl} alt="Foto pública" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <button type="button" onClick={() => handleRemovePublicPhoto(photoUrl)} className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors">
+                                    <span className="material-symbols-rounded text-xl block">delete</span>
+                                </button>
+                            </div>
                         </div>
                     ))}
-                     <button type="button" onClick={() => publicPhotoInputRef.current?.click()} className="flex flex-col items-center justify-center w-full aspect-square bg-slate-700 rounded-lg border-2 border-dashed border-slate-500 text-slate-400 hover:bg-slate-600 hover:border-pink-500 transition-colors">
-                        <span className="material-symbols-outlined text-4xl">cloud_upload</span>
+                     <button type="button" onClick={() => publicPhotoInputRef.current?.click()} className="flex flex-col items-center justify-center w-full aspect-[3/4] bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-600 text-slate-400 hover:bg-slate-800 hover:border-pink-500 hover:text-pink-500 transition-all group">
+                        <div className="w-12 h-12 rounded-full bg-slate-700 group-hover:bg-pink-500/20 flex items-center justify-center mb-2 transition-colors">
+                            <span className="material-symbols-rounded text-3xl">add_a_photo</span>
+                        </div>
+                        <span className="text-xs font-bold uppercase">Adicionar</span>
                         <input type="file" accept="image/*" ref={publicPhotoInputRef} onChange={handlePublicPhotoUpload} className="hidden" />
                     </button>
                 </div>
               </div>
 
+              <div className="h-px bg-white/5 my-6"></div>
+
               <div>
-                <h3 className="text-sm font-medium text-slate-300">Minhas Tribos</h3>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <h3 className="text-sm font-bold text-slate-300 mb-4 uppercase flex items-center gap-2">
+                    <span className="material-symbols-rounded text-pink-500">groups</span> Minhas Tribos
+                </h3>
+                <div className="flex flex-wrap gap-2">
                   {tribes.map(tribe => (
                     <button
                       key={tribe.id}
                       type="button"
                       onClick={() => handleTribeToggle(tribe.name)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
                         formData.tribes?.includes(tribe.name)
-                          ? 'bg-pink-600 text-white'
-                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          ? 'bg-pink-600 border-pink-500 text-white shadow-lg shadow-pink-900/30'
+                          : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
                       }`}
                     >
                       {tribe.name}
@@ -258,11 +306,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
             </form>
         </main>
 
-        <footer className="p-4 border-t border-slate-700 flex-shrink-0 flex justify-end">
-          <button onClick={onClose} type="button" className="bg-slate-700 text-white font-bold py-2 px-4 rounded-lg mr-2 hover:bg-slate-600 transition-colors">
+        <footer className="p-4 border-t border-white/10 bg-slate-800/50 rounded-b-3xl flex-shrink-0 flex justify-end gap-3">
+          <button onClick={onClose} type="button" className="px-6 py-3 rounded-xl font-bold text-slate-300 hover:text-white hover:bg-white/5 transition-colors">
             Cancelar
           </button>
-          <button form="edit-profile-form" type="submit" disabled={loading} className="bg-pink-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50">
+          <button 
+            form="edit-profile-form" 
+            type="submit" 
+            disabled={loading} 
+            className="bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-3 px-8 rounded-xl hover:shadow-lg hover:shadow-pink-600/30 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             {loading ? 'Salvando...' : 'Salvar Alterações'}
           </button>
         </footer>

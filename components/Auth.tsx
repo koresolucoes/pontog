@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import toast from 'react-hot-toast';
 
 const GoogleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 48 48" {...props}>
@@ -18,14 +19,12 @@ const features = [
 
 export const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -33,7 +32,7 @@ export const Auth: React.FC = () => {
       },
     });
     if (error) {
-      setError(error.message);
+      toast.error(error.message);
       setLoading(false);
     }
   };
@@ -41,7 +40,6 @@ export const Auth: React.FC = () => {
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
 
     try {
         if (isSignUp) {
@@ -51,7 +49,7 @@ export const Auth: React.FC = () => {
             });
             if (error) throw error;
             if (data.user && !data.session) {
-                setError("Verifique seu email para confirmar o cadastro.");
+                toast.success("Verifique seu email para confirmar o cadastro.", { duration: 5000 });
             }
         } else {
             const { data, error } = await supabase.auth.signInWithPassword({
@@ -61,98 +59,126 @@ export const Auth: React.FC = () => {
             if (error) throw error;
         }
     } catch (err: any) {
-        setError(err.message || 'Ocorreu um erro.');
+        toast.error(err.message || 'Ocorreu um erro.');
     } finally {
         setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 auth-background text-white">
-      <div className="w-full max-w-md bg-slate-900/70 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-white/10 animate-fade-in-up">
-        <div className="text-center mb-6">
-            <h1 className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Image with Overlay */}
+      <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" 
+            className="w-full h-full object-cover opacity-40"
+            alt="Background"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/80 to-pink-900/20 mix-blend-multiply"></div>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+      </div>
+
+      <div className="w-full max-w-md z-10 animate-fade-in-up">
+        
+        <div className="text-center mb-8">
+            <div className="w-20 h-20 bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl flex items-center justify-center font-black text-5xl text-white mx-auto shadow-2xl shadow-pink-500/30 mb-4 rotate-3 transform hover:rotate-0 transition-all duration-500">
+                G
+            </div>
+            <h1 className="text-4xl font-black tracking-tight text-white drop-shadow-lg font-outfit">
                 Ponto G
             </h1>
-            <p className="text-slate-300 mt-2 font-semibold">Direto ao ponto.</p>
-        </div>
-        
-        <div className="my-6 text-center text-amber-400 font-semibold flex items-center justify-center gap-2 border border-amber-400/50 bg-amber-400/10 py-2 px-4 rounded-lg">
-            <span className="material-symbols-outlined">warning</span>
-            <span>Exclusivo para maiores de 18 anos</span>
+            <p className="text-slate-300 mt-1 font-medium text-lg">Direto ao ponto.</p>
         </div>
 
-        <div className="mt-6">
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 bg-white text-slate-800 font-bold py-3 px-4 rounded-lg hover:bg-gray-200 transition-all transform hover:scale-105 disabled:opacity-50"
-          >
-            <GoogleIcon className="w-6 h-6" />
-            <span className="text-base">{loading ? 'Aguarde...' : 'Entrar com Google'}</span>
-          </button>
-        </div>
-
-        <div className="my-4 flex items-center w-full">
-            <div className="flex-grow h-px bg-white/20"></div>
-            <span className="px-3 text-sm text-slate-400">OU</span>
-            <div className="flex-grow h-px bg-white/20"></div>
-        </div>
-
-        <form onSubmit={handleEmailAuth} className="space-y-4">
-            <div>
-                <input 
-                    type="email" 
-                    placeholder="Email" 
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                    required
-                />
+        <div className="bg-slate-900/60 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-white/10">
+            <div className="mb-6 text-center">
+                <div className="inline-flex items-center justify-center gap-2 bg-yellow-500/10 border border-yellow-500/20 py-2 px-4 rounded-full text-yellow-400 text-xs font-bold uppercase tracking-wider">
+                    <span className="material-symbols-rounded !text-base">18_up_rating</span>
+                    <span>Maiores de 18 anos</span>
+                </div>
             </div>
-            <div>
-                <input 
-                    type="password" 
-                    placeholder="Senha" 
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                    required
-                    minLength={6}
-                />
-            </div>
-            <button 
-                type="submit" 
-                disabled={loading}
-                className="w-full bg-pink-600 text-white font-bold py-3 rounded-lg hover:bg-pink-700 transition-all disabled:opacity-50"
-            >
-                {loading ? 'Processando...' : (isSignUp ? 'Criar Conta' : 'Entrar')}
-            </button>
-        </form>
 
-        <div className="mt-4 text-center">
-            <button 
+            <button
                 type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm text-pink-400 hover:text-pink-300 underline"
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-3 bg-white text-slate-900 font-bold py-3.5 px-4 rounded-xl hover:bg-slate-100 active:scale-[0.98] transition-all shadow-lg disabled:opacity-50"
             >
-                {isSignUp ? 'Já tem uma conta? Entre.' : 'Não tem conta? Cadastre-se.'}
+                <GoogleIcon className="w-6 h-6" />
+                <span className="text-base">{loading ? 'Aguarde...' : 'Entrar com Google'}</span>
             </button>
+
+            <div className="my-6 flex items-center w-full">
+                <div className="flex-grow h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+                <span className="px-3 text-xs text-slate-400 font-semibold tracking-widest uppercase">ou email</span>
+                <div className="flex-grow h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+            </div>
+
+            <form onSubmit={handleEmailAuth} className="space-y-4">
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-400 ml-1 uppercase">Email</label>
+                    <div className="relative">
+                        <span className="absolute left-3 top-3.5 text-slate-500 material-symbols-rounded">mail</span>
+                        <input 
+                            type="email" 
+                            placeholder="seu@email.com" 
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            className="w-full bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 py-3.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all"
+                            required
+                        />
+                    </div>
+                </div>
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-400 ml-1 uppercase">Senha</label>
+                    <div className="relative">
+                        <span className="absolute left-3 top-3.5 text-slate-500 material-symbols-rounded">lock</span>
+                        <input 
+                            type="password" 
+                            placeholder="••••••••" 
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            className="w-full bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 py-3.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all"
+                            required
+                            minLength={6}
+                        />
+                    </div>
+                </div>
+                <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-pink-900/30 hover:shadow-pink-600/40 active:scale-[0.98] transition-all disabled:opacity-50 mt-2"
+                >
+                    {loading ? 'Processando...' : (isSignUp ? 'Criar Conta Grátis' : 'Entrar na Conta')}
+                </button>
+            </form>
+
+            <div className="mt-6 text-center">
+                <button 
+                    type="button"
+                    onClick={() => setIsSignUp(!isSignUp)}
+                    className="text-sm text-slate-300 hover:text-white transition-colors"
+                >
+                    {isSignUp ? 'Já tem uma conta?' : 'Ainda não tem conta?'}{' '}
+                    <span className="text-pink-400 font-bold underline decoration-pink-400/50 hover:decoration-pink-400">
+                        {isSignUp ? 'Faça login.' : 'Cadastre-se.'}
+                    </span>
+                </button>
+            </div>
         </div>
 
-        {error && <p className="mt-4 text-center text-red-400 text-sm">{error}</p>}
-        
-        <p className="mt-8 text-center text-xs text-slate-400">
+        <p className="mt-6 text-center text-[10px] text-slate-500 px-4 leading-relaxed">
           Ao continuar, você confirma que tem mais de 18 anos e concorda com nossos Termos de Serviço e Política de Privacidade.
         </p>
       </div>
 
-      <div className="w-full max-w-md mt-8 space-y-4 text-center animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+      {/* Features List */}
+      <div className="w-full max-w-md mt-8 space-y-3 text-center z-10 animate-fade-in-up hidden sm:block" style={{ animationDelay: '0.2s' }}>
         {features.map((feature, index) => (
-            <div key={index} className="flex items-center justify-center gap-3 text-slate-300">
-                <span className="material-symbols-outlined text-xl text-pink-400">{feature.icon}</span>
-                <span className="font-medium">{feature.text}</span>
+            <div key={index} className="flex items-center justify-center gap-3 text-slate-300 bg-slate-900/40 backdrop-blur-md py-2 px-4 rounded-full border border-white/5 inline-flex mx-2 mb-2">
+                {/* Fixed: Changed class from material-symbols-outlined to material-symbols-rounded */}
+                <span className="material-symbols-rounded text-xl text-pink-400">{feature.icon}</span>
+                <span className="font-medium text-sm">{feature.text}</span>
             </div>
         ))}
       </div>

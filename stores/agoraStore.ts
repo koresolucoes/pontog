@@ -87,18 +87,27 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
 
     const expires_at = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-    const { error: upsertError } = await supabase
+    // FIX: RLS Policy Error (403) handling.
+    // Instead of UPSERT which can be tricky with RLS (requiring both INSERT and UPDATE permissions on conflict),
+    // we explicitly DELETE any existing post for this user first, then INSERT the new one.
+    // This is safer and cleaner for permissions.
+    
+    // 1. Delete existing post (ignore error if it doesn't exist)
+    await supabase.from('agora_posts').delete().eq('user_id', user.id);
+
+    // 2. Insert new post
+    const { error: insertError } = await supabase
       .from('agora_posts')
-      .upsert({
+      .insert({
         user_id: user.id,
         photo_url: filePath,
         status_text: statusText,
         expires_at: expires_at,
-      }, { onConflict: 'user_id' });
+      });
 
-    if (upsertError) {
+    if (insertError) {
       toast.error('Erro ao ativar o modo Agora.', { id: toastId });
-      console.error(upsertError);
+      console.error(insertError);
     } else {
       toast.success('Modo Agora ativado por 1 hora!', { id: toastId });
       await get().fetchAgoraPosts();

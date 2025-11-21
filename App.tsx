@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
@@ -19,6 +20,7 @@ import { SubscriptionModal } from './components/SubscriptionModal';
 import { DonationModal } from './components/DonationModal';
 import { AdminPanel } from './pages/Admin/AdminPanel';
 import { Onboarding } from './components/Onboarding';
+import { Sidebar } from './components/Sidebar';
 
 const App: React.FC = () => {
     // Roteamento simples para o painel de administração
@@ -27,7 +29,7 @@ const App: React.FC = () => {
     }
 
     const { session, user, loading, fetchProfile, showOnboarding } = useAuthStore();
-    const { activeView, setActiveView, chatUser, setChatUser, isSubscriptionModalOpen, isDonationModalOpen } = useUiStore();
+    const { activeView, setActiveView, chatUser, setChatUser, isSubscriptionModalOpen, isDonationModalOpen, setSidebarOpen } = useUiStore();
     const { totalUnreadCount, fetchConversations, fetchWinks, fetchAccessRequests } = useInboxStore();
     const { setInstallPromptEvent, subscribeToPushNotifications } = usePwaStore();
     const { 
@@ -170,6 +172,18 @@ const App: React.FC = () => {
                 <Onboarding />
             ) : (
                 <div className="h-screen w-screen bg-gradient-to-b from-dark-900 to-slate-900 text-slate-50 flex flex-col antialiased overflow-hidden relative">
+                    
+                    {/* Sidebar Navigation Drawer */}
+                    <Sidebar />
+
+                    {/* Global Sidebar Trigger - Hamburger Menu */}
+                    <button 
+                        onClick={() => setSidebarOpen(true)}
+                        className="fixed top-4 left-4 z-30 w-10 h-10 flex items-center justify-center rounded-full bg-dark-900/50 backdrop-blur-md border border-white/10 text-white shadow-lg hover:bg-slate-800 active:scale-95 transition-all"
+                    >
+                        <span className="material-symbols-rounded">menu</span>
+                    </button>
+
                     <main className="flex-1 overflow-hidden pb-0 z-10">{renderActiveView()}</main>
                     
                     {selectedUser && (

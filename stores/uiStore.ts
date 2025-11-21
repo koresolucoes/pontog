@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { User } from '../types';
 
@@ -7,24 +8,24 @@ interface UiState {
   activeView: View;
   chatUser: User | null;
   isSubscriptionModalOpen: boolean;
-  isDonationModalOpen: boolean; // Adicionado para o modal de doação
+  isDonationModalOpen: boolean;
+  isSidebarOpen: boolean; // New state for Sidebar
   setActiveView: (view: View) => void;
   setChatUser: (user: User | null) => void;
   setSubscriptionModalOpen: (isOpen: boolean) => void;
-  setDonationModalOpen: (isOpen: boolean) => void; // Adicionado
+  setDonationModalOpen: (isOpen: boolean) => void;
+  setSidebarOpen: (isOpen: boolean) => void; // New action
 }
 
 export const useUiStore = create<UiState>((set) => ({
   activeView: 'home',
   chatUser: null,
   isSubscriptionModalOpen: false,
-  isDonationModalOpen: false, // Estado inicial
+  isDonationModalOpen: false,
+  isSidebarOpen: false,
   setActiveView: (view) => set({ activeView: view }),
   setChatUser: (user) => {
-      // Se estamos abrindo um chat com um usuário, fechamos o modal de perfil se estiver aberto
       if (user) {
-          // FIX: Use a dynamic import to break the circular dependency cycle
-          // between stores, which can cause "Cannot access before initialization" errors.
           import('./mapStore').then(({ useMapStore }) => {
             useMapStore.getState().setSelectedUser(null);
           });
@@ -32,5 +33,6 @@ export const useUiStore = create<UiState>((set) => ({
       set({ chatUser: user })
   },
   setSubscriptionModalOpen: (isOpen) => set({ isSubscriptionModalOpen: isOpen }),
-  setDonationModalOpen: (isOpen) => set({ isDonationModalOpen: isOpen }), // Função para alterar o estado
+  setDonationModalOpen: (isOpen) => set({ isDonationModalOpen: isOpen }),
+  setSidebarOpen: (isOpen) => set({ isSidebarOpen: isOpen }),
 }));

@@ -21,6 +21,7 @@ interface AuthState {
   fetchProfile: (user: SupabaseUser) => Promise<void>;
   signOut: () => Promise<void>;
   toggleIncognitoMode: (isIncognito: boolean) => Promise<void>;
+  toggleCanHost: (canHost: boolean) => Promise<void>; // New action
   completeOnboarding: () => Promise<void>; // Function to mark onboarding as done
 }
 
@@ -173,6 +174,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  toggleCanHost: async (canHost: boolean) => {
+    const { user } = get();
+    if (!user) return;
+
+    // Optimistic update
+    set(state => ({
+        user: state.user ? { ...state.user, can_host: canHost } : null,
+        profile: state.profile ? { ...state.profile, can_host: canHost } : null,
+    }));
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ can_host: canHost })
+        .eq('id', user.id);
+
+    if (error) {
+        console.error("Error toggling host status:", error);
+        toast.error("Erro ao atualizar status de local.");
+        // Revert
+        set(state => ({
+            user: state.user ? { ...state.user, can_host: !canHost } : null,
+            profile: state.profile ? { ...state.profile, can_host: !canHost } : null,
+        }));
+    } else {
+        toast.success(canHost ? "Você está visível como 'Com Local'!" : "Status 'Com Local' removido.");
+    }
+  },
+
   completeOnboarding: async () => {
     const { user } = get();
     if (!user) return;
@@ -238,6 +267,6 @@ supabase.auth.onAuthStateChange(async (_event: string, session: Session) => {
     });
     (await import('./agoraStore')).useAgoraStore.setState({ posts: [], agoraUserIds: [], isLoading: false, isActivating: false });
     (await import('./homeStore')).useHomeStore.setState({ popularUsers: [], loading: true, error: null });
-    (await import('./uiStore')).useUiStore.setState({ chatUser: null, activeView: 'home', isSubscriptionModalOpen: false, isDonationModalOpen: false });
+    (await import('./uiStore')).useUiStore.setState({ chatUser: null, activeView: 'home', isSubscriptionModalOpen: false, isDonationModalOpen: false, isSidebarOpen: false });
   }
 });

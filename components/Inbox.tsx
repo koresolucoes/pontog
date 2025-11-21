@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useInboxStore } from '../stores/inboxStore';
 import { useUiStore } from '../stores/uiStore';
@@ -107,6 +108,8 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             created_at: '',
             status: 'active',
             suspended_until: null,
+            kinks: [],
+            can_host: false
         };
         setChatUser(chatPartner);
     };

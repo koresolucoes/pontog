@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { supabase, getPublicImageUrl } from '../lib/supabase';
 // import { Session, User as SupabaseUser } from '@supabase/supabase-js';
@@ -65,6 +66,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             subscription_tier: data.subscription_tier || 'free',
             is_incognito: data.is_incognito || false,
             has_completed_onboarding: data.has_completed_onboarding || false,
+            kinks: data.kinks || [],
+            can_host: data.can_host || false,
         };
         delete (profileData as any).profile_tribes;
       } else {
@@ -78,6 +81,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           subscription_tier: 'free',
           is_incognito: false,
           has_completed_onboarding: false,
+          kinks: [],
+          can_host: false
         };
 
         const { data: insertedProfile, error: insertError } = await supabase
@@ -98,6 +103,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             public_photos: [],
             tribes: [],
             distance_km: null,
+            kinks: [],
+            can_host: false,
           };
         }
       }

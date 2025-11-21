@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useDataStore } from '../stores/dataStore';
 import { useAlbumStore } from '../stores/albumStore';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
-import { POSITIONS, HIV_STATUSES } from '../lib/constants';
+import { POSITIONS, HIV_STATUSES, KINKS } from '../lib/constants';
 import toast from 'react-hot-toast';
 
 interface EditProfileModalProps {
@@ -31,7 +32,12 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
 
   useEffect(() => {
     if (profile) {
-      setFormData({ ...profile, tribes: profile.tribes || [] });
+      setFormData({ 
+          ...profile, 
+          tribes: profile.tribes || [],
+          kinks: profile.kinks || [],
+          can_host: profile.can_host || false
+      });
     }
     if (tribes.length === 0) fetchTribes();
   }, [profile, tribes.length, fetchTribes]);
@@ -52,6 +58,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
       : [...currentTribes, tribeName];
     setFormData(prev => ({ ...prev, tribes: newTribes }));
   };
+
+  const handleKinkToggle = (kink: string) => {
+    const currentKinks = formData.kinks || [];
+    const newKinks = currentKinks.includes(kink)
+        ? currentKinks.filter(k => k !== kink)
+        : [...currentKinks, kink];
+    setFormData(prev => ({ ...prev, kinks: newKinks }));
+  }
   
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -241,6 +255,28 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
                 </div>
               </div>
 
+              {/* Logistics Switch */}
+              <div className="bg-slate-800/50 p-4 rounded-2xl border border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${formData.can_host ? 'bg-green-500/20 text-green-400' : 'bg-slate-700 text-slate-400'}`}>
+                          <span className="material-symbols-rounded filled text-xl">home</span>
+                      </div>
+                      <div>
+                          <span className="font-bold text-white block text-sm">Tenho Local (Hoster)</span>
+                          <span className="text-xs text-slate-400">Pode receber visitas?</span>
+                      </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                        type="checkbox" 
+                        className="sr-only peer"
+                        checked={formData.can_host || false}
+                        onChange={(e) => setFormData(prev => ({ ...prev, can_host: e.target.checked }))}
+                    />
+                    <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                  </label>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <InputField label="Data de Nascimento" name="date_of_birth" type="date" value={formData.date_of_birth?.split('T')[0]} onChange={handleChange} />
                 <SelectField label="Posição" name="position" value={formData.position} onChange={handleChange} options={['Não informado', ...POSITIONS]} />
@@ -270,6 +306,29 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
                         </div>
                         <input type="file" accept="image/*" ref={publicPhotoInputRef} onChange={handlePublicPhotoUpload} className="hidden" />
                     </button>
+                </div>
+              </div>
+
+              {/* Kinks Section */}
+              <div>
+                <h3 className="text-xs font-bold text-slate-400 mb-3 uppercase flex items-center gap-2 tracking-wide ml-1">
+                    <span className="material-symbols-rounded text-purple-500 filled text-base">interests</span> Preferências e Kinks
+                </h3>
+                <div className="flex flex-wrap gap-2 bg-slate-800/30 p-4 rounded-2xl border border-white/5 max-h-64 overflow-y-auto">
+                  {KINKS.map(kink => (
+                    <button
+                      key={kink}
+                      type="button"
+                      onClick={() => handleKinkToggle(kink)}
+                      className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all border ${
+                        formData.kinks?.includes(kink)
+                          ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-900/30'
+                          : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                      }`}
+                    >
+                      {kink}
+                    </button>
+                  ))}
                 </div>
               </div>
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, PrivateAlbum } from '../types';
 import { supabase } from '../lib/supabase';
@@ -224,7 +225,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
                         </span>
                     )}
                     </h2>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 flex-wrap gap-y-2">
                         <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium backdrop-blur-sm ${isOnline ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-slate-500/20 text-slate-300 border border-white/10'}`}>
                             <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-slate-400'}`}></div>
                             {statusText}
@@ -232,6 +233,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
                          {user.distance_km != null && (
                              <span className="text-xs text-slate-300 font-medium drop-shadow-md">
                                 {user.distance_km < 1 ? `${Math.round(user.distance_km * 1000)}m de você` : `${user.distance_km.toFixed(0)}km de você`}
+                             </span>
+                         )}
+                         
+                         {/* Hoster Badge */}
+                         {user.can_host && (
+                             <span className="flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-green-600 text-white shadow-lg border border-green-400">
+                                 <span className="material-symbols-rounded filled !text-[14px]">home</span>
+                                 TEM LOCAL
                              </span>
                          )}
                     </div>
@@ -266,6 +275,22 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
               </div>
           )}
           
+          {/* Kinks Display */}
+          {user.kinks && user.kinks.length > 0 && (
+            <div>
+                <h3 className="text-xs font-bold text-purple-400 uppercase mb-3 flex items-center gap-2">
+                    <span className="material-symbols-rounded filled text-base">interests</span> O que curto
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                    {user.kinks.map(kink => (
+                        <span key={kink} className="bg-purple-900/30 text-purple-200 border border-purple-500/30 px-3 py-1.5 rounded-lg text-xs font-bold">
+                            {kink}
+                        </span>
+                    ))}
+                </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3 text-sm">
             {user.height_cm && <InfoItem icon="height" label="Altura" value={`${user.height_cm} cm`} />}
             {user.weight_kg && <InfoItem icon="monitor_weight" label="Peso" value={`${user.weight_kg} kg`} />}

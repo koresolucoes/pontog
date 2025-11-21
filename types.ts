@@ -1,3 +1,4 @@
+
 // types.ts
 
 export interface Coordinates {
@@ -38,6 +39,8 @@ export interface Profile {
   has_private_albums: boolean; // Adicionado para saber se o usuário tem álbuns
   status: 'active' | 'suspended' | 'banned'; // Adicionado para moderação
   suspended_until: string | null; // Adicionado para moderação
+  kinks: string[] | null; // Adicionado para preferências sexuais
+  can_host: boolean; // Adicionado para indicar se tem local
 }
 
 // O tipo User estende Profile com campos calculados como 'idade'

@@ -167,6 +167,11 @@ export const UserGrid: React.FC = () => {
                                                 <span className="material-symbols-rounded filled !text-[14px] block">auto_awesome</span>
                                             </div>
                                         )}
+                                        {user.can_host && (
+                                            <div className="bg-green-600/90 backdrop-blur-md text-white rounded-full p-1.5 shadow-lg border border-green-400/50" title="Tem Local">
+                                                <span className="material-symbols-rounded filled !text-[14px] block">home</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Online Indicator - Top Left */}

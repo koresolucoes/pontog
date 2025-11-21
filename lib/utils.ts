@@ -1,3 +1,4 @@
+
 // lib/utils.ts
 import { format, formatDistanceToNow, isToday, isYesterday, differenceInMinutes } from 'date-fns';
 // Fix: Correctly import the pt-BR locale from its specific module path.
@@ -69,6 +70,8 @@ export const transformProfileToUser = (profile: any): User => {
     avatar_url: getPublicImageUrl(profile.avatar_url),
     public_photos: (profile.public_photos || []).map(getPublicImageUrl),
     tribes: tribesArray,
+    kinks: profile.kinks || [],
+    can_host: profile.can_host || false,
   };
   delete user.profile_tribes; // Clean up the raw joined data to match the User type.
   return user as User;

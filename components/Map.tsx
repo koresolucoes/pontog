@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
@@ -44,6 +45,15 @@ const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
         badgeHtml = `
             <div class="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 text-black rounded-full flex items-center justify-center shadow-sm border border-white z-30">
                 <span class="material-symbols-rounded filled text-[10px]">auto_awesome</span>
+            </div>
+        `;
+    }
+    
+    // Hoster Badge no mapa (prioridade menor que Agora)
+    if (user.can_host && !isAgora) {
+         badgeHtml = `
+            <div class="absolute -top-1 -right-1 w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center shadow-sm border border-white z-30">
+                <span class="material-symbols-rounded filled text-[12px]">home</span>
             </div>
         `;
     }
@@ -118,27 +128,38 @@ export const Map: React.FC = () => {
 
       mapInstanceRef.current = newMap;
 
-      // BUG FIX: Tela Preta
-      // 1. Força invalidateSize logo após a criação para garantir que o Leaflet leia as dimensões corretas
-      setTimeout(() => {
-          newMap.invalidateSize();
-      }, 100);
-
-      // 2. Adiciona um ResizeObserver para monitorar mudanças no tamanho da div (ex: rotação, abertura de teclado, tabs)
-      resizeObserverRef.current = new ResizeObserver(() => {
+      // FIX: Força invalidateSize logo após a criação para garantir que o Leaflet leia as dimensões corretas
+      // Isso é crucial quando o componente é montado
+      newMap.whenReady(() => {
           newMap.invalidateSize();
       });
-      resizeObserverRef.current.observe(mapContainerRef.current);
 
     } else {
         // Se o mapa já existe, apenas atualiza a visão suavemente
         mapInstanceRef.current.panTo(myLocation);
+    }
+    
+    // BUG FIX: Tela Preta (ResizeObserver)
+    // Quando o usuário muda de aba e volta, o container pode ser redimensionado.
+    // O ResizeObserver detecta isso e força o Leaflet a recalcular o tamanho.
+    if (mapContainerRef.current && mapInstanceRef.current) {
+        resizeObserverRef.current = new ResizeObserver(() => {
+            if (mapInstanceRef.current) {
+                mapInstanceRef.current.invalidateSize();
+            }
+        });
+        resizeObserverRef.current.observe(mapContainerRef.current);
     }
 
     return () => {
         if (resizeObserverRef.current) {
             resizeObserverRef.current.disconnect();
         }
+        // Opcional: Se quiser destruir o mapa completamente ao desmontar
+        // if (mapInstanceRef.current) {
+        //     mapInstanceRef.current.remove();
+        //     mapInstanceRef.current = null;
+        // }
     };
   }, [myLocation]);
 

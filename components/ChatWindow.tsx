@@ -70,7 +70,7 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, onViewOnceClic
         if (message.viewed_at) {
             return (
                 <div className="flex items-center gap-2 text-sm italic text-slate-400">
-                    <span className="material-symbols-outlined !text-base">photo_camera</span>
+                    <span className="material-symbols-rounded !text-base">photo_camera</span>
                     <span>Foto vista</span>
                 </div>
             );
@@ -80,7 +80,7 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, onViewOnceClic
                 onClick={() => onViewOnceClick(message)}
                 className="flex items-center gap-2 text-sm font-bold text-white bg-slate-600 px-4 py-2 rounded-lg hover:bg-slate-500 transition-colors"
             >
-                <span className="material-symbols-outlined !text-base">visibility</span>
+                <span className="material-symbols-rounded !text-base">visibility</span>
                 <span>Ver Foto</span>
             </button>
         );
@@ -151,6 +151,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
 
       if (error) {
         console.error("Error setting up conversation:", error);
+        toast.error("Erro ao carregar a conversa.");
         return;
       }
       const convId = data;
@@ -231,7 +232,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
     });
     
     if (error) {
-        toast.error("Falha ao enviar mensagem.");
+        toast.error("Não foi possível enviar a mensagem.");
     } else {
         const { session } = (await supabase.auth.getSession()).data;
         if (session && content) {
@@ -269,7 +270,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
             cancelImageSend();
             toast.success('Foto enviada!', { id: toastId });
         } else {
-            toast.error('Falha ao enviar foto.', { id: toastId });
+            toast.error('Erro ao enviar foto. Tente novamente.', { id: toastId });
         }
     } else {
         if (!newMessage.trim()) return;
@@ -282,7 +283,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
     const file = e.target.files?.[0];
     if (file) {
         if (file.size > 5 * 1024 * 1024) { // 5MB limit
-            toast.error('A imagem não pode ter mais de 5MB.');
+            toast.error('A imagem é muito grande. Máximo 5MB.');
             return;
         }
         const preview = URL.createObjectURL(file);
@@ -294,7 +295,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   
   const handleSendLocation = () => {
     setAttachmentMenuOpen(false);
-    toast.loading('Obtendo sua localização...');
+    toast.loading('Obtendo localização...');
     navigator.geolocation.getCurrentPosition(
       (position) => {
         toast.dismiss();
@@ -308,7 +309,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       },
       (error) => {
         toast.dismiss();
-        toast.error('Não foi possível obter a localização.');
+        toast.error('Não foi possível acessar sua localização.');
         console.error("Geolocation error:", error);
       }
     );
@@ -316,7 +317,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   
   const handleSelectAlbum = async (album: PrivateAlbum) => {
     setIsAlbumSelectorOpen(false);
-    const toastId = toast.loading(`Compartilhando álbum "${album.name}"...`);
+    const toastId = toast.loading(`Compartilhando álbum...`);
     try {
         await grantAccess(album.id, user.id);
         const albumContent = JSON.stringify({
@@ -351,7 +352,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
         .eq('id', editingMessage.id);
       
       if (error) {
-          toast.error('Erro ao editar mensagem.');
+          toast.error('Erro ao salvar edição.');
       }
       handleCancelEdit();
   };
@@ -361,6 +362,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       const { error } = await supabase.from('messages').delete().eq('id', confirmDeleteMessage.id);
       if (error) {
           toast.error('Erro ao apagar mensagem.');
+      } else {
+          toast.success('Mensagem apagada.');
       }
       setConfirmDeleteMessage(null);
   };
@@ -382,7 +385,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
         if (error) {
             console.error("Failed to mark photo as viewed", error);
             setViewingOncePhoto(null);
-            toast.error("Não foi possível carregar a foto.");
+            toast.error("Não foi possível abrir a foto.");
         }
     }
   };
@@ -401,9 +404,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
           {msg.updated_at && <span className="text-xs text-slate-500">(editado)</span>}
           <span className="text-xs text-slate-400">{format(new Date(msg.created_at), 'HH:mm')}</span>
           {showReadReceipt ? (
-              <span className="material-symbols-outlined !text-[16px] text-blue-400">done_all</span>
+              <span className="material-symbols-rounded !text-[16px] text-blue-400">done_all</span>
           ) : (
-              <span className="material-symbols-outlined !text-[16px] text-slate-400">check</span>
+              <span className="material-symbols-rounded !text-[16px] text-slate-400">check</span>
           )}
       </div>
     );
@@ -423,7 +426,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
               <h3 className="font-bold">{user.name}</h3>
               {user.subscription_tier === 'plus' && (
                   <span className="flex items-center text-xs bg-yellow-400/20 text-yellow-300 font-semibold px-1.5 py-0.5 rounded-full">
-                      <span className="material-symbols-outlined !text-[12px]">auto_awesome</span>
+                      <span className="material-symbols-rounded !text-[12px]">auto_awesome</span>
                   </span>
               )}
             </div>
@@ -435,10 +438,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
         </div>
         <div className="flex items-center gap-2">
             <button onClick={() => setConfirmDeleteConvo(true)} className="text-slate-400 hover:text-white">
-                <span className="material-symbols-outlined text-xl">delete</span>
+                <span className="material-symbols-rounded text-xl">delete</span>
             </button>
             <button onClick={onClose} className="text-slate-400 hover:text-white">
-                <span className="material-symbols-outlined">close</span>
+                <span className="material-symbols-rounded">close</span>
             </button>
         </div>
       </header>
@@ -473,12 +476,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                  {msg.sender_id === currentUser.id && !editingMessage && !msg.is_view_once && !msg.image_url && !msg.content?.includes('"type":') && (
                     <div className="relative">
                         <button onClick={() => setMessageOptions(msg)} className="text-slate-500 hover:text-white px-1 self-center">
-                            <span className="material-symbols-outlined text-base">more_vert</span>
+                            <span className="material-symbols-rounded text-base">more_vert</span>
                         </button>
                         {messageOptions?.id === msg.id && (
-                             <div className="absolute bottom-full right-0 mb-1 w-28 bg-slate-700 rounded-lg shadow-lg z-10 text-left">
-                                <button onClick={() => handleStartEdit(msg)} className="w-full text-sm p-2 text-white hover:bg-slate-600 rounded-t-lg">Editar</button>
-                                <button onClick={() => { setConfirmDeleteMessage(msg); setMessageOptions(null); }} className="w-full text-sm p-2 text-red-400 hover:bg-slate-600 rounded-b-lg">Apagar</button>
+                             <div className="absolute bottom-full right-0 mb-1 w-28 bg-slate-700 rounded-lg shadow-lg z-10 text-left overflow-hidden border border-white/5">
+                                <button onClick={() => handleStartEdit(msg)} className="w-full text-sm p-2 text-white hover:bg-slate-600">Editar</button>
+                                <button onClick={() => { setConfirmDeleteMessage(msg); setMessageOptions(null); }} className="w-full text-sm p-2 text-red-400 hover:bg-slate-600">Apagar</button>
                              </div>
                         )}
                     </div>
@@ -497,15 +500,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       {!editingMessage && (
         <div className="p-2 border-t border-slate-700 bg-slate-800 relative">
              {isAttachmentMenuOpen && (
-                <div className="absolute bottom-full left-2 mb-2 w-48 bg-slate-700 rounded-lg shadow-lg p-2 animate-fade-in-up">
+                <div className="absolute bottom-full left-2 mb-2 w-48 bg-slate-700 rounded-lg shadow-lg p-2 animate-fade-in-up border border-white/5">
                     <button onClick={() => { setAttachmentMenuOpen(false); imageInputRef.current?.click(); }} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-slate-600 text-white">
-                        <span className="material-symbols-outlined text-xl">image</span> Foto
+                        <span className="material-symbols-rounded text-xl">image</span> Foto
                     </button>
                      <button onClick={handleSendLocation} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-slate-600 text-white">
-                        <span className="material-symbols-outlined text-xl">location_on</span> Localização
+                        <span className="material-symbols-rounded text-xl">location_on</span> Localização
                     </button>
                      <button onClick={() => { setAttachmentMenuOpen(false); setIsAlbumSelectorOpen(true); }} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-slate-600 text-white">
-                        <span className="material-symbols-outlined text-xl">photo_album</span> Álbum Privado
+                        <span className="material-symbols-rounded text-xl">photo_album</span> Álbum Privado
                     </button>
                 </div>
             )}
@@ -515,7 +518,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                     <div className="relative w-28 h-28 rounded-lg overflow-hidden">
                         <img src={imageToSend.preview} alt="Preview" className="w-full h-full object-cover" />
                         <button onClick={cancelImageSend} className="absolute top-1 right-1 bg-black/50 p-1 rounded-full text-white hover:bg-black/70 transition-colors">
-                            <span className="material-symbols-outlined !text-base">close</span>
+                            <span className="material-symbols-rounded !text-base">close</span>
                         </button>
                     </div>
                     <form onSubmit={handleSendMessage} className="flex items-center gap-2">
@@ -525,7 +528,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                             className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full transition-colors ${isViewOnce ? 'bg-pink-600 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`} 
                             title="Visualização única"
                         >
-                            <span className="material-symbols-outlined">local_fire_department</span>
+                            <span className="material-symbols-rounded">local_fire_department</span>
                         </button>
                         <input
                             type="text"
@@ -538,7 +541,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                             type="submit" 
                             className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-pink-600 text-white rounded-full hover:bg-pink-700 transition-colors"
                         >
-                            <span className="material-symbols-outlined text-xl">send</span>
+                            <span className="material-symbols-rounded text-xl">send</span>
                         </button>
                     </form>
                 </div>
@@ -550,7 +553,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                         onClick={() => setAttachmentMenuOpen(prev => !prev)} 
                         className="flex-shrink-0 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full hover:bg-slate-600 transition-colors"
                     >
-                        <span className="material-symbols-outlined text-2xl">add_circle</span>
+                        <span className="material-symbols-rounded text-2xl">add_circle</span>
                     </button>
                     <input
                         type="text"
@@ -563,7 +566,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                         type="submit" 
                         className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-pink-600 text-white rounded-full hover:bg-pink-700 transition-colors"
                     >
-                        <span className="material-symbols-outlined text-xl">send</span>
+                        <span className="material-symbols-rounded text-xl">send</span>
                     </button>
                 </form>
             )}

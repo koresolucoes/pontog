@@ -135,14 +135,33 @@ const App: React.FC = () => {
             <Toaster
                 position="top-center"
                 toastOptions={{
-                    className: '!bg-slate-800 !text-white !border !border-slate-700 !rounded-xl',
-                    duration: 3000,
+                    className: '!bg-slate-900/90 !backdrop-blur-xl !text-white !border !border-white/10 !rounded-2xl !shadow-2xl !font-outfit',
+                    duration: 4000,
+                    success: {
+                        iconTheme: {
+                            primary: '#4ade80', // Green-400
+                            secondary: '#0f172a', // Slate-900
+                        },
+                        style: {
+                            border: '1px solid rgba(74, 222, 128, 0.2)',
+                        }
+                    },
+                    error: {
+                        iconTheme: {
+                            primary: '#f87171', // Red-400
+                            secondary: '#0f172a',
+                        },
+                        style: {
+                            border: '1px solid rgba(248, 113, 113, 0.2)',
+                        }
+                    },
                     style: {
-                        background: 'rgba(30, 41, 59, 0.9)',
-                        backdropFilter: 'blur(8px)',
-                        color: '#fff',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '12px'
+                        background: 'rgba(15, 23, 42, 0.95)',
+                        color: '#f8fafc',
+                        padding: '16px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        boxShadow: '0 10px 40px -10px rgba(0,0,0,0.5)',
                     },
                 }}
             />

@@ -17,6 +17,19 @@ const features = [
     { icon: "admin_panel_settings", text: "Discreto e 100% anônimo" }
 ];
 
+// Helper para traduzir erros do Supabase
+const getFriendlyErrorMessage = (error: any) => {
+    const msg = error.message || error.error_description || '';
+    
+    if (msg.includes('Invalid login credentials')) return 'Email ou senha incorretos.';
+    if (msg.includes('User already registered')) return 'Este email já possui cadastro.';
+    if (msg.includes('Password should be at least')) return 'A senha deve ter pelo menos 6 caracteres.';
+    if (msg.includes('rate limit')) return 'Muitas tentativas. Aguarde um pouco.';
+    if (msg.includes('network')) return 'Erro de conexão. Verifique sua internet.';
+    
+    return 'Algo deu errado. Tente novamente.';
+};
+
 export const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -32,7 +45,7 @@ export const Auth: React.FC = () => {
       },
     });
     if (error) {
-      toast.error(error.message);
+      toast.error(getFriendlyErrorMessage(error));
       setLoading(false);
     }
   };
@@ -49,7 +62,10 @@ export const Auth: React.FC = () => {
             });
             if (error) throw error;
             if (data.user && !data.session) {
-                toast.success("Verifique seu email para confirmar o cadastro.", { duration: 5000 });
+                toast.success("Conta criada! Verifique seu email para confirmar.", { duration: 6000, icon: '📧' });
+                setIsSignUp(false);
+            } else {
+                toast.success("Bem-vindo ao Ponto G!");
             }
         } else {
             const { data, error } = await supabase.auth.signInWithPassword({
@@ -57,9 +73,11 @@ export const Auth: React.FC = () => {
                 password,
             });
             if (error) throw error;
+            // O toast de sucesso no login geralmente não é necessário pois a UI muda rápido, 
+            // mas pode ser adicionado se o redirecionamento for lento.
         }
     } catch (err: any) {
-        toast.error(err.message || 'Ocorreu um erro.');
+        toast.error(getFriendlyErrorMessage(err));
     } finally {
         setLoading(false);
     }
@@ -176,7 +194,6 @@ export const Auth: React.FC = () => {
       <div className="w-full max-w-md mt-8 space-y-3 text-center z-10 animate-fade-in-up hidden sm:block" style={{ animationDelay: '0.2s' }}>
         {features.map((feature, index) => (
             <div key={index} className="flex items-center justify-center gap-3 text-slate-300 bg-slate-900/40 backdrop-blur-md py-2 px-4 rounded-full border border-white/5 inline-flex mx-2 mb-2">
-                {/* Fixed: Changed class from material-symbols-outlined to material-symbols-rounded */}
                 <span className="material-symbols-rounded text-xl text-pink-400">{feature.icon}</span>
                 <span className="font-medium text-sm">{feature.text}</span>
             </div>

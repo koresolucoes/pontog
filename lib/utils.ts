@@ -69,6 +69,9 @@ export const transformProfileToUser = (profile: any): User => {
   // reduzindo drasticamente o tamanho do download (de MBs para KBs).
   const imageOptions = { width: 500, height: 650, resize: 'cover' as const };
 
+  // Robust boolean check: handles true, "true", 1, etc.
+  const canHost = profile.can_host === true || profile.can_host === 'true' || profile.can_host === 1;
+
   const user = {
     ...profile,
     age: calculateAge(profile.date_of_birth),
@@ -76,7 +79,7 @@ export const transformProfileToUser = (profile: any): User => {
     public_photos: (profile.public_photos || []).map((path: string) => getPublicImageUrl(path, imageOptions)),
     tribes: tribesArray,
     kinks: profile.kinks || [],
-    can_host: profile.can_host || false,
+    can_host: canHost,
   };
   delete user.profile_tribes; // Clean up the raw joined data to match the User type.
   return user as User;

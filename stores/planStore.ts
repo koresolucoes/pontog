@@ -9,6 +9,7 @@ interface Plan {
     perMonth: number;
     popular: boolean;
     discount: string | null;
+    months_duration: number;
 }
 
 interface PlanState {

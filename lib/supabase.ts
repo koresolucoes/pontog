@@ -10,7 +10,6 @@ const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 if (!supabaseUrl || !supabaseAnonKey) {
     // This provides a clear error during development if variables are missing.
     console.error("Supabase URL and Anon Key must be provided.");
-    // In a real app, you might want to show a more user-friendly error screen.
 }
 
 
@@ -18,12 +17,19 @@ export const supabase = createClient(supabaseUrl!, supabaseAnonKey!) as any;
 
 const BUCKET_NAME = 'user_uploads';
 
+interface ImageOptions {
+    width?: number;
+    height?: number;
+    resize?: 'cover' | 'contain' | 'fill';
+}
+
 /**
  * Constrói a URL pública para um arquivo no Supabase Storage.
  * @param path O caminho do arquivo no bucket (ex: user_id/image.png)
+ * @param options Opções de transformação de imagem (largura, altura, redimensionamento)
  * @returns A URL pública completa para a imagem.
  */
-export const getPublicImageUrl = (path: string | null | undefined): string => {
+export const getPublicImageUrl = (path: string | null | undefined, options?: ImageOptions): string => {
     // Retorna um placeholder elegante se não houver caminho
     if (!path) return 'https://placehold.co/400x400/1f2937/d1d5db/png?text=G'; 
     
@@ -32,11 +38,20 @@ export const getPublicImageUrl = (path: string | null | undefined): string => {
         return path;
     }
     
-    const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
+    // Configurações de transformação para otimização
+    const transformOptions = options ? {
+        transform: {
+            width: options.width,
+            height: options.height,
+            resize: options.resize || 'cover',
+            quality: 80, // Otimização de qualidade padrão
+            format: 'origin', // Tenta manter o formato ou usar WebP se suportado pelo browser
+        }
+    } : undefined;
+
+    const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path, transformOptions);
 
     // OTIMIZAÇÃO DE PERFORMANCE:
-    // Removemos o timestamp (?t=...) para permitir que o navegador faça cache das imagens (Browser Caching).
-    // Como o upload de novas fotos gera nomes de arquivos únicos (timestamp no nome do arquivo),
-    // a URL mudará naturalmente quando a foto for atualizada, forçando o download apenas quando necessário.
+    // Removemos o timestamp (?t=...) para permitir que o navegador faça cache das imagens.
     return data.publicUrl;
 };

@@ -64,11 +64,16 @@ export const transformProfileToUser = (profile: any): User => {
     ? profile.tribes
     : (profile.profile_tribes?.map((pt: any) => pt.tribes.name) || []);
 
+  // OTIMIZAÇÃO: Solicita imagens com largura máxima de 500px.
+  // Isso é suficiente para a grade e o modal de perfil em dispositivos móveis,
+  // reduzindo drasticamente o tamanho do download (de MBs para KBs).
+  const imageOptions = { width: 500, height: 650, resize: 'cover' as const };
+
   const user = {
     ...profile,
     age: calculateAge(profile.date_of_birth),
-    avatar_url: getPublicImageUrl(profile.avatar_url),
-    public_photos: (profile.public_photos || []).map(getPublicImageUrl),
+    avatar_url: getPublicImageUrl(profile.avatar_url, { width: 500, height: 500 }), // Avatar quadrado
+    public_photos: (profile.public_photos || []).map((path: string) => getPublicImageUrl(path, imageOptions)),
     tribes: tribesArray,
     kinks: profile.kinks || [],
     can_host: profile.can_host || false,

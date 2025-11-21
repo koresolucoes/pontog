@@ -107,9 +107,24 @@ export const Map: React.FC = () => {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  
+  // Ref para controlar o intervalo de invalidação
+  const invalidationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Inicialização Robusta do Mapa e Correção "Tela Preta"
+  // Cleanup geral ao desmontar o componente
+  useEffect(() => {
+    return () => {
+        if (mapInstanceRef.current) {
+            mapInstanceRef.current.remove();
+            mapInstanceRef.current = null;
+        }
+        if (invalidationIntervalRef.current) {
+            clearInterval(invalidationIntervalRef.current);
+        }
+    };
+  }, []);
+
+  // Inicialização Robusta do Mapa
   useEffect(() => {
     if (!myLocation || !mapContainerRef.current) {
       return;
@@ -118,49 +133,44 @@ export const Map: React.FC = () => {
     if (!mapInstanceRef.current) {
       const newMap = L.map(mapContainerRef.current, {
         zoomControl: false,
-        attributionControl: false
+        attributionControl: false,
+        zoomAnimation: true,
+        fadeAnimation: true,
+        markerZoomAnimation: true
       }).setView(myLocation, 15);
 
       // Dark Mode Map Tiles (CartoDB Dark Matter)
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
+        subdomains: 'abcd',
       }).addTo(newMap);
 
       mapInstanceRef.current = newMap;
 
-      // FIX: Força invalidateSize logo após a criação para garantir que o Leaflet leia as dimensões corretas
-      // Isso é crucial quando o componente é montado
-      newMap.whenReady(() => {
-          newMap.invalidateSize();
-      });
+      // ESTRATÉGIA DE CORREÇÃO DE TELA BRANCA:
+      // Força o redesenho do mapa repetidamente durante os primeiros segundos.
+      // Isso garante que o mapa se ajuste ao container mesmo se houver animações CSS (slide-in)
+      // ou atrasos na renderização do layout.
+      let count = 0;
+      if (invalidationIntervalRef.current) clearInterval(invalidationIntervalRef.current);
+      
+      invalidationIntervalRef.current = setInterval(() => {
+          if (newMap) {
+              newMap.invalidateSize();
+          }
+          count++;
+          // Para após 2 segundos (20 * 100ms)
+          if (count > 20 && invalidationIntervalRef.current) {
+              clearInterval(invalidationIntervalRef.current);
+          }
+      }, 100);
 
     } else {
-        // Se o mapa já existe, apenas atualiza a visão suavemente
+        // Se o mapa já existe, apenas atualiza a visão suavemente e invalida o tamanho
+        // para garantir que está correto caso o usuário tenha trocado de aba.
         mapInstanceRef.current.panTo(myLocation);
+        mapInstanceRef.current.invalidateSize();
     }
-    
-    // BUG FIX: Tela Preta (ResizeObserver)
-    // Quando o usuário muda de aba e volta, o container pode ser redimensionado.
-    // O ResizeObserver detecta isso e força o Leaflet a recalcular o tamanho.
-    if (mapContainerRef.current && mapInstanceRef.current) {
-        resizeObserverRef.current = new ResizeObserver(() => {
-            if (mapInstanceRef.current) {
-                mapInstanceRef.current.invalidateSize();
-            }
-        });
-        resizeObserverRef.current.observe(mapContainerRef.current);
-    }
-
-    return () => {
-        if (resizeObserverRef.current) {
-            resizeObserverRef.current.disconnect();
-        }
-        // Opcional: Se quiser destruir o mapa completamente ao desmontar
-        // if (mapInstanceRef.current) {
-        //     mapInstanceRef.current.remove();
-        //     mapInstanceRef.current = null;
-        // }
-    };
   }, [myLocation]);
 
   // Atualiza o marcador do próprio usuário
@@ -292,9 +302,9 @@ export const Map: React.FC = () => {
   }
 
   return (
-      // Importante: z-0 garante que o mapa fique atrás dos modais, mas o container precisa ter tamanho definido pelo pai
-      <div className="w-full h-full relative z-0 bg-dark-900">
-          <div ref={mapContainerRef} className="w-full h-full absolute inset-0" />
+      // Define width e height explicitamente para evitar colapso
+      <div className="w-full h-full relative z-0 bg-dark-900" style={{ minHeight: '100%' }}>
+          <div ref={mapContainerRef} className="w-full h-full absolute inset-0" style={{ minHeight: '100%' }} />
       </div>
   );
 };

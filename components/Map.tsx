@@ -32,7 +32,7 @@ const MyLocationMarkerIcon = (avatarUrl: string) => new L.Icon({
 });
 
 export const Map: React.FC = () => {
-  const { users, myLocation, onlineUsers, loading, error, filters, setSelectedUser } = useMapStore();
+  const { users, myLocation, onlineUsers, loading, error, filters, setSelectedUser, requestLocationPermission } = useMapStore();
   const { profile } = useAuthStore();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -40,7 +40,6 @@ export const Map: React.FC = () => {
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
 
   // Efeito de Inicialização e Centralização do Mapa
-  // A inicialização agora depende da existência de `myLocation` para evitar erros.
   useEffect(() => {
     if (!myLocation || !mapContainerRef.current) {
       return;
@@ -97,10 +96,7 @@ export const Map: React.FC = () => {
     });
 
     users.forEach(user => {
-        // FIX: Adiciona uma verificação mais robusta para garantir que o usuário tenha coordenadas válidas.
-        // Isso impede que o Leaflet trave ao tentar criar um marcador com lat/lng nulos, indefinidos ou NaN.
         if (!Number.isFinite(user.lat) || !Number.isFinite(user.lng)) {
-            console.warn(`Ignorando marcador para o usuário ${user.username} por coordenadas inválidas.`);
             return; // Pula este usuário
         }
 
@@ -145,16 +141,75 @@ export const Map: React.FC = () => {
     });
   }, [users, onlineUsers, filters]);
 
-  // Renderização condicional: Mostra status enquanto espera a localização.
-  // O container do mapa só é renderizado quando a localização está disponível.
+  // Tela de Carregamento "Scanner" Sci-Fi
   if (!myLocation) {
-    if (loading) {
-      return <div className="flex items-center justify-center h-full text-gray-400">Obtendo sua localização...</div>;
-    }
-    if (error) {
-      return <div className="flex items-center justify-center h-full text-center text-red-400 p-4">{error}</div>;
-    }
-    return <div className="flex items-center justify-center h-full text-center text-gray-400 p-4">Aguardando permissão de localização para exibir o mapa.</div>;
+    const isError = !!error;
+    const scanColor = isError ? 'red' : 'pink';
+    
+    return (
+        <div className="h-full w-full flex flex-col items-center justify-center bg-dark-900 relative overflow-hidden">
+            {/* Fundo de mapa sutil para contexto */}
+            <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
+            
+            <div className="relative z-10 flex flex-col items-center">
+                {/* Radar Container */}
+                <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center mb-8">
+                    
+                    {/* Outer Glow Ring */}
+                    <div className={`absolute inset-0 rounded-full border border-${scanColor}-500/20 shadow-[0_0_30px_rgba(0,0,0,0.5)]`}></div>
+                    
+                    {/* Pulsing Rings */}
+                    {!isError && (
+                        <>
+                            <div className={`absolute inset-0 rounded-full border-2 border-${scanColor}-500/10 animate-ripple`}></div>
+                            <div className={`absolute inset-0 rounded-full border-2 border-${scanColor}-500/10 animate-ripple delay-75`}></div>
+                            <div className={`absolute inset-0 rounded-full border-2 border-${scanColor}-500/10 animate-ripple delay-150`}></div>
+                        </>
+                    )}
+
+                    {/* Static HUD Rings */}
+                    <div className={`absolute w-[80%] h-[80%] rounded-full border border-${scanColor}-500/30 border-dashed`}></div>
+                    <div className={`absolute w-[50%] h-[50%] rounded-full border border-${scanColor}-500/40`}></div>
+                    
+                    {/* Rotating Scanner Beam */}
+                    {!isError && (
+                        <div className={`absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-${scanColor}-500/20 to-transparent animate-radar-spin`}></div>
+                    )}
+
+                    {/* Center Point */}
+                    <div className={`w-4 h-4 bg-${scanColor}-500 rounded-full shadow-[0_0_15px_currentColor] ${!isError ? 'animate-pulse' : ''}`}></div>
+                </div>
+
+                {/* Text Status */}
+                <div className="text-center space-y-2">
+                    <h2 className={`text-2xl font-black tracking-widest font-outfit ${isError ? 'text-red-500' : 'text-white animate-pulse'}`}>
+                        {isError ? 'SINAL PERDIDO' : 'ESCANEANDO...'}
+                    </h2>
+                    <p className={`text-xs font-mono uppercase tracking-wide ${isError ? 'text-red-400/70' : 'text-pink-400/70'}`}>
+                        {isError ? 'Não foi possível obter GPS' : 'Triangulando sua posição'}
+                    </p>
+                </div>
+
+                {/* Error Action */}
+                {isError && (
+                    <button 
+                        onClick={() => requestLocationPermission()} 
+                        className="mt-8 px-8 py-3 bg-red-500/10 border border-red-500/50 text-red-400 font-bold rounded-xl hover:bg-red-500/20 transition-all active:scale-95 flex items-center gap-2"
+                    >
+                        <span className="material-symbols-rounded animate-spin">refresh</span>
+                        Tentar Novamente
+                    </button>
+                )}
+                
+                {!isError && (
+                    <div className="mt-8 flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-full border border-white/5">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+                        <span className="text-[10px] text-slate-400 font-mono">AGUARDANDO SATÉLITES</span>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
   }
 
   return (

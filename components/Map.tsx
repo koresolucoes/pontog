@@ -1,86 +1,164 @@
 import React, { useEffect, useRef } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
+import { useAgoraStore } from '../stores/agoraStore';
 import * as L from 'leaflet';
 import { User } from '../types';
 
-const createUserIcon = (user: User, isOnline: boolean) => {
-    const baseClass = 'rounded-full object-cover shadow-lg border-4';
-    let statusClass;
-    if (isOnline) {
-        statusClass = 'border-green-400';
-    } else if (user.subscription_tier === 'plus') {
-        statusClass = 'border-yellow-400';
-    } else {
-        statusClass = 'border-pink-500';
+// Função para gerar o HTML do marcador dinâmico
+const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
+    const isPlus = user.subscription_tier === 'plus';
+    
+    // Base classes
+    let ringHtml = '';
+    let badgeHtml = '';
+    let borderClass = 'border-2 border-white';
+    let containerClass = '';
+
+    // Lógica Visual
+    if (isAgora) {
+        // Efeito de Fogo/Brasa para Modo Agora
+        borderClass = 'border-2 border-red-500';
+        containerClass = 'z-20'; // Fica acima dos outros
+        ringHtml = `
+            <div class="absolute -inset-3 bg-red-500/30 rounded-full blur-md animate-pulse"></div>
+            <div class="absolute -inset-1 bg-gradient-to-tr from-red-600 to-orange-500 rounded-full opacity-70 animate-spin-slow"></div>
+        `;
+        badgeHtml = `
+            <div class="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg border border-white scale-110 z-30">
+                <span class="material-symbols-rounded filled text-[14px] animate-pulse">local_fire_department</span>
+            </div>
+        `;
+    } else if (isOnline) {
+        // Efeito de Ping para Online
+        borderClass = 'border-2 border-green-400';
+        ringHtml = `
+            <div class="absolute -inset-1 bg-green-500 rounded-full opacity-75 animate-ping"></div>
+        `;
+        badgeHtml = `
+            <div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full z-30"></div>
+        `;
+    } else if (isPlus) {
+        // Borda Dourada para Plus
+        borderClass = 'border-2 border-yellow-400';
+        badgeHtml = `
+            <div class="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 text-black rounded-full flex items-center justify-center shadow-sm border border-white z-30">
+                <span class="material-symbols-rounded filled text-[10px]">auto_awesome</span>
+            </div>
+        `;
     }
-    return new L.Icon({
-        iconUrl: user.avatar_url,
+
+    const html = `
+        <div class="relative w-12 h-12 transition-transform duration-300 hover:scale-110 ${containerClass}">
+            ${ringHtml}
+            <div class="relative w-full h-full rounded-full overflow-hidden ${borderClass} shadow-lg bg-slate-800">
+                <img src="${user.avatar_url}" class="w-full h-full object-cover" alt="${user.username}" />
+            </div>
+            ${badgeHtml}
+        </div>
+    `;
+
+    return L.divIcon({
+        html: html,
+        className: 'bg-transparent', // Remove estilos padrão do Leaflet
         iconSize: [48, 48],
-        iconAnchor: [24, 48],
-        popupAnchor: [0, -52],
-        className: `${baseClass} ${statusClass}`
+        iconAnchor: [24, 24], // Centraliza
+        popupAnchor: [0, -28]
     });
 };
 
-const MyLocationMarkerIcon = (avatarUrl: string) => new L.Icon({
-    iconUrl: avatarUrl,
-    iconSize: [52, 52],
-    iconAnchor: [26, 52],
-    popupAnchor: [0, -52],
-    className: 'rounded-full border-4 border-blue-400 object-cover shadow-2xl animate-pulse'
-});
+const MyLocationMarkerIcon = (avatarUrl: string) => {
+    const html = `
+        <div class="relative w-14 h-14">
+            <div class="absolute -inset-4 bg-blue-500/20 rounded-full animate-pulse"></div>
+            <div class="absolute -inset-1 bg-blue-500/40 rounded-full blur-sm"></div>
+            <div class="relative w-full h-full rounded-full overflow-hidden border-4 border-blue-500 shadow-2xl bg-slate-900 z-10">
+                <img src="${avatarUrl}" class="w-full h-full object-cover" />
+            </div>
+            <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full border border-white shadow-md z-20 whitespace-nowrap">
+                VOCÊ
+            </div>
+        </div>
+    `;
+    return L.divIcon({
+        html: html,
+        className: 'bg-transparent',
+        iconSize: [56, 56],
+        iconAnchor: [28, 28]
+    });
+};
 
 export const Map: React.FC = () => {
   const { users, myLocation, onlineUsers, loading, error, filters, setSelectedUser, requestLocationPermission } = useMapStore();
   const { profile } = useAuthStore();
+  const { agoraUserIds } = useAgoraStore();
+  
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
-  // Efeito de Inicialização e Centralização do Mapa
+  // Inicialização Robusta do Mapa e Correção "Tela Preta"
   useEffect(() => {
     if (!myLocation || !mapContainerRef.current) {
       return;
     }
 
-    const map = mapInstanceRef.current;
-
-    if (!map) {
+    if (!mapInstanceRef.current) {
       const newMap = L.map(mapContainerRef.current, {
         zoomControl: false,
-      }).setView(myLocation, 14);
+        attributionControl: false
+      }).setView(myLocation, 15);
 
+      // Dark Mode Map Tiles (CartoDB Dark Matter)
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        maxZoom: 19,
       }).addTo(newMap);
 
       mapInstanceRef.current = newMap;
-      
-      // Garante que o tamanho seja calculado corretamente após a primeira renderização.
-      newMap.invalidateSize();
+
+      // BUG FIX: Tela Preta
+      // 1. Força invalidateSize logo após a criação para garantir que o Leaflet leia as dimensões corretas
+      setTimeout(() => {
+          newMap.invalidateSize();
+      }, 100);
+
+      // 2. Adiciona um ResizeObserver para monitorar mudanças no tamanho da div (ex: rotação, abertura de teclado, tabs)
+      resizeObserverRef.current = new ResizeObserver(() => {
+          newMap.invalidateSize();
+      });
+      resizeObserverRef.current.observe(mapContainerRef.current);
+
     } else {
-      // Se o mapa já existe, apenas atualiza a visão para a nova localização.
-      map.setView(myLocation, 14);
+        // Se o mapa já existe, apenas atualiza a visão suavemente
+        mapInstanceRef.current.panTo(myLocation);
     }
+
+    return () => {
+        if (resizeObserverRef.current) {
+            resizeObserverRef.current.disconnect();
+        }
+    };
   }, [myLocation]);
 
-  // Atualiza o marcador da localização do próprio usuário
+  // Atualiza o marcador do próprio usuário
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (map && myLocation && profile) {
         if (!myLocationMarkerRef.current) {
-            myLocationMarkerRef.current = L.marker(myLocation, { icon: MyLocationMarkerIcon(profile.avatar_url), zIndexOffset: 1000 })
-                .bindPopup('<b>Você está aqui!</b>')
-                .addTo(map);
+            myLocationMarkerRef.current = L.marker(myLocation, { 
+                icon: MyLocationMarkerIcon(profile.avatar_url), 
+                zIndexOffset: 1000 
+            }).addTo(map);
         } else {
             myLocationMarkerRef.current.setLatLng(myLocation);
+            myLocationMarkerRef.current.setZIndexOffset(1000);
         }
     }
   }, [myLocation, profile]);
 
-  // Efeito 1: Sincroniza os dados dos marcadores (cria/deleta/atualiza posição).
+  // Gerenciamento dos Marcadores de Outros Usuários
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -88,6 +166,7 @@ export const Map: React.FC = () => {
     const markers = userMarkersRef.current;
     const userIdsInStore = new Set(users.map(u => u.id));
 
+    // Remove marcadores de usuários que não estão mais na lista
     markers.forEach((marker, userId) => {
         if (!userIdsInStore.has(userId)) {
             marker.remove();
@@ -96,69 +175,56 @@ export const Map: React.FC = () => {
     });
 
     users.forEach(user => {
-        if (!Number.isFinite(user.lat) || !Number.isFinite(user.lng)) {
-            return; // Pula este usuário
-        }
+        if (!Number.isFinite(user.lat) || !Number.isFinite(user.lng)) return;
 
-        const existingMarker = markers.get(user.id);
-        if (existingMarker) {
-            existingMarker.setLatLng([user.lat, user.lng]);
-        } else {
-            const newMarker = L.marker([user.lat, user.lng]);
-            newMarker.on('click', () => {
-              setSelectedUser(user);
-            });
-            markers.set(user.id, newMarker);
-        }
-    });
-  }, [users, setSelectedUser]);
-
-  // Efeito 2: Sincroniza a visualização dos marcadores (visibilidade e estilo do ícone).
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-
-    const markers = userMarkersRef.current;
-    
-    markers.forEach((marker, userId) => {
-        const user = users.find(u => u.id === userId);
-        if (!user) return;
-
-        const isOnline = onlineUsers.includes(userId);
+        const isOnline = onlineUsers.includes(user.id);
+        const isAgora = agoraUserIds.includes(user.id);
         const shouldBeVisible = !filters.onlineOnly || isOnline;
 
-        marker.setIcon(createUserIcon(user, isOnline));
+        // Cria ou atualiza marcador
+        let marker = markers.get(user.id);
 
-        if (shouldBeVisible) {
-            if (!map.hasLayer(marker)) {
-                marker.addTo(map);
-            }
+        if (!marker) {
+            marker = L.marker([user.lat, user.lng]);
+            marker.on('click', () => {
+              setSelectedUser(user);
+            });
+            markers.set(user.id, marker);
         } else {
-            if (map.hasLayer(marker)) {
-                marker.remove();
+            // Animação suave de movimento se a posição mudar
+            const oldLatLng = marker.getLatLng();
+            if (oldLatLng.lat !== user.lat || oldLatLng.lng !== user.lng) {
+                marker.setLatLng([user.lat, user.lng]);
             }
         }
-    });
-  }, [users, onlineUsers, filters]);
 
-  // Tela de Carregamento "Scanner" Sci-Fi
+        // Atualiza o ícone (Live Marker HTML)
+        marker.setIcon(createLiveMarker(user, isOnline, isAgora));
+        
+        // Ajusta Z-Index: Agora > Online > Offline
+        marker.setZIndexOffset(isAgora ? 800 : isOnline ? 500 : 100);
+
+        // Controle de visibilidade baseado em filtros
+        if (shouldBeVisible) {
+            if (!map.hasLayer(marker)) marker.addTo(map);
+        } else {
+            if (map.hasLayer(marker)) marker.remove();
+        }
+    });
+  }, [users, onlineUsers, agoraUserIds, filters, setSelectedUser]);
+
+  // Tela de Carregamento / Scanner
   if (!myLocation) {
     const isError = !!error;
     const scanColor = isError ? 'red' : 'pink';
     
     return (
         <div className="h-full w-full flex flex-col items-center justify-center bg-dark-900 relative overflow-hidden">
-            {/* Fundo de mapa sutil para contexto */}
             <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
             
             <div className="relative z-10 flex flex-col items-center">
-                {/* Radar Container */}
                 <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center mb-8">
-                    
-                    {/* Outer Glow Ring */}
                     <div className={`absolute inset-0 rounded-full border border-${scanColor}-500/20 shadow-[0_0_30px_rgba(0,0,0,0.5)]`}></div>
-                    
-                    {/* Pulsing Rings */}
                     {!isError && (
                         <>
                             <div className={`absolute inset-0 rounded-full border-2 border-${scanColor}-500/10 animate-ripple`}></div>
@@ -166,21 +232,14 @@ export const Map: React.FC = () => {
                             <div className={`absolute inset-0 rounded-full border-2 border-${scanColor}-500/10 animate-ripple delay-150`}></div>
                         </>
                     )}
-
-                    {/* Static HUD Rings */}
                     <div className={`absolute w-[80%] h-[80%] rounded-full border border-${scanColor}-500/30 border-dashed`}></div>
                     <div className={`absolute w-[50%] h-[50%] rounded-full border border-${scanColor}-500/40`}></div>
-                    
-                    {/* Rotating Scanner Beam */}
                     {!isError && (
                         <div className={`absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-${scanColor}-500/20 to-transparent animate-radar-spin`}></div>
                     )}
-
-                    {/* Center Point */}
                     <div className={`w-4 h-4 bg-${scanColor}-500 rounded-full shadow-[0_0_15px_currentColor] ${!isError ? 'animate-pulse' : ''}`}></div>
                 </div>
 
-                {/* Text Status */}
                 <div className="text-center space-y-2">
                     <h2 className={`text-2xl font-black tracking-widest font-outfit ${isError ? 'text-red-500' : 'text-white animate-pulse'}`}>
                         {isError ? 'SINAL PERDIDO' : 'ESCANEANDO...'}
@@ -190,7 +249,6 @@ export const Map: React.FC = () => {
                     </p>
                 </div>
 
-                {/* Error Action */}
                 {isError && (
                     <button 
                         onClick={() => requestLocationPermission()} 
@@ -213,6 +271,9 @@ export const Map: React.FC = () => {
   }
 
   return (
-      <div ref={mapContainerRef} className="w-full h-full" />
+      // Importante: z-0 garante que o mapa fique atrás dos modais, mas o container precisa ter tamanho definido pelo pai
+      <div className="w-full h-full relative z-0 bg-dark-900">
+          <div ref={mapContainerRef} className="w-full h-full absolute inset-0" />
+      </div>
   );
 };

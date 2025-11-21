@@ -114,7 +114,10 @@ export const Map: React.FC = () => {
   const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
-  const [isMapReady, setIsMapReady] = useState(false);
+  
+  // Estados de controle de carga
+  const [isMapCreated, setIsMapCreated] = useState(false); // O objeto Leaflet foi instanciado
+  const [areTilesLoaded, setAreTilesLoaded] = useState(false); // As imagens do mapa baixaram
   const isInitializingRef = useRef(false);
 
   // Cleanup robusto
@@ -133,7 +136,7 @@ export const Map: React.FC = () => {
     };
   }, []);
 
-  // Inicialização do Mapa com Verificação de Dimensões
+  // Inicialização do Mapa com Verificação de Dimensões e Carregamento de Tiles
   useEffect(() => {
     // Só inicializa se tivermos localização e o container
     if (!myLocation || !mapContainerRef.current) return;
@@ -172,27 +175,43 @@ export const Map: React.FC = () => {
             const newMap = L.map(element, {
                 zoomControl: false,
                 attributionControl: false,
-                zoomAnimation: false, // Desativa animação de zoom na carga inicial para evitar piscadas
+                zoomAnimation: true,
                 fadeAnimation: true,
                 markerZoomAnimation: true,
-                preferCanvas: true // Melhora performance com muitos marcadores
+                preferCanvas: true
             }).setView(myLocation, 15);
 
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            // Adiciona camada de tiles com listener de carregamento
+            const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 maxZoom: 19,
                 subdomains: 'abcd',
-                updateWhenIdle: true,
-            }).addTo(newMap);
+                updateWhenIdle: true, // Melhora performance em mobile
+            });
+
+            // Estratégia: O radar só some quando os tiles terminarem de carregar visualmente
+            tileLayer.on('load', () => {
+                // Pequeno delay para garantir que o browser pintou os pixels
+                setTimeout(() => {
+                    setAreTilesLoaded(true);
+                    newMap.invalidateSize(); // Garante layout final
+                }, 300); 
+            });
+
+            tileLayer.addTo(newMap);
+
+            // Fallback de segurança: Se os tiles vierem do cache ou algo falhar, libera a tela em 3s
+            setTimeout(() => {
+                setAreTilesLoaded(true);
+                newMap.invalidateSize();
+            }, 3000);
 
             mapInstanceRef.current = newMap;
-            setIsMapReady(true);
+            setIsMapCreated(true);
 
-            // Estratégia de Invalidação Agressiva:
-            // Chama invalidateSize repetidamente por alguns quadros para garantir que
-            // o mapa se ajuste a qualquer animação CSS (slide/fade) que esteja ocorrendo.
+            // Invalidação agressiva inicial para garantir que o mapa ocupe o container
             let frames = 0;
             const aggressiveInvalidate = () => {
-                if (newMap && frames < 60) { // Executa por ~1 segundo
+                if (newMap && frames < 30) {
                     newMap.invalidateSize();
                     frames++;
                     requestAnimationFrame(aggressiveInvalidate);
@@ -225,7 +244,6 @@ export const Map: React.FC = () => {
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (map && myLocation && profile) {
-        // Garante que canHost seja booleano
         const canHost = !!profile.can_host;
 
         if (!myLocationMarkerRef.current) {
@@ -238,17 +256,16 @@ export const Map: React.FC = () => {
             if (oldLatLng.distanceTo(myLocation) > 2) {
                 myLocationMarkerRef.current.setLatLng(myLocation);
             }
-            // Atualiza o ícone sempre que o perfil mudar (ex: ativou Com Local)
             myLocationMarkerRef.current.setIcon(MyLocationMarkerIcon(profile.avatar_url, canHost));
             myLocationMarkerRef.current.setZIndexOffset(1000);
         }
     }
-  }, [myLocation, profile, isMapReady]);
+  }, [myLocation, profile, isMapCreated]);
 
   // Gerenciamento dos Marcadores de Usuários
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !isMapReady) return;
+    if (!map || !isMapCreated) return;
     
     const markers = userMarkersRef.current;
     const userIdsInStore = new Set(users.map(u => u.id));
@@ -285,7 +302,6 @@ export const Map: React.FC = () => {
                 if (!map.hasLayer(marker)) marker.addTo(map);
             }
 
-            // Atualiza ícone e Z-index sempre
             marker.setIcon(createLiveMarker(user, isOnline, isAgora));
             marker.setZIndexOffset(isAgora ? 800 : isOnline ? 500 : 100);
         } else {
@@ -294,25 +310,26 @@ export const Map: React.FC = () => {
             }
         }
     });
-  }, [users, onlineUsers, agoraUserIds, filters, setSelectedUser, isMapReady]);
+  }, [users, onlineUsers, agoraUserIds, filters, setSelectedUser, isMapCreated]);
 
-  
-  const isScanning = !myLocation || !isMapReady;
+  // O radar só some quando o mapa existe, temos localização e OS TILES CARREGARAM
+  const isScanning = !myLocation || !isMapCreated || !areTilesLoaded;
   const isError = !!error;
   const scanColor = isError ? 'red' : 'pink';
 
   return (
       <div className="w-full h-full relative bg-dark-900 isolate overflow-hidden">
-          {/* Container do Mapa (Sempre Renderizado) */}
+          {/* Container do Mapa (Sempre Renderizado, mas com opacidade controlada) */}
           <div 
             ref={mapContainerRef} 
             className="w-full h-full absolute inset-0 z-0 outline-none focus:outline-none"
-            style={{ opacity: isScanning ? 0 : 1, transition: 'opacity 0.5s ease-in' }}
+            // Só mostra o mapa (opacity 1) quando o scan terminar
+            style={{ opacity: isScanning ? 0 : 1, transition: 'opacity 0.8s ease-in' }}
           />
 
           {/* Overlay de Carregamento / Scanner (Fade Out quando pronto) */}
           <div 
-            className={`absolute inset-0 z-50 flex flex-col items-center justify-center bg-dark-900 transition-opacity duration-700 ease-in-out ${!isScanning && !isError ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            className={`absolute inset-0 z-50 flex flex-col items-center justify-center bg-dark-900 transition-opacity duration-1000 ease-in-out ${!isScanning && !isError ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
           >
             <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
             
@@ -354,7 +371,7 @@ export const Map: React.FC = () => {
                 ) : (
                     <div className="mt-8 flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-full border border-white/5">
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
-                        <span className="text-[10px] text-slate-400 font-mono">AGUARDANDO SATÉLITES</span>
+                        <span className="text-[10px] text-slate-400 font-mono">BUSCANDO SATÉLITES</span>
                     </div>
                 )}
             </div>

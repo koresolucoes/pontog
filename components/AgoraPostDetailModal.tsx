@@ -3,7 +3,6 @@ import { AgoraPost, AgoraComment } from '../types';
 import { useAgoraStore } from '../stores/agoraStore';
 import { useAuthStore } from '../stores/authStore';
 import { formatDistanceToNow } from 'date-fns';
-// Fix: Correctly import the pt-BR locale from its specific module path.
 import { ptBR } from 'date-fns/locale/pt-BR';
 
 interface AgoraPostDetailModalProps {
@@ -72,78 +71,93 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50 animate-fade-in p-4 pb-20 sm:p-4" onClick={onClose}>
-      <div className="bg-slate-800 rounded-2xl shadow-xl w-full max-w-md mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col max-h-full sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-        <header className="p-4 border-b border-slate-700 flex justify-between items-center flex-shrink-0">
+    <div className="fixed inset-0 bg-dark-900/95 backdrop-blur-sm flex items-end sm:items-center justify-center z-[70] animate-fade-in p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md mx-auto animate-slide-in-up flex flex-col h-[90vh] border border-white/10" onClick={(e) => e.stopPropagation()}>
+        <header className="p-4 border-b border-white/5 flex justify-between items-center flex-shrink-0 bg-slate-800/50 rounded-t-3xl">
           <div className="flex items-center space-x-3">
-            <img src={currentPost.avatar_url} alt={currentPost.username} className="w-10 h-10 rounded-full object-cover" />
+            <img src={currentPost.avatar_url} alt={currentPost.username} className="w-10 h-10 rounded-full object-cover ring-2 ring-red-500" />
             <div>
-              <h2 className="font-bold text-white">{currentPost.username}</h2>
-              <p className="text-sm text-slate-400">Post Agora</p>
+              <h2 className="font-bold text-white leading-none">{currentPost.username}</h2>
+              <p className="text-xs text-red-400 font-bold uppercase tracking-wider mt-1">Modo Agora 🔥</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><span className="material-symbols-outlined">close</span></button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-slate-400 hover:text-white">
+              <span className="material-symbols-rounded">close</span>
+          </button>
         </header>
 
-        <div className="flex-shrink-0">
-            <img src={currentPost.photo_url} alt={`Post de ${currentPost.username}`} className="w-full h-auto max-h-[40vh] object-contain bg-black" />
-            {currentPost.status_text && <p className="p-4 text-slate-300 italic">"{currentPost.status_text}"</p>}
+        <div className="flex-1 overflow-y-auto">
+            <div className="relative">
+                <img src={currentPost.photo_url} alt={`Post de ${currentPost.username}`} className="w-full h-auto object-contain bg-black" />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-12">
+                     {currentPost.status_text && <p className="text-white text-lg font-medium italic">"{currentPost.status_text}"</p>}
+                </div>
+            </div>
             
-            <div className="p-4 flex items-center gap-4 border-b border-t border-slate-700">
-                <button onClick={() => toggleLikePost(currentPost.id)} className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors">
-                    <span className={`material-symbols-outlined ${currentPost.user_has_liked ? 'text-pink-500' : ''}`} style={currentPost.user_has_liked ? { fontVariationSettings: "'FILL' 1" } : {}}>
+            <div className="p-4 flex items-center gap-6 border-b border-white/5 bg-slate-800/30">
+                <button onClick={() => toggleLikePost(currentPost.id)} className="flex items-center gap-2 group">
+                    <span className={`material-symbols-rounded text-3xl transition-transform group-active:scale-75 ${currentPost.user_has_liked ? 'text-pink-500 filled' : 'text-slate-400 hover:text-white'}`}>
                         favorite
                     </span>
-                    <span className="font-semibold text-sm">{currentPost.likes_count} likes</span>
+                    <span className="font-bold text-sm text-slate-300">{currentPost.likes_count}</span>
                 </button>
+                <div className="flex items-center gap-2 text-slate-400">
+                    <span className="material-symbols-rounded text-3xl">chat_bubble</span>
+                    <span className="font-bold text-sm">{comments.length}</span>
+                </div>
+            </div>
+
+            <div className="p-4 space-y-4">
+                {isLoadingComments ? (
+                    <div className="flex justify-center py-4">
+                        <div className="w-6 h-6 border-2 border-slate-600 border-t-white rounded-full animate-spin"></div>
+                    </div>
+                ) : comments.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500">
+                        <span className="material-symbols-rounded text-3xl mb-2 opacity-50">forum</span>
+                        <p className="text-sm">Nenhum comentário ainda.</p>
+                    </div>
+                ) : (
+                    comments.map(comment => (
+                        <div key={comment.id} className="flex items-start space-x-3 group">
+                            <img src={comment.profiles.avatar_url} alt={comment.profiles.username} className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-1 border border-white/10"/>
+                            <div className="flex-1">
+                                <div className="bg-slate-800/50 rounded-2xl rounded-tl-none px-4 py-2 border border-white/5">
+                                    <div className="flex items-baseline justify-between">
+                                        <span className="font-bold text-white text-sm">{comment.profiles.username}</span>
+                                        <span className="text-[10px] text-slate-500">{formatDistanceToNow(new Date(comment.created_at), { locale: ptBR, addSuffix: true } as any)}</span>
+                                    </div>
+                                    <p className="text-slate-300 text-sm mt-0.5 break-words leading-relaxed">{comment.content}</p>
+                                </div>
+                                <div className="px-2 py-1 flex items-center gap-4">
+                                    <button onClick={() => handleToggleCommentLike(comment.id)} className={`flex items-center gap-1 text-xs font-semibold transition-colors ${comment.user_has_liked ? 'text-pink-500' : 'text-slate-500 hover:text-slate-300'}`}>
+                                        {comment.user_has_liked ? 'Curtiu' : 'Curtir'}
+                                        {comment.likes_count > 0 && <span className="text-[10px] bg-slate-800 px-1.5 rounded-full border border-white/5 ml-1">{comment.likes_count}</span>}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+                <div ref={commentsEndRef} />
             </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <h3 className="font-bold text-slate-300 flex-shrink-0">Comentários ({currentPost.comments_count})</h3>
-             {isLoadingComments ? (
-                <p className="text-slate-500 text-center">Carregando comentários...</p>
-             ) : comments.length === 0 ? (
-                <p className="text-slate-500 text-center text-sm py-4">Seja o primeiro a comentar!</p>
-             ) : (
-                comments.map(comment => (
-                    <div key={comment.id} className="flex items-start space-x-3 group">
-                        <img src={comment.profiles.avatar_url} alt={comment.profiles.username} className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-1"/>
-                        <div className="flex-1">
-                            <div className="bg-slate-700 rounded-lg px-3 py-2">
-                                <div className="flex items-baseline space-x-2">
-                                    <span className="font-bold text-white text-sm">{comment.profiles.username}</span>
-                                    {/* FIX: Cast options to 'any' to bypass a TypeScript type definition issue where 'locale' is not recognized. */}
-                                    <span className="text-xs text-slate-400">{formatDistanceToNow(new Date(comment.created_at), { locale: ptBR, addSuffix: true } as any)}</span>
-                                </div>
-                                <p className="text-slate-300 text-sm break-words">{comment.content}</p>
-                            </div>
-                            <div className="px-2 py-1 flex items-center">
-                                <button onClick={() => handleToggleCommentLike(comment.id)} className="flex items-center gap-1 text-slate-500 hover:text-pink-400 transition-colors">
-                                    <span className={`material-symbols-outlined !text-[12px] ${comment.user_has_liked ? 'text-pink-500' : ''}`} style={comment.user_has_liked ? { fontVariationSettings: "'FILL' 1" } : {}}>
-                                        favorite
-                                    </span>
-                                    <span className={`text-xs font-semibold ${comment.user_has_liked ? 'text-pink-400' : ''}`}>{comment.likes_count > 0 ? comment.likes_count : 'Curtir'}</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ))
-             )}
-             <div ref={commentsEndRef} />
-        </div>
-
-        <form onSubmit={handleAddComment} className="p-2 border-t border-slate-700 bg-slate-800 flex-shrink-0">
-          <div className="relative">
+        <form onSubmit={handleAddComment} className="p-3 border-t border-white/5 bg-slate-900 flex-shrink-0 pb-5 sm:pb-3">
+          <div className="relative flex items-center gap-2">
             <input
               type="text"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Adicione um comentário..."
-              className="w-full bg-slate-700 rounded-full py-2.5 pl-4 pr-12 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              placeholder="Comentar..."
+              className="flex-1 bg-slate-800 rounded-full py-3 pl-5 pr-12 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 border border-white/5 text-sm"
             />
-            <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-pink-600 text-white rounded-full p-2 hover:bg-pink-700 transition-colors">
-                <span className="material-symbols-outlined text-xl">send</span>
+            <button 
+                type="submit" 
+                disabled={!newComment.trim()}
+                className="absolute right-2 p-1.5 bg-pink-600 text-white rounded-full hover:bg-pink-700 transition-colors disabled:opacity-0 disabled:scale-50 transform duration-200"
+            >
+                <span className="material-symbols-rounded text-xl block">arrow_upward</span>
             </button>
           </div>
         </form>

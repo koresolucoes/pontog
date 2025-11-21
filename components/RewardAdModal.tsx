@@ -24,9 +24,9 @@ export const RewardAdModal: React.FC<RewardAdModalProps> = ({ onClose, onReward 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] animate-fade-in p-4">
-      <div className="relative w-full max-w-md aspect-video bg-slate-900 rounded-lg flex flex-col items-center justify-center text-white p-4 overflow-hidden">
+      <div className="relative w-full max-w-md aspect-video bg-slate-900 rounded-lg flex flex-col items-center justify-center text-white p-4 overflow-hidden border border-white/10 shadow-2xl">
         
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-slate-800">
           <AdSenseUnit
               client="ca-pub-9015745232467355"
               slot="4962199596" // Using banner slot as requested for interstitial
@@ -37,31 +37,36 @@ export const RewardAdModal: React.FC<RewardAdModalProps> = ({ onClose, onReward 
         </div>
 
         {/* Overlay with countdown */}
-        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4">
-            <p className="text-slate-200">Sua recompensa estará disponível em...</p>
-            <p className="text-7xl font-bold my-4" style={{textShadow: '0 2px 10px rgba(0,0,0,0.5)'}}>
-            {`00:${countdown.toString().padStart(2, '0')}`}
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-4 z-10">
+            <p className="text-slate-300 text-sm uppercase tracking-widest font-bold mb-2">Anúncio Premiado</p>
+            <div className="relative">
+                <span className="material-symbols-rounded text-6xl text-pink-600 animate-pulse">timer</span>
+            </div>
+            <p className="text-5xl font-black my-4 tabular-nums font-outfit bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400">
+                {`00:${countdown.toString().padStart(2, '0')}`}
             </p>
+            <p className="text-slate-400 text-xs">Assista até o final para desbloquear.</p>
         </div>
 
 
-        <div className="absolute bottom-4 left-4 right-4 z-10">
+        <div className="absolute bottom-6 left-6 right-6 z-20">
           <button
             onClick={handleReward}
             disabled={!isFinished}
-            className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-lg transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg hover:shadow-green-900/30 disabled:opacity-0 disabled:translate-y-4 transform duration-500 flex items-center justify-center gap-2"
           >
-            {isFinished ? 'Receber Recompensa' : 'Aguarde...'}
+            <span className="material-symbols-rounded filled">lock_open</span>
+            Resgatar Recompensa
           </button>
         </div>
         
         <button 
             onClick={onClose} 
-            className="absolute top-2 right-2 text-slate-200 bg-black/40 p-1.5 rounded-full hover:bg-black/60 z-10"
+            className="absolute top-4 right-4 text-slate-200 bg-white/10 backdrop-blur-md p-2 rounded-full hover:bg-white/20 z-20 transition-all border border-white/10"
             disabled={!isFinished}
-            style={{ opacity: isFinished ? 1 : 0.5 }}
+            style={{ opacity: isFinished ? 1 : 0, pointerEvents: isFinished ? 'auto' : 'none' }}
         >
-          <span className="material-symbols-outlined text-xl">close</span>
+          <span className="material-symbols-rounded text-xl block">close</span>
         </button>
       </div>
     </div>

@@ -41,6 +41,25 @@ const formatLastMessageContent = (content: string | null | undefined): string =>
     }
 };
 
+// Componente Reutilizável de Empty State
+const EmptyState = ({ icon, title, message, actionLabel, onAction }: { icon: string, title: string, message: string, actionLabel?: string, onAction?: () => void }) => (
+    <div className="flex flex-col items-center justify-center h-[60vh] text-center p-8 animate-fade-in">
+        <div className="w-24 h-24 bg-slate-800/50 rounded-full flex items-center justify-center mb-6 border border-white/5 shadow-xl">
+            <span className="material-symbols-rounded text-5xl text-slate-600 opacity-80">{icon}</span>
+        </div>
+        <h3 className="text-xl font-bold text-white font-outfit mb-2">{title}</h3>
+        <p className="text-slate-400 text-sm max-w-xs mx-auto leading-relaxed mb-8">{message}</p>
+        {actionLabel && onAction && (
+            <button 
+                onClick={onAction}
+                className="bg-slate-800 text-white font-bold py-3 px-6 rounded-xl hover:bg-slate-700 transition-all border border-white/10 shadow-lg active:scale-95"
+            >
+                {actionLabel}
+            </button>
+        )}
+    </div>
+);
+
 
 export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab);
@@ -50,7 +69,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         fetchWinks, fetchProfileViews, fetchAccessRequests,
         respondToRequest, deleteConversation, clearWinks, clearAccessRequests
     } = useInboxStore();
-    const { setChatUser, setSubscriptionModalOpen } = useUiStore();
+    const { setChatUser, setSubscriptionModalOpen, setActiveView } = useUiStore();
     const { setSelectedUser } = useMapStore();
     const { user: currentUser } = useAuthStore();
     const { grantTemporaryPerk } = useAdStore();
@@ -131,6 +150,8 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         );
     }
 
+    const goToGrid = () => setActiveView('grid');
+
     return (
         <>
         <div className="flex flex-col h-full bg-dark-900">
@@ -152,6 +173,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                         onConversationClick={handleConversationClick}
                         onDeleteClick={(convo) => setConfirmDelete(convo)}
                         currentUserId={currentUser?.id}
+                        onEmptyAction={goToGrid}
                     />
                 )}
                 {activeTab === 'winks' && (
@@ -221,8 +243,9 @@ interface ConversationListProps {
     onConversationClick: (convo: ConversationPreview) => void;
     onDeleteClick: (convo: ConversationPreview) => void;
     currentUserId?: string;
+    onEmptyAction: () => void;
 }
-const ConversationList: React.FC<ConversationListProps> = ({ conversations, loading, onConversationClick, onDeleteClick, currentUserId }) => {
+const ConversationList: React.FC<ConversationListProps> = ({ conversations, loading, onConversationClick, onDeleteClick, currentUserId, onEmptyAction }) => {
     const onlineUsers = useMapStore((state) => state.onlineUsers);
 
     const itemsWithAd = useMemo(() => {
@@ -235,12 +258,13 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
 
     if (loading) return <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div></div>;
     if (conversations.length === 0) return (
-        <div className="flex flex-col items-center justify-center h-64 text-slate-500 animate-fade-in">
-            <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mb-4 border border-white/5">
-                <span className="material-symbols-rounded text-4xl text-slate-600">chat_bubble_outline</span>
-            </div>
-            <p className="text-slate-400 font-medium">Nenhuma conversa iniciada.</p>
-        </div>
+        <EmptyState 
+            icon="chat_bubble_outline"
+            title="Tudo quieto por aqui"
+            message="Ainda não tem conversas? Explore o Grid e dê o primeiro passo!"
+            actionLabel="Explorar Perfis"
+            onAction={onEmptyAction}
+        />
     );
     
     return (
@@ -311,7 +335,13 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
     const canView = isPlus || hasWinkPerk;
 
     if (loading) return <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div></div>;
-    if (!canView && winks.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém te chamou ainda.</p>;
+    if (winks.length === 0) return (
+        <EmptyState 
+            icon="favorite"
+            title="Nenhum chamado"
+            message="Ninguém te chamou ainda. Capriche na foto do perfil!"
+        />
+    );
 
     if (!canView) {
         return (
@@ -334,8 +364,6 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
             </div>
         );
     }
-    
-    if (winks.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém te chamou ainda.</p>;
 
     return (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
@@ -366,7 +394,13 @@ const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlu
     const canView = isPlus || hasViewPerk;
 
     if (loading) return <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div></div>;
-    if (!canView && views.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém visitou seu perfil ainda.</p>;
+    if (views.length === 0) return (
+        <EmptyState 
+            icon="visibility_off"
+            title="Sem visitas recentes"
+            message="Ninguém passou por aqui. Tente postar no Agora para ganhar destaque!"
+        />
+    );
 
     if (!canView) {
         return (
@@ -389,8 +423,6 @@ const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlu
             </div>
         );
     }
-    
-    if (views.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém visitou seu perfil ainda.</p>;
 
     return (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
@@ -415,12 +447,11 @@ interface RequestListProps {
 const RequestList: React.FC<RequestListProps> = ({ requests, loading, onRespond }) => {
     if (loading) return <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div></div>;
     if (requests.length === 0) return (
-        <div className="flex flex-col items-center justify-center h-64 text-slate-500 animate-fade-in">
-            <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mb-4 border border-white/5">
-                <span className="material-symbols-rounded text-4xl text-slate-600">lock_open_right</span>
-            </div>
-            <p className="text-slate-400 font-medium">Nenhuma solicitação pendente.</p>
-        </div>
+        <EmptyState 
+            icon="lock_open_right"
+            title="Sem solicitações"
+            message="Ninguém pediu acesso aos seus álbuns por enquanto."
+        />
     );
 
     return (

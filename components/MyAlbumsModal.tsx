@@ -67,12 +67,12 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
         {isLoading ? (
           <div className="flex justify-center py-10"><div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div></div>
         ) : myAlbums.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-                <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                    <span className="material-symbols-rounded text-4xl opacity-50">folder_off</span>
+            <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
+                <div className="w-20 h-20 bg-slate-800/80 rounded-full flex items-center justify-center mb-4 border border-white/10 shadow-inner">
+                    <span className="material-symbols-rounded text-4xl text-slate-600 opacity-80">lock</span>
                 </div>
-                <p className="font-medium">Nenhum álbum criado.</p>
-                <p className="text-xs mt-1 opacity-70">Crie um álbum para organizar suas fotos privadas.</p>
+                <h3 className="text-lg font-bold text-white font-outfit">Seu espaço secreto</h3>
+                <p className="text-sm text-slate-400 mt-2 max-w-xs">Crie álbuns para compartilhar fotos apenas com quem você permitir.</p>
             </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
@@ -82,7 +82,7 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
                    <img src={album.private_album_photos[0].photo_path} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"/>
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-600 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
-                        <span className="material-symbols-rounded text-4xl">image_not_supported</span>
+                        <span className="material-symbols-rounded text-4xl opacity-50">image_not_supported</span>
                     </div>
                 )}
                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>

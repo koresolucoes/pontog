@@ -87,32 +87,50 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
 
     const expires_at = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-    // FIX: RLS Policy Error (403) handling.
-    // Instead of UPSERT which can be tricky with RLS (requiring both INSERT and UPDATE permissions on conflict),
-    // we explicitly DELETE any existing post for this user first, then INSERT the new one.
-    // This is safer and cleaner for permissions.
+    // FIX: Handle 409 Conflict (Unique Violation) robustly.
+    // Instead of Delete+Insert (which can fail if delete is blocked) or Upsert (which can fail permissions),
+    // we try INSERT first. If it fails with code 23505 (Unique Violation), we explicitly UPDATE.
     
-    // 1. Delete existing post (ignore error if it doesn't exist)
-    await supabase.from('agora_posts').delete().eq('user_id', user.id);
-
-    // 2. Insert new post
-    const { error: insertError } = await supabase
-      .from('agora_posts')
-      .insert({
+    const payload = {
         user_id: user.id,
         photo_url: filePath,
         status_text: statusText,
         expires_at: expires_at,
-      });
+    };
+
+    const { error: insertError } = await supabase
+      .from('agora_posts')
+      .insert(payload);
 
     if (insertError) {
-      toast.error('Erro ao ativar o modo Agora.', { id: toastId });
-      console.error(insertError);
-    } else {
-      toast.success('Modo Agora ativado por 1 hora!', { id: toastId });
-      await get().fetchAgoraPosts();
+        if (insertError.code === '23505') {
+            // Conflict detected: The user already has a post. Update it instead.
+            console.log("Agora post exists, updating...");
+            const { error: updateError } = await supabase
+                .from('agora_posts')
+                .update({
+                    photo_url: filePath,
+                    status_text: statusText,
+                    expires_at: expires_at
+                })
+                .eq('user_id', user.id);
+            
+            if (updateError) {
+                console.error("Error updating Agora post:", updateError);
+                toast.error('Erro ao atualizar seu post.', { id: toastId });
+                set({ isActivating: false });
+                return;
+            }
+        } else {
+            console.error("Error inserting Agora post:", insertError);
+            toast.error('Erro ao ativar o modo Agora.', { id: toastId });
+            set({ isActivating: false });
+            return;
+        }
     }
-    
+
+    toast.success('Modo Agora ativado por 1 hora!', { id: toastId });
+    await get().fetchAgoraPosts();
     set({ isActivating: false });
   },
 

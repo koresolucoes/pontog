@@ -15,43 +15,43 @@ export const AlbumGalleryModal: React.FC<AlbumGalleryModalProps> = ({ album, onC
 
   if (!photos || photos.length === 0) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 animate-fade-in" onClick={onClose}>
-        <div className="bg-gray-800 p-8 rounded-lg text-center" onClick={(e) => e.stopPropagation()}>
-          <h2 className="text-xl font-bold mb-4">{album.name}</h2>
-          <p className="text-gray-400">Este álbum está vazio.</p>
-           <button onClick={onClose} className="mt-6 bg-pink-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-pink-700">Fechar</button>
+      <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[60] animate-fade-in" onClick={onClose}>
+        <div className="bg-slate-800 p-8 rounded-2xl text-center border border-white/10" onClick={(e) => e.stopPropagation()}>
+          <h2 className="text-xl font-bold mb-4 text-white">{album.name}</h2>
+          <p className="text-slate-400">Este álbum está vazio.</p>
+           <button onClick={onClose} className="mt-6 bg-pink-600 text-white font-bold py-2 px-6 rounded-xl hover:bg-pink-700 transition-colors">Fechar</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-50 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center z-[60] animate-fade-in" onClick={onClose}>
       
-      <div className="w-full h-full flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
-        <div className="relative w-full max-w-4xl aspect-video">
-            <img src={photos[currentIndex].photo_path} alt={`Foto ${currentIndex + 1} do álbum ${album.name}`} className="w-full h-full object-contain" />
+      <div className="w-full h-full flex items-center justify-center p-4 sm:p-10" onClick={(e) => e.stopPropagation()}>
+        <div className="relative w-full max-w-5xl aspect-[4/5] sm:aspect-video flex items-center justify-center">
+            <img src={photos[currentIndex].photo_path} alt={`Foto ${currentIndex + 1} do álbum ${album.name}`} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
         </div>
       </div>
 
-       <button onClick={onClose} className="absolute top-4 right-4 text-white bg-black/30 p-2 rounded-full hover:bg-black/50 transition-colors z-10">
-            <span className="material-symbols-outlined">close</span>
+       <button onClick={onClose} className="absolute top-4 right-4 text-white bg-black/40 p-3 rounded-full hover:bg-white/10 transition-colors z-20 backdrop-blur-sm">
+            <span className="material-symbols-rounded text-xl">close</span>
         </button>
 
         {photos.length > 1 && (
         <>
-            <button onClick={prevPhoto} className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-black/30 p-3 rounded-full hover:bg-black/50 transition-colors z-10">
-                <span className="material-symbols-outlined text-3xl">chevron_left</span>
+            <button onClick={prevPhoto} className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-black/40 p-4 rounded-full hover:bg-white/10 transition-colors z-20 backdrop-blur-sm">
+                <span className="material-symbols-rounded text-3xl">chevron_left</span>
             </button>
-            <button onClick={nextPhoto} className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black/30 p-3 rounded-full hover:bg-black/50 transition-colors z-10">
-                <span className="material-symbols-outlined text-3xl">chevron_right</span>
+            <button onClick={nextPhoto} className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black/40 p-4 rounded-full hover:bg-white/10 transition-colors z-20 backdrop-blur-sm">
+                <span className="material-symbols-rounded text-3xl">chevron_right</span>
             </button>
         </>
         )}
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white bg-black/30 px-4 py-2 rounded-lg">
-          <p className="font-bold">{album.name}</p>
-          <p className="text-sm">{currentIndex + 1} / {photos.length}</p>
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center text-white bg-black/60 backdrop-blur-md px-6 py-3 rounded-full border border-white/10">
+          <p className="font-bold text-sm">{album.name}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{currentIndex + 1} / {photos.length}</p>
       </div>
     </div>
   );

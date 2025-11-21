@@ -45,19 +45,25 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, onViewOnceClic
                     const { lat, lng } = parsedContent;
                     const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
                     return (
-                        <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="block text-left">
-                            <div className="p-2 rounded-lg bg-slate-600 hover:bg-slate-500 transition-colors">
-                                <p className="font-bold text-sm text-white">Localização Compartilhada</p>
-                                <p className="text-xs text-slate-300">Clique para ver no mapa</p>
+                        <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="block text-left group">
+                            <div className="p-3 rounded-xl bg-slate-800/50 group-hover:bg-slate-700/50 transition-colors border border-white/10">
+                                <div className="flex items-center gap-2 mb-1 text-pink-400">
+                                    <span className="material-symbols-rounded filled">location_on</span>
+                                    <span className="font-bold text-sm">Localização</span>
+                                </div>
+                                <p className="text-xs text-slate-300 underline">Ver no Google Maps</p>
                             </div>
                         </a>
                     );
                 case 'album':
                     const { albumName } = parsedContent;
                     return (
-                         <div className="p-2 rounded-lg bg-slate-600 text-left">
-                            <p className="font-bold text-sm text-white">Álbum Compartilhado</p>
-                            <p className="text-xs text-slate-300 italic">"{albumName}"</p>
+                         <div className="p-3 rounded-xl bg-slate-800/50 text-left border border-white/10">
+                            <div className="flex items-center gap-2 mb-1 text-purple-400">
+                                <span className="material-symbols-rounded filled">photo_album</span>
+                                <span className="font-bold text-sm">Álbum Privado</span>
+                            </div>
+                            <p className="text-xs text-slate-300 italic">Compartilhou "{albumName}"</p>
                         </div>
                     );
             }
@@ -69,19 +75,19 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, onViewOnceClic
     if (message.is_view_once) {
         if (message.viewed_at) {
             return (
-                <div className="flex items-center gap-2 text-sm italic text-slate-400">
-                    <span className="material-symbols-rounded !text-base">photo_camera</span>
-                    <span>Foto vista</span>
+                <div className="flex items-center gap-2 text-sm italic text-slate-400/70">
+                    <span className="material-symbols-rounded text-lg">timer_off</span>
+                    <span>Foto expirada</span>
                 </div>
             );
         }
         return (
             <button
                 onClick={() => onViewOnceClick(message)}
-                className="flex items-center gap-2 text-sm font-bold text-white bg-slate-600 px-4 py-2 rounded-lg hover:bg-slate-500 transition-colors"
+                className="flex items-center gap-2 text-sm font-bold text-white bg-gradient-to-r from-red-600 to-orange-600 px-4 py-2.5 rounded-lg hover:shadow-lg transition-all active:scale-95"
             >
-                <span className="material-symbols-rounded !text-base">visibility</span>
-                <span>Ver Foto</span>
+                <span className="material-symbols-rounded filled text-lg animate-pulse">local_fire_department</span>
+                <span>Ver Foto (1x)</span>
             </button>
         );
     }
@@ -90,9 +96,9 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, onViewOnceClic
     return (
         <div className="space-y-2">
             {message.image_url && (
-                <img src={getPublicImageUrl(message.image_url)} alt="Imagem enviada" className="max-w-xs rounded-lg cursor-pointer" onClick={() => window.open(getPublicImageUrl(message.image_url))}/>
+                <img src={getPublicImageUrl(message.image_url)} alt="Imagem enviada" className="max-w-xs rounded-xl shadow-lg cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(getPublicImageUrl(message.image_url))}/>
             )}
-            {message.content && <p className="text-sm break-words">{message.content}</p>}
+            {message.content && <p className="text-sm break-words leading-relaxed">{message.content}</p>}
         </div>
     );
 };
@@ -400,13 +406,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
     const showReadReceipt = isPremiumUser && hasBeenRead;
 
     return (
-      <div className="flex items-center space-x-1">
-          {msg.updated_at && <span className="text-xs text-slate-500">(editado)</span>}
-          <span className="text-xs text-slate-400">{format(new Date(msg.created_at), 'HH:mm')}</span>
+      <div className="flex items-center space-x-1 transition-opacity duration-300">
+          {msg.updated_at && <span className="text-[10px] text-slate-500">(editado)</span>}
+          <span className="text-[10px] text-slate-400">{format(new Date(msg.created_at), 'HH:mm')}</span>
           {showReadReceipt ? (
-              <span className="material-symbols-rounded !text-[16px] text-blue-400">done_all</span>
+              <span className="material-symbols-rounded !text-[14px] text-blue-400">done_all</span>
           ) : (
-              <span className="material-symbols-rounded !text-[16px] text-slate-400">check</span>
+              <span className="material-symbols-rounded !text-[14px] text-slate-500">check</span>
           )}
       </div>
     );
@@ -417,78 +423,81 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
 
   return (
     <>
-    <div className="fixed bottom-0 right-0 sm:right-4 md:right-8 w-full sm:w-96 h-full sm:h-[500px] bg-slate-900 shadow-2xl rounded-t-2xl sm:rounded-lg z-40 flex flex-col animate-slide-in-up border border-slate-700">
-      <header className="flex items-center justify-between p-3 bg-slate-800 rounded-t-2xl sm:rounded-t-lg border-b border-slate-700 flex-shrink-0">
+    <div className="fixed bottom-0 right-0 sm:right-4 md:right-8 w-full sm:w-[400px] h-full sm:h-[600px] bg-slate-900/95 backdrop-blur-xl shadow-2xl rounded-t-2xl sm:rounded-2xl z-40 flex flex-col animate-slide-in-up border border-white/10 overflow-hidden">
+      <header className="flex items-center justify-between p-4 bg-slate-800/50 border-b border-white/5 flex-shrink-0">
         <div className="flex items-center space-x-3">
-          <img src={user.imageUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
+          <div className="relative">
+            <img src={user.imageUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-700" />
+            {isOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-slate-800"></div>}
+          </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold">{user.name}</h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-bold text-white leading-none">{user.name}</h3>
               {user.subscription_tier === 'plus' && (
-                  <span className="flex items-center text-xs bg-yellow-400/20 text-yellow-300 font-semibold px-1.5 py-0.5 rounded-full">
-                      <span className="material-symbols-rounded !text-[12px]">auto_awesome</span>
-                  </span>
+                  <span className="material-symbols-rounded filled !text-[14px] text-yellow-400">auto_awesome</span>
               )}
             </div>
-            <div className="flex items-center space-x-1.5">
-              {isOnline && <div className="w-2 h-2 rounded-full bg-green-400"></div>}
-              <span className="text-xs text-slate-400">{isOnline ? 'Online' : statusText}</span>
-            </div>
+            <p className="text-xs text-slate-400 font-medium">{isOnline ? 'Online' : statusText}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-            <button onClick={() => setConfirmDeleteConvo(true)} className="text-slate-400 hover:text-white">
+        <div className="flex items-center gap-1">
+            <button onClick={() => setConfirmDeleteConvo(true)} className="p-2 text-slate-400 hover:text-red-400 transition-colors rounded-full hover:bg-white/5">
                 <span className="material-symbols-rounded text-xl">delete</span>
             </button>
-            <button onClick={onClose} className="text-slate-400 hover:text-white">
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/5">
                 <span className="material-symbols-rounded">close</span>
             </button>
         </div>
       </header>
 
-      <div className="flex-1 p-4 overflow-y-auto bg-slate-900">
-        <div className="flex flex-col space-y-2">
+      <div className="flex-1 p-4 overflow-y-auto bg-dark-900/30 scroll-smooth">
+        <div className="flex flex-col space-y-3">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUser.id ? 'items-end' : 'items-start'}`}>
-              <div className={`flex items-end gap-2 max-w-xs md:max-w-sm ${msg.sender_id === currentUser.id ? 'flex-row-reverse' : 'flex-row'}`}>
-                 {msg.sender_id !== currentUser.id && <img src={user.imageUrl} className="w-6 h-6 rounded-full self-start" />}
+              <div className={`flex items-end gap-2 max-w-[85%] ${msg.sender_id === currentUser.id ? 'flex-row-reverse' : 'flex-row'}`}>
+                 {msg.sender_id !== currentUser.id && <img src={user.imageUrl} className="w-6 h-6 rounded-full self-end mb-1" />}
                  
                  {editingMessage?.id === msg.id ? (
-                     <div className="flex-1 space-y-1">
+                     <div className="w-full bg-slate-800 rounded-xl p-2 border border-pink-500/50 shadow-lg">
                         <textarea
                             value={editedContent}
                             onChange={(e) => setEditedContent(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSaveEdit(); } }}
-                            className="w-full bg-slate-600 rounded-lg py-2 px-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-                            rows={3}
+                            className="w-full bg-slate-900 rounded-lg py-2 px-3 text-white text-sm focus:outline-none resize-none"
+                            rows={2}
                         />
-                        <div className="flex justify-end gap-2 text-xs">
-                            <button onClick={handleCancelEdit} className="hover:underline">Cancelar</button>
-                            <button onClick={handleSaveEdit} className="font-bold text-pink-400 hover:underline">Salvar</button>
+                        <div className="flex justify-end gap-3 mt-2 text-xs font-bold">
+                            <button onClick={handleCancelEdit} className="text-slate-400 hover:text-white">CANCELAR</button>
+                            <button onClick={handleSaveEdit} className="text-pink-500 hover:text-pink-400">SALVAR</button>
                         </div>
                      </div>
                  ) : (
-                    <div className={`px-4 py-2 rounded-2xl relative ${msg.sender_id === currentUser.id ? 'bg-pink-600 text-white rounded-br-none' : 'bg-slate-700 text-slate-200 rounded-bl-none'}`}>
+                    <div className={`px-4 py-2.5 text-sm shadow-md ${
+                        msg.sender_id === currentUser.id 
+                        ? 'bg-gradient-to-br from-pink-600 to-purple-600 text-white rounded-2xl rounded-tr-none' 
+                        : 'bg-slate-800 text-slate-200 rounded-2xl rounded-tl-none border border-white/5'
+                    }`}>
                         <MessageContent message={msg} onViewOnceClick={handleViewOnceClick} />
                     </div>
                  )}
                 
                  {msg.sender_id === currentUser.id && !editingMessage && !msg.is_view_once && !msg.image_url && !msg.content?.includes('"type":') && (
-                    <div className="relative">
-                        <button onClick={() => setMessageOptions(msg)} className="text-slate-500 hover:text-white px-1 self-center">
+                    <div className="relative opacity-0 hover:opacity-100 transition-opacity self-center">
+                        <button onClick={() => setMessageOptions(msg)} className="text-slate-500 hover:text-white p-1">
                             <span className="material-symbols-rounded text-base">more_vert</span>
                         </button>
                         {messageOptions?.id === msg.id && (
-                             <div className="absolute bottom-full right-0 mb-1 w-28 bg-slate-700 rounded-lg shadow-lg z-10 text-left overflow-hidden border border-white/5">
-                                <button onClick={() => handleStartEdit(msg)} className="w-full text-sm p-2 text-white hover:bg-slate-600">Editar</button>
-                                <button onClick={() => { setConfirmDeleteMessage(msg); setMessageOptions(null); }} className="w-full text-sm p-2 text-red-400 hover:bg-slate-600">Apagar</button>
+                             <div className="absolute bottom-full right-0 mb-1 w-28 bg-slate-800 rounded-lg shadow-xl z-20 border border-white/10 overflow-hidden animate-fade-in">
+                                <button onClick={() => handleStartEdit(msg)} className="w-full text-xs font-bold p-3 text-left text-white hover:bg-white/5">Editar</button>
+                                <div className="h-px bg-white/5"></div>
+                                <button onClick={() => { setConfirmDeleteMessage(msg); setMessageOptions(null); }} className="w-full text-xs font-bold p-3 text-left text-red-400 hover:bg-white/5">Apagar</button>
                              </div>
                         )}
                     </div>
                 )}
 
               </div>
-              <div className={`mt-1 pr-2 ${msg.sender_id === currentUser.id ? 'self-end' : 'self-start ml-8'}`}>
+              <div className={`mt-1 px-1 ${msg.sender_id === currentUser.id ? 'self-end' : 'self-start ml-9'}`}>
                  <MessageStatus msg={msg} />
               </div>
             </div>
@@ -498,75 +507,87 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       </div>
       
       {!editingMessage && (
-        <div className="p-2 border-t border-slate-700 bg-slate-800 relative">
+        <div className="p-3 border-t border-white/5 bg-slate-800/50 backdrop-blur-md relative">
              {isAttachmentMenuOpen && (
-                <div className="absolute bottom-full left-2 mb-2 w-48 bg-slate-700 rounded-lg shadow-lg p-2 animate-fade-in-up border border-white/5">
-                    <button onClick={() => { setAttachmentMenuOpen(false); imageInputRef.current?.click(); }} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-slate-600 text-white">
-                        <span className="material-symbols-rounded text-xl">image</span> Foto
+                <div className="absolute bottom-full left-3 mb-2 w-48 bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl p-1.5 animate-fade-in-up border border-white/10 z-20">
+                    <button onClick={() => { setAttachmentMenuOpen(false); imageInputRef.current?.click(); }} className="w-full flex items-center gap-3 text-left p-3 rounded-xl hover:bg-white/5 text-white transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-400">
+                            <span className="material-symbols-rounded text-lg">image</span>
+                        </div>
+                        <span className="text-sm font-bold">Foto</span>
                     </button>
-                     <button onClick={handleSendLocation} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-slate-600 text-white">
-                        <span className="material-symbols-rounded text-xl">location_on</span> Localização
+                     <button onClick={handleSendLocation} className="w-full flex items-center gap-3 text-left p-3 rounded-xl hover:bg-white/5 text-white transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
+                            <span className="material-symbols-rounded text-lg">location_on</span>
+                        </div>
+                        <span className="text-sm font-bold">Localização</span>
                     </button>
-                     <button onClick={() => { setAttachmentMenuOpen(false); setIsAlbumSelectorOpen(true); }} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-slate-600 text-white">
-                        <span className="material-symbols-rounded text-xl">photo_album</span> Álbum Privado
+                     <button onClick={() => { setAttachmentMenuOpen(false); setIsAlbumSelectorOpen(true); }} className="w-full flex items-center gap-3 text-left p-3 rounded-xl hover:bg-white/5 text-white transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400">
+                            <span className="material-symbols-rounded text-lg">photo_album</span>
+                        </div>
+                        <span className="text-sm font-bold">Álbum Privado</span>
                     </button>
                 </div>
             )}
             
             {imageToSend ? (
-                <div className="p-2 space-y-2">
-                    <div className="relative w-28 h-28 rounded-lg overflow-hidden">
-                        <img src={imageToSend.preview} alt="Preview" className="w-full h-full object-cover" />
-                        <button onClick={cancelImageSend} className="absolute top-1 right-1 bg-black/50 p-1 rounded-full text-white hover:bg-black/70 transition-colors">
-                            <span className="material-symbols-rounded !text-base">close</span>
+                <div className="p-2 space-y-3 bg-slate-800 rounded-2xl border border-white/10">
+                    <div className="relative w-full h-40 rounded-xl overflow-hidden bg-black">
+                        <img src={imageToSend.preview} alt="Preview" className="w-full h-full object-contain" />
+                        <button onClick={cancelImageSend} className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full text-white hover:bg-black/80 transition-colors backdrop-blur-sm">
+                            <span className="material-symbols-rounded text-lg">close</span>
                         </button>
                     </div>
                     <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                         <button 
                             type="button" 
                             onClick={() => setIsViewOnce(!isViewOnce)} 
-                            className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full transition-colors ${isViewOnce ? 'bg-pink-600 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`} 
-                            title="Visualização única"
+                            className={`flex-shrink-0 h-10 px-4 rounded-full transition-all font-bold text-sm flex items-center gap-2 ${isViewOnce ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}`} 
                         >
-                            <span className="material-symbols-rounded">local_fire_department</span>
+                            <span className={`material-symbols-rounded text-lg ${isViewOnce ? 'filled animate-pulse' : ''}`}>local_fire_department</span>
+                            {isViewOnce ? '1x Ativo' : '1x'}
                         </button>
                         <input
                             type="text"
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
-                            placeholder="Adicionar legenda..."
-                            className="flex-1 bg-slate-700 rounded-full py-2 px-4 h-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                            placeholder="Legenda..."
+                            className="flex-1 bg-slate-900 rounded-full py-2.5 px-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 border border-white/5 text-sm"
                         />
                         <button 
                             type="submit" 
-                            className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-pink-600 text-white rounded-full hover:bg-pink-700 transition-colors"
+                            className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-pink-600 text-white rounded-full hover:bg-pink-700 transition-all hover:scale-105 active:scale-95"
                         >
                             <span className="material-symbols-rounded text-xl">send</span>
                         </button>
                     </form>
                 </div>
               ) : (
-                <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                <form onSubmit={handleSendMessage} className="flex items-end gap-2">
                     <input type="file" accept="image/*" className="hidden" ref={imageInputRef} onChange={handleFileSelect}/>
                     <button 
                         type="button" 
                         onClick={() => setAttachmentMenuOpen(prev => !prev)} 
-                        className="flex-shrink-0 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full hover:bg-slate-600 transition-colors"
+                        className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full transition-all mb-0.5 ${isAttachmentMenuOpen ? 'bg-slate-700 text-white rotate-45' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
                     >
                         <span className="material-symbols-rounded text-2xl">add_circle</span>
                     </button>
-                    <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Digite uma mensagem..."
-                        className="flex-1 bg-slate-700 rounded-full py-2 px-4 h-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                    />
+                    <div className="flex-1 relative">
+                        <input
+                            type="text"
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            placeholder="Mensagem..."
+                            className="w-full bg-slate-900/80 rounded-2xl py-3 pl-4 pr-10 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 border border-white/5 text-sm transition-all"
+                        />
+                    </div>
                     <button 
                         type="submit" 
-                        className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-pink-600 text-white rounded-full hover:bg-pink-700 transition-colors"
+                        disabled={!newMessage.trim()}
+                        className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-pink-600 text-white rounded-full hover:bg-pink-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:bg-slate-700 mb-0.5"
                     >
-                        <span className="material-symbols-rounded text-xl">send</span>
+                        <span className="material-symbols-rounded text-xl filled">send</span>
                     </button>
                 </form>
             )}
@@ -600,7 +621,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
         />
     )}
     {messageOptions && (
-        <div className="fixed inset-0 z-0" onClick={() => setMessageOptions(null)}></div>
+        <div className="fixed inset-0 z-10" onClick={() => setMessageOptions(null)}></div>
     )}
     {viewingOncePhoto && viewingOncePhoto.image_url && (
         <ViewOncePhotoModal

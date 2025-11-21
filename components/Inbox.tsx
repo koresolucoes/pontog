@@ -125,29 +125,27 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const TabButton = ({ label, tabName, isPremium = false }: { label: string, tabName: ActiveTab, isPremium?: boolean }) => (
          <button 
             onClick={() => isPremium ? handlePremiumFeatureClick(tabName as 'winks' | 'views') : setActiveTab(tabName)}
-            className={`flex items-center gap-1.5 py-2 px-3 text-sm font-semibold transition-colors border-b-2 flex-shrink-0 ${activeTab === tabName ? 'text-pink-500 border-pink-500' : 'text-slate-400 border-transparent hover:text-white'}`}
+            className={`relative flex items-center gap-2 py-3 px-4 text-sm font-bold transition-all rounded-xl flex-shrink-0 border border-transparent ${activeTab === tabName ? 'bg-slate-800 text-pink-500 border-pink-500/20 shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
         >
             {label}
-            {isPremium && <span className="material-symbols-outlined !text-[16px] text-yellow-400">auto_awesome</span>}
+            {isPremium && <span className="material-symbols-rounded filled !text-[16px] text-yellow-400 drop-shadow-sm">auto_awesome</span>}
         </button>
     );
 
     return (
         <>
-        <div className="flex flex-col h-full bg-slate-900 text-white">
-            <header className="p-4">
-                <h1 className="text-xl font-bold">Caixa de Entrada</h1>
-                <div className="mt-4 border-b border-slate-700">
-                    <div className="flex space-x-4 overflow-x-auto pb-2 -mb-2">
-                        <TabButton label="Mensagens" tabName="messages" />
-                        <TabButton label="Te Chamaram" tabName="winks" isPremium />
-                        <TabButton label="Quem Me Viu" tabName="views" isPremium />
-                        <TabButton label="Solicitações" tabName="requests" />
-                    </div>
+        <div className="flex flex-col h-full bg-dark-900 text-white">
+            <header className="p-5 pb-2">
+                <h1 className="text-2xl font-black tracking-tight mb-4 font-outfit">Caixa de Entrada</h1>
+                <div className="flex space-x-2 overflow-x-auto pb-2 no-scrollbar">
+                    <TabButton label="Mensagens" tabName="messages" />
+                    <TabButton label="Te Chamaram" tabName="winks" isPremium />
+                    <TabButton label="Quem Me Viu" tabName="views" isPremium />
+                    <TabButton label="Solicitações" tabName="requests" />
                 </div>
             </header>
 
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto px-3 pb-24">
                 {activeTab === 'messages' && (
                     <ConversationList 
                         conversations={conversations} 
@@ -236,15 +234,20 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
         return items;
     }, [conversations]);
 
-    if (loading) return <p className="text-center p-8 text-slate-400">Carregando conversas...</p>;
-    if (conversations.length === 0) return <p className="text-center p-8 text-slate-400">Nenhuma conversa iniciada.</p>;
+    if (loading) return <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div></div>;
+    if (conversations.length === 0) return (
+        <div className="flex flex-col items-center justify-center h-64 text-slate-500">
+            <span className="material-symbols-rounded text-5xl mb-2 opacity-50">chat_bubble_outline</span>
+            <p>Nenhuma conversa iniciada.</p>
+        </div>
+    );
     
     return (
-        <div className="divide-y divide-slate-800">
-            {itemsWithAd.map(item => {
+        <div className="space-y-2">
+            {itemsWithAd.map((item, idx) => {
                  if ('type' in item && item.type === 'ad') {
                     return (
-                        <div key="ad-inbox" className="p-1">
+                        <div key="ad-inbox" className="p-1 my-2">
                             <AdSenseUnit
                                 client="ca-pub-9015745232467355"
                                 slot="3561488011"
@@ -256,32 +259,30 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
                 const convo = item as ConversationPreview;
                 const isOnline = onlineUsers.includes(convo.other_participant_id);
                 return (
-                    <div key={convo.conversation_id} className="p-4 flex items-center space-x-3 group hover:bg-slate-800">
-                        <div onClick={() => onConversationClick(convo)} className="flex-1 flex items-center space-x-3 cursor-pointer">
-                            <div className="relative flex-shrink-0">
-                                <img src={convo.other_participant_avatar_url} alt={convo.other_participant_username} className="w-12 h-12 rounded-full object-cover" />
-                                {convo.unread_count > 0 && (
-                                    <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-pink-500 text-white text-xs flex items-center justify-center font-bold ring-2 ring-slate-900">
-                                        {convo.unread_count > 9 ? '9+' : convo.unread_count}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex-1 overflow-hidden">
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center space-x-2">
-                                        {isOnline && <div className="w-2 h-2 rounded-full bg-green-400"></div>}
-                                        <h3 className="font-bold truncate text-base">{convo.other_participant_username}</h3>
-                                    </div>
-                                    <span className="text-xs text-slate-500 flex-shrink-0 ml-2">{formatDistanceToNow(new Date(convo.last_message_created_at), { addSuffix: true, locale: ptBR } as any)}</span>
-                                </div>
-                                <p className={`text-sm truncate ${convo.unread_count > 0 ? 'text-white' : 'text-slate-400'}`}>
-                                    {convo.last_message_sender_id === currentUserId && "Você: "}
-                                    {formatLastMessageContent(convo.last_message_content)}
-                                </p>
-                            </div>
+                    <div key={convo.conversation_id} className="p-3 flex items-center space-x-4 rounded-2xl bg-slate-800/40 border border-white/5 hover:bg-slate-800 transition-all cursor-pointer group" onClick={() => onConversationClick(convo)}>
+                        <div className="relative flex-shrink-0">
+                            <img src={convo.other_participant_avatar_url} alt={convo.other_participant_username} className="w-14 h-14 rounded-full object-cover border-2 border-slate-700" />
+                            {convo.unread_count > 0 && (
+                                <span className="absolute -top-1 -right-1 block min-w-[20px] h-5 rounded-full bg-pink-500 text-white text-xs flex items-center justify-center font-bold ring-2 ring-slate-900 px-1">
+                                    {convo.unread_count > 9 ? '9+' : convo.unread_count}
+                                </span>
+                            )}
                         </div>
-                        <button onClick={(e) => { e.stopPropagation(); onDeleteClick(convo); }} className="p-2 text-slate-500 rounded-full hover:bg-slate-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="material-symbols-outlined text-xl">delete</span>
+                        <div className="flex-1 overflow-hidden min-w-0">
+                            <div className="flex justify-between items-center mb-0.5">
+                                <div className="flex items-center space-x-2">
+                                    <h3 className="font-bold truncate text-base text-slate-100">{convo.other_participant_username}</h3>
+                                    {isOnline && <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_5px_#4ade80]"></div>}
+                                </div>
+                                <span className="text-xs text-slate-500 flex-shrink-0 ml-2">{formatDistanceToNow(new Date(convo.last_message_created_at), { addSuffix: true, locale: ptBR } as any)}</span>
+                            </div>
+                            <p className={`text-sm truncate ${convo.unread_count > 0 ? 'text-white font-medium' : 'text-slate-400'}`}>
+                                {convo.last_message_sender_id === currentUserId && <span className="text-slate-500">Você: </span>}
+                                {formatLastMessageContent(convo.last_message_content)}
+                            </p>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); onDeleteClick(convo); }} className="p-2 text-slate-500 rounded-full hover:bg-slate-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100">
+                            <span className="material-symbols-rounded text-xl">delete</span>
                         </button>
                     </div>
                 );
@@ -299,23 +300,23 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
     const hasWinkPerk = useAdStore(state => state.hasPerk('view_winks'));
     const canView = isPlus || hasWinkPerk;
 
-    if (loading) return <p className="text-center p-8 text-slate-400">Carregando chamados...</p>;
+    if (loading) return <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div></div>;
     if (!canView && winks.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém te chamou ainda.</p>;
 
     if (!canView) {
         return (
-            <div className="relative p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
+            <div className="relative p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                 {winks.slice(0, 10).map(wink => (
-                    <div key={wink.id} className="relative aspect-square">
-                        <img src={wink.avatar_url} alt="Perfil ofuscado" className="w-full h-full object-cover filter blur-md" />
+                    <div key={wink.id} className="relative aspect-square rounded-xl overflow-hidden bg-slate-800">
+                        <img src={wink.avatar_url} alt="Perfil ofuscado" className="w-full h-full object-cover filter blur-lg opacity-50" />
                     </div>
                 ))}
-                <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
-                    <span className="material-symbols-outlined text-5xl text-pink-400 mb-4">lock</span>
+                <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 rounded-xl border border-white/5">
+                    <span className="material-symbols-rounded text-5xl text-pink-500 mb-4 filled">lock</span>
                     <h3 className="text-lg font-bold text-white">Veja quem te chamou</h3>
-                    <p className="text-slate-300 my-2">Assine o Ponto G Plus para desbloquear ou veja um anúncio.</p>
-                    <button onClick={onUpgradeClick} className="mt-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-2 px-6 rounded-lg">
-                        Desbloquear Opções
+                    <p className="text-slate-300 my-2 max-w-xs">Assine o Ponto G Plus para desbloquear ou veja um anúncio.</p>
+                    <button onClick={onUpgradeClick} className="mt-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-pink-900/20 hover:scale-105 transition-transform">
+                        Desbloquear
                     </button>
                 </div>
             </div>
@@ -325,14 +326,17 @@ const WinkList: React.FC<WinkListProps> = ({ winks, loading, isPlus, onWinkClick
     if (winks.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém te chamou ainda.</p>;
 
     return (
-        <div className="p-1 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
             {winks.map(wink => (
-                <div key={wink.id} onClick={() => onWinkClick(wink)} className="relative aspect-square cursor-pointer group">
-                     <img src={wink.avatar_url} alt={wink.username} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                <div key={wink.id} onClick={() => onWinkClick(wink)} className="relative aspect-[3/4] cursor-pointer group rounded-xl overflow-hidden bg-slate-800 shadow-md">
+                     <img src={wink.avatar_url} alt={wink.username} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-80"></div>
                     <div className="absolute bottom-2 left-2 right-2 text-white">
-                        <h3 className="font-semibold text-sm truncate">{wink.username}</h3>
-                        <p className="text-xs text-slate-300">{formatDistanceToNow(new Date(wink.wink_created_at), { addSuffix: true, locale: ptBR } as any)}</p>
+                        <h3 className="font-bold text-sm truncate">{wink.username}</h3>
+                        <p className="text-[10px] text-slate-300 font-medium uppercase tracking-wide">{formatDistanceToNow(new Date(wink.wink_created_at), { addSuffix: true, locale: ptBR } as any)}</p>
+                    </div>
+                    <div className="absolute top-2 right-2 bg-pink-600 p-1 rounded-full shadow-lg">
+                        <span className="material-symbols-rounded text-white text-xs filled">favorite</span>
                     </div>
                 </div>
             ))}
@@ -349,23 +353,23 @@ const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlu
     const hasViewPerk = useAdStore(state => state.hasPerk('view_profile_views'));
     const canView = isPlus || hasViewPerk;
 
-    if (loading) return <p className="text-center p-8 text-slate-400">Carregando visitantes...</p>;
+    if (loading) return <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div></div>;
     if (!canView && views.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém visitou seu perfil ainda.</p>;
 
     if (!canView) {
         return (
-            <div className="relative p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
+            <div className="relative p-1 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                 {views.slice(0, 10).map(view => (
-                    <div key={view.id} className="relative aspect-square">
-                        <img src={view.avatar_url} alt="Perfil ofuscado" className="w-full h-full object-cover filter blur-md" />
+                    <div key={view.id} className="relative aspect-square rounded-xl overflow-hidden bg-slate-800">
+                        <img src={view.avatar_url} alt="Perfil ofuscado" className="w-full h-full object-cover filter blur-lg opacity-50" />
                     </div>
                 ))}
-                <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
-                    <span className="material-symbols-outlined text-5xl text-pink-400 mb-4">visibility</span>
+                <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 rounded-xl border border-white/5">
+                    <span className="material-symbols-rounded text-5xl text-pink-500 mb-4 filled">visibility</span>
                     <h3 className="text-lg font-bold text-white">Descubra quem te viu</h3>
-                    <p className="text-slate-300 my-2">Veja quem visitou seu perfil com o Plus ou assistindo a um anúncio.</p>
-                    <button onClick={onUpgradeClick} className="mt-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-2 px-6 rounded-lg">
-                        Desbloquear Opções
+                    <p className="text-slate-300 my-2 max-w-xs">Veja quem visitou seu perfil com o Plus ou assistindo a um anúncio.</p>
+                    <button onClick={onUpgradeClick} className="mt-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-pink-900/20 hover:scale-105 transition-transform">
+                        Desbloquear
                     </button>
                 </div>
             </div>
@@ -375,14 +379,14 @@ const ProfileViewList: React.FC<ProfileViewListProps> = ({ views, loading, isPlu
     if (views.length === 0) return <p className="text-center p-8 text-slate-400">Ninguém visitou seu perfil ainda.</p>;
 
     return (
-        <div className="p-1 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
             {views.map(view => (
-                <div key={view.id} onClick={() => onViewClick(view)} className="relative aspect-square cursor-pointer group">
-                     <img src={view.avatar_url} alt={view.username} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                <div key={view.id} onClick={() => onViewClick(view)} className="relative aspect-[3/4] cursor-pointer group rounded-xl overflow-hidden bg-slate-800 shadow-md">
+                     <img src={view.avatar_url} alt={view.username} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-80"></div>
                     <div className="absolute bottom-2 left-2 right-2 text-white">
-                        <h3 className="font-semibold text-sm truncate">{view.username}</h3>
-                         <p className="text-xs text-slate-300">{formatDistanceToNow(new Date(view.viewed_at), { addSuffix: true, locale: ptBR } as any)}</p>
+                        <h3 className="font-bold text-sm truncate">{view.username}</h3>
+                         <p className="text-[10px] text-slate-300 font-medium uppercase tracking-wide">{formatDistanceToNow(new Date(view.viewed_at), { addSuffix: true, locale: ptBR } as any)}</p>
                     </div>
                 </div>
             ))}
@@ -395,23 +399,32 @@ interface RequestListProps {
     onRespond: (requestId: number, status: 'granted' | 'denied') => void;
 }
 const RequestList: React.FC<RequestListProps> = ({ requests, loading, onRespond }) => {
-    if (loading) return <p className="text-center p-8 text-slate-400">Carregando solicitações...</p>;
-    if (requests.length === 0) return <p className="text-center p-8 text-slate-400">Nenhuma solicitação pendente.</p>;
+    if (loading) return <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div></div>;
+    if (requests.length === 0) return (
+        <div className="flex flex-col items-center justify-center h-64 text-slate-500">
+            <span className="material-symbols-rounded text-5xl mb-2 opacity-50">lock_open</span>
+            <p>Nenhuma solicitação pendente.</p>
+        </div>
+    );
 
     return (
-        <div className="divide-y divide-slate-800">
+        <div className="space-y-2">
             {requests.map(req => (
-                <div key={req.id} className="p-4 flex items-center space-x-4">
-                    <img src={req.avatar_url} alt={req.username} className="w-12 h-12 rounded-full object-cover" />
+                <div key={req.id} className="p-4 flex items-center space-x-4 bg-slate-800/40 rounded-2xl border border-white/5">
+                    <img src={req.avatar_url} alt={req.username} className="w-12 h-12 rounded-full object-cover border-2 border-slate-700" />
                     <div className="flex-1 overflow-hidden">
-                        <p className="text-sm">
-                            <span className="font-bold">{req.username}</span> solicitou acesso aos seus álbuns.
+                        <p className="text-sm text-slate-200">
+                            <span className="font-bold text-white">{req.username}</span> solicitou acesso aos seus álbuns.
                         </p>
-                        <span className="text-xs text-slate-500">{formatDistanceToNow(new Date(req.created_at), { addSuffix: true, locale: ptBR } as any)}</span>
+                        <span className="text-xs text-slate-500 font-medium">{formatDistanceToNow(new Date(req.created_at), { addSuffix: true, locale: ptBR } as any)}</span>
                     </div>
-                    <div className="flex gap-3">
-                        <button onClick={() => onRespond(req.id, 'denied')} className="p-2.5 bg-slate-700 text-slate-300 rounded-full hover:bg-slate-600"><span className="material-symbols-outlined">close</span></button>
-                        <button onClick={() => onRespond(req.id, 'granted')} className="p-2.5 bg-slate-700 text-slate-300 rounded-full hover:bg-slate-600"><span className="material-symbols-outlined">check</span></button>
+                    <div className="flex gap-2">
+                        <button onClick={() => onRespond(req.id, 'denied')} className="w-10 h-10 flex items-center justify-center bg-slate-700 text-red-400 rounded-full hover:bg-slate-600 transition-colors">
+                            <span className="material-symbols-rounded text-xl">close</span>
+                        </button>
+                        <button onClick={() => onRespond(req.id, 'granted')} className="w-10 h-10 flex items-center justify-center bg-green-600/20 text-green-400 border border-green-500/50 rounded-full hover:bg-green-600/30 transition-colors">
+                            <span className="material-symbols-rounded text-xl">check</span>
+                        </button>
                     </div>
                 </div>
             ))}

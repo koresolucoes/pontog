@@ -135,7 +135,7 @@ const App: React.FC = () => {
             <Toaster
                 position="top-center"
                 toastOptions={{
-                    className: '!bg-slate-900/90 !backdrop-blur-xl !text-white !border !border-white/10 !rounded-2xl !shadow-2xl !font-outfit',
+                    className: '!bg-dark-900/95 !backdrop-blur-xl !text-white !border !border-white/10 !rounded-2xl !shadow-2xl !font-outfit',
                     duration: 4000,
                     success: {
                         iconTheme: {
@@ -144,6 +144,7 @@ const App: React.FC = () => {
                         },
                         style: {
                             border: '1px solid rgba(74, 222, 128, 0.2)',
+                            background: 'rgba(5, 5, 5, 0.95)',
                         }
                     },
                     error: {
@@ -153,15 +154,21 @@ const App: React.FC = () => {
                         },
                         style: {
                             border: '1px solid rgba(248, 113, 113, 0.2)',
+                            background: 'rgba(5, 5, 5, 0.95)',
+                        }
+                    },
+                    loading: {
+                        style: {
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            background: 'rgba(5, 5, 5, 0.95)',
                         }
                     },
                     style: {
-                        background: 'rgba(15, 23, 42, 0.95)',
                         color: '#f8fafc',
                         padding: '16px',
                         fontSize: '14px',
-                        fontWeight: '500',
-                        boxShadow: '0 10px 40px -10px rgba(0,0,0,0.5)',
+                        fontWeight: '600',
+                        boxShadow: '0 20px 50px -10px rgba(0,0,0,0.7)',
                     },
                 }}
             />

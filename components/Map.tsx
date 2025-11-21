@@ -1,27 +1,24 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
 import { useAgoraStore } from '../stores/agoraStore';
 import * as L from 'leaflet';
 import { User } from '../types';
 
-// Função para gerar o HTML do marcador dinâmico
+// Função para gerar o HTML do marcador dinâmico (mantida igual)
 const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
     const isPlus = user.subscription_tier === 'plus';
     
-    // Base classes
     let ringHtml = '';
     let badgeHtml = '';
-    let hosterBadgeHtml = ''; // Badge separado para Hoster
+    let hosterBadgeHtml = '';
     let borderClass = 'border-2 border-white';
     let containerClass = '';
 
-    // Lógica Visual Principal (Status/Borda)
     if (isAgora) {
-        // Efeito de Fogo/Brasa para Modo Agora
         borderClass = 'border-2 border-red-500';
-        containerClass = 'z-20'; // Fica acima dos outros
+        containerClass = 'z-20';
         ringHtml = `
             <div class="absolute -inset-3 bg-red-500/30 rounded-full blur-md animate-pulse"></div>
             <div class="absolute -inset-1 bg-gradient-to-tr from-red-600 to-orange-500 rounded-full opacity-70 animate-spin-slow"></div>
@@ -32,7 +29,6 @@ const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
             </div>
         `;
     } else if (isOnline) {
-        // Efeito de Ping para Online
         borderClass = 'border-2 border-green-400';
         ringHtml = `
             <div class="absolute -inset-1 bg-green-500 rounded-full opacity-75 animate-ping"></div>
@@ -41,7 +37,6 @@ const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
             <div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full z-30"></div>
         `;
     } else if (isPlus) {
-        // Borda Dourada para Plus
         borderClass = 'border-2 border-yellow-400';
         badgeHtml = `
             <div class="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 text-black rounded-full flex items-center justify-center shadow-sm border border-white z-30">
@@ -50,7 +45,6 @@ const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
         `;
     }
     
-    // Hoster Badge no mapa (Canto Superior Esquerdo para não conflitar)
     if (user.can_host) {
          hosterBadgeHtml = `
             <div class="absolute -top-1 -left-1 w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center shadow-sm border border-white z-30">
@@ -72,9 +66,9 @@ const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
 
     return L.divIcon({
         html: html,
-        className: 'bg-transparent', // Remove estilos padrão do Leaflet
+        className: 'bg-transparent',
         iconSize: [48, 48],
-        iconAnchor: [24, 24], // Centraliza
+        iconAnchor: [24, 24],
         popupAnchor: [0, -28]
     });
 };
@@ -110,77 +104,79 @@ export const Map: React.FC = () => {
   const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
 
-  // Cleanup geral ao desmontar o componente
+  // Cleanup robusto
   useEffect(() => {
     return () => {
-        // 1. Desconectar o Observer
         if (resizeObserverRef.current) {
             resizeObserverRef.current.disconnect();
-            resizeObserverRef.current = null;
         }
-        
-        // 2. Limpar o mapa completamente
         if (mapInstanceRef.current) {
             mapInstanceRef.current.remove();
             mapInstanceRef.current = null;
-            // Limpa referências de marcadores
             userMarkersRef.current.clear();
             myLocationMarkerRef.current = null;
         }
     };
   }, []);
 
-  // Inicialização Robusta do Mapa com ResizeObserver
+  // Inicialização do Mapa
   useEffect(() => {
-    if (!myLocation || !mapContainerRef.current) {
-      return;
+    // Só inicializa se tivermos localização e o container
+    if (!myLocation || !mapContainerRef.current) return;
+    
+    // Se já existe, apenas atualiza a view (flyTo para suavidade)
+    if (mapInstanceRef.current) {
+        return;
     }
 
-    // Se o mapa ainda não existe, cria
-    if (!mapInstanceRef.current) {
-      const newMap = L.map(mapContainerRef.current, {
-        zoomControl: false,
-        attributionControl: false,
-        zoomAnimation: true,
-        fadeAnimation: true,
-        markerZoomAnimation: true
-      }).setView(myLocation, 15);
+    // Delay crítico: Espera o DOM estabilizar e a animação de transição de tela (fade-in) terminar.
+    // Isso evita o problema de "tela branca" onde o Leaflet calcula altura 0.
+    const initTimer = setTimeout(() => {
+        if (!mapContainerRef.current) return;
 
-      // Dark Mode Map Tiles (CartoDB Dark Matter)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd',
-      }).addTo(newMap);
+        // Proteção dupla contra inicialização múltipla
+        if (mapInstanceRef.current) return;
 
-      mapInstanceRef.current = newMap;
+        const newMap = L.map(mapContainerRef.current, {
+            zoomControl: false,
+            attributionControl: false,
+            zoomAnimation: true,
+            fadeAnimation: true,
+            markerZoomAnimation: true
+        }).setView(myLocation, 15);
 
-      // FIX: ResizeObserver para corrigir tela branca
-      // Isso detecta quando o container muda de tamanho (ex: animação de entrada, rotação de tela)
-      // e força o mapa a se redesenhar imediatamente.
-      const observer = new ResizeObserver(() => {
-          if (newMap) {
-              newMap.invalidateSize();
-          }
-      });
-      
-      observer.observe(mapContainerRef.current);
-      resizeObserverRef.current = observer;
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            subdomains: 'abcd',
+            updateWhenIdle: true, // Performance: carrega tiles apenas quando parar de mover
+            keepBuffer: 2 // Performance: mantém tiles na memória
+        }).addTo(newMap);
 
-      // Fallback inicial: força um redesenho após um breve delay para garantir
-      // que o CSS de layout já foi aplicado.
-      setTimeout(() => {
-          newMap.invalidateSize();
-      }, 250);
+        mapInstanceRef.current = newMap;
+        setIsMapReady(true);
 
-    } else {
-        // Se o mapa já existe, apenas move a câmera se necessário
-        // Não resetamos o zoom para não atrapalhar o usuário se ele estiver navegando
-        // Apenas pan se a localização mudar drasticamente (opcional)
-    }
+        // Observer para corrigir redimensionamento (rotação de tela, abertura de teclado)
+        const observer = new ResizeObserver(() => {
+            if (mapInstanceRef.current) {
+                mapInstanceRef.current.invalidateSize();
+            }
+        });
+        observer.observe(mapContainerRef.current);
+        resizeObserverRef.current = observer;
+
+        // Force invalidate logo após a criação para garantir
+        setTimeout(() => {
+            newMap.invalidateSize();
+        }, 100);
+
+    }, 300); // 300ms coincide com a duração da animação 'animate-fade-in' do App.tsx
+
+    return () => clearTimeout(initTimer);
   }, [myLocation]);
 
-  // Atualiza o marcador do próprio usuário
+  // Atualiza posição do "Você"
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (map && myLocation && profile) {
@@ -190,21 +186,27 @@ export const Map: React.FC = () => {
                 zIndexOffset: 1000 
             }).addTo(map);
         } else {
-            myLocationMarkerRef.current.setLatLng(myLocation);
+            const oldLatLng = myLocationMarkerRef.current.getLatLng();
+            // Só move se a diferença for significativa para evitar repintura desnecessária
+            if (oldLatLng.distanceTo(myLocation) > 2) {
+                myLocationMarkerRef.current.setLatLng(myLocation);
+                // Opcional: Centralizar suavemente no usuário se ele sair muito da tela
+                // map.panTo(myLocation); 
+            }
             myLocationMarkerRef.current.setZIndexOffset(1000);
         }
     }
-  }, [myLocation, profile]);
+  }, [myLocation, profile, isMapReady]);
 
-  // Gerenciamento dos Marcadores de Outros Usuários
+  // Gerenciamento dos Marcadores de Usuários
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
+    if (!map || !isMapReady) return;
     
     const markers = userMarkersRef.current;
     const userIdsInStore = new Set(users.map(u => u.id));
 
-    // Remove marcadores de usuários que não estão mais na lista
+    // Remove marcadores antigos
     markers.forEach((marker, userId) => {
         if (!userIdsInStore.has(userId)) {
             marker.remove();
@@ -212,6 +214,7 @@ export const Map: React.FC = () => {
         }
     });
 
+    // Adiciona/Atualiza marcadores
     users.forEach(user => {
         if (!Number.isFinite(user.lat) || !Number.isFinite(user.lng)) return;
 
@@ -219,45 +222,54 @@ export const Map: React.FC = () => {
         const isAgora = agoraUserIds.includes(user.id);
         const shouldBeVisible = !filters.onlineOnly || isOnline;
 
-        // Cria ou atualiza marcador
         let marker = markers.get(user.id);
 
-        if (!marker) {
-            marker = L.marker([user.lat!, user.lng!]);
-            marker.on('click', () => {
-              setSelectedUser(user);
-            });
-            markers.set(user.id, marker);
+        if (shouldBeVisible) {
+            if (!marker) {
+                marker = L.marker([user.lat!, user.lng!]);
+                marker.on('click', () => setSelectedUser(user));
+                markers.set(user.id, marker);
+                marker.addTo(map);
+            } else {
+                const oldLatLng = marker.getLatLng();
+                if (oldLatLng.lat !== user.lat || oldLatLng.lng !== user.lng) {
+                    marker.setLatLng([user.lat!, user.lng!]);
+                }
+                if (!map.hasLayer(marker)) marker.addTo(map);
+            }
+
+            // Atualiza ícone e Z-index sempre
+            marker.setIcon(createLiveMarker(user, isOnline, isAgora));
+            marker.setZIndexOffset(isAgora ? 800 : isOnline ? 500 : 100);
         } else {
-            // Animação suave de movimento se a posição mudar
-            const oldLatLng = marker.getLatLng();
-            if (oldLatLng.lat !== user.lat || oldLatLng.lng !== user.lng) {
-                marker.setLatLng([user.lat!, user.lng!]);
+            if (marker && map.hasLayer(marker)) {
+                marker.remove();
             }
         }
-
-        // Atualiza o ícone (Live Marker HTML)
-        marker.setIcon(createLiveMarker(user, isOnline, isAgora));
-        
-        // Ajusta Z-Index: Agora > Online > Offline
-        marker.setZIndexOffset(isAgora ? 800 : isOnline ? 500 : 100);
-
-        // Controle de visibilidade baseado em filtros
-        if (shouldBeVisible) {
-            if (!map.hasLayer(marker)) marker.addTo(map);
-        } else {
-            if (map.hasLayer(marker)) marker.remove();
-        }
     });
-  }, [users, onlineUsers, agoraUserIds, filters, setSelectedUser]);
+  }, [users, onlineUsers, agoraUserIds, filters, setSelectedUser, isMapReady]);
 
-  // Tela de Carregamento / Scanner
-  if (!myLocation) {
-    const isError = !!error;
-    const scanColor = isError ? 'red' : 'pink';
-    
-    return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-dark-900 relative overflow-hidden">
+  // Lógica de Exibição:
+  // O container do mapa existe SEMPRE no DOM (z-0).
+  // O Scanner/Loading existe como um OVERLAY (z-50) que desaparece (opacity-0) quando o mapa está pronto.
+  
+  const isScanning = !myLocation || !isMapReady;
+  const isError = !!error;
+  const scanColor = isError ? 'red' : 'pink';
+
+  return (
+      <div className="w-full h-full relative bg-dark-900 isolate overflow-hidden">
+          {/* Container do Mapa (Sempre Renderizado) */}
+          <div 
+            ref={mapContainerRef} 
+            className="w-full h-full absolute inset-0 z-0 outline-none focus:outline-none"
+            style={{ opacity: isScanning ? 0 : 1, transition: 'opacity 0.5s ease-in' }}
+          />
+
+          {/* Overlay de Carregamento / Scanner (Fade Out quando pronto) */}
+          <div 
+            className={`absolute inset-0 z-50 flex flex-col items-center justify-center bg-dark-900 transition-opacity duration-700 ease-in-out ${!isScanning && !isError ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          >
             <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
             
             <div className="relative z-10 flex flex-col items-center">
@@ -287,32 +299,22 @@ export const Map: React.FC = () => {
                     </p>
                 </div>
 
-                {isError && (
+                {isError ? (
                     <button 
                         onClick={() => requestLocationPermission()} 
-                        className="mt-8 px-8 py-3 bg-red-500/10 border border-red-500/50 text-red-400 font-bold rounded-xl hover:bg-red-500/20 transition-all active:scale-95 flex items-center gap-2"
+                        className="mt-8 px-8 py-3 bg-red-500/10 border border-red-500/50 text-red-400 font-bold rounded-xl hover:bg-red-500/20 transition-all active:scale-95 flex items-center gap-2 cursor-pointer pointer-events-auto"
                     >
                         <span className="material-symbols-rounded animate-spin">refresh</span>
                         Tentar Novamente
                     </button>
-                )}
-                
-                {!isError && (
+                ) : (
                     <div className="mt-8 flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-full border border-white/5">
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
                         <span className="text-[10px] text-slate-400 font-mono">AGUARDANDO SATÉLITES</span>
                     </div>
                 )}
             </div>
-        </div>
-    );
-  }
-
-  return (
-      // Importante: 'isolation-isolate' cria um novo contexto de empilhamento
-      // 'z-0' garante que o mapa fique no fundo, mas interativo
-      <div className="w-full h-full relative z-0 bg-dark-900 isolate">
-          <div ref={mapContainerRef} className="w-full h-full absolute inset-0 outline-none focus:outline-none" />
+          </div>
       </div>
   );
 };

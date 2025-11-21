@@ -107,29 +107,35 @@ export const Map: React.FC = () => {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
-  
-  // Ref para controlar o intervalo de invalidação
-  const invalidationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // Cleanup geral ao desmontar o componente
   useEffect(() => {
     return () => {
+        // 1. Desconectar o Observer
+        if (resizeObserverRef.current) {
+            resizeObserverRef.current.disconnect();
+            resizeObserverRef.current = null;
+        }
+        
+        // 2. Limpar o mapa completamente
         if (mapInstanceRef.current) {
             mapInstanceRef.current.remove();
             mapInstanceRef.current = null;
-        }
-        if (invalidationIntervalRef.current) {
-            clearInterval(invalidationIntervalRef.current);
+            // Limpa referências de marcadores
+            userMarkersRef.current.clear();
+            myLocationMarkerRef.current = null;
         }
     };
   }, []);
 
-  // Inicialização Robusta do Mapa
+  // Inicialização Robusta do Mapa com ResizeObserver
   useEffect(() => {
     if (!myLocation || !mapContainerRef.current) {
       return;
     }
 
+    // Se o mapa ainda não existe, cria
     if (!mapInstanceRef.current) {
       const newMap = L.map(mapContainerRef.current, {
         zoomControl: false,
@@ -147,29 +153,28 @@ export const Map: React.FC = () => {
 
       mapInstanceRef.current = newMap;
 
-      // ESTRATÉGIA DE CORREÇÃO DE TELA BRANCA:
-      // Força o redesenho do mapa repetidamente durante os primeiros segundos.
-      // Isso garante que o mapa se ajuste ao container mesmo se houver animações CSS (slide-in)
-      // ou atrasos na renderização do layout.
-      let count = 0;
-      if (invalidationIntervalRef.current) clearInterval(invalidationIntervalRef.current);
-      
-      invalidationIntervalRef.current = setInterval(() => {
+      // FIX: ResizeObserver para corrigir tela branca
+      // Isso detecta quando o container muda de tamanho (ex: animação de entrada, rotação de tela)
+      // e força o mapa a se redesenhar imediatamente.
+      const observer = new ResizeObserver(() => {
           if (newMap) {
               newMap.invalidateSize();
           }
-          count++;
-          // Para após 2 segundos (20 * 100ms)
-          if (count > 20 && invalidationIntervalRef.current) {
-              clearInterval(invalidationIntervalRef.current);
-          }
-      }, 100);
+      });
+      
+      observer.observe(mapContainerRef.current);
+      resizeObserverRef.current = observer;
+
+      // Fallback inicial: força um redesenho após um breve delay para garantir
+      // que o CSS de layout já foi aplicado.
+      setTimeout(() => {
+          newMap.invalidateSize();
+      }, 250);
 
     } else {
-        // Se o mapa já existe, apenas atualiza a visão suavemente e invalida o tamanho
-        // para garantir que está correto caso o usuário tenha trocado de aba.
-        mapInstanceRef.current.panTo(myLocation);
-        mapInstanceRef.current.invalidateSize();
+        // Se o mapa já existe, apenas move a câmera se necessário
+        // Não resetamos o zoom para não atrapalhar o usuário se ele estiver navegando
+        // Apenas pan se a localização mudar drasticamente (opcional)
     }
   }, [myLocation]);
 
@@ -216,7 +221,7 @@ export const Map: React.FC = () => {
         let marker = markers.get(user.id);
 
         if (!marker) {
-            marker = L.marker([user.lat, user.lng]);
+            marker = L.marker([user.lat!, user.lng!]);
             marker.on('click', () => {
               setSelectedUser(user);
             });
@@ -225,7 +230,7 @@ export const Map: React.FC = () => {
             // Animação suave de movimento se a posição mudar
             const oldLatLng = marker.getLatLng();
             if (oldLatLng.lat !== user.lat || oldLatLng.lng !== user.lng) {
-                marker.setLatLng([user.lat, user.lng]);
+                marker.setLatLng([user.lat!, user.lng!]);
             }
         }
 
@@ -302,9 +307,10 @@ export const Map: React.FC = () => {
   }
 
   return (
-      // Define width e height explicitamente para evitar colapso
-      <div className="w-full h-full relative z-0 bg-dark-900" style={{ minHeight: '100%' }}>
-          <div ref={mapContainerRef} className="w-full h-full absolute inset-0" style={{ minHeight: '100%' }} />
+      // Importante: 'isolation-isolate' cria um novo contexto de empilhamento
+      // 'z-0' garante que o mapa fique no fundo, mas interativo
+      <div className="w-full h-full relative z-0 bg-dark-900 isolate">
+          <div ref={mapContainerRef} className="w-full h-full absolute inset-0 outline-none focus:outline-none" />
       </div>
   );
 };

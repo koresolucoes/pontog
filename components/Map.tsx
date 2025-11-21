@@ -13,10 +13,11 @@ const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
     // Base classes
     let ringHtml = '';
     let badgeHtml = '';
+    let hosterBadgeHtml = ''; // Badge separado para Hoster
     let borderClass = 'border-2 border-white';
     let containerClass = '';
 
-    // Lógica Visual
+    // Lógica Visual Principal (Status/Borda)
     if (isAgora) {
         // Efeito de Fogo/Brasa para Modo Agora
         borderClass = 'border-2 border-red-500';
@@ -27,7 +28,7 @@ const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
         `;
         badgeHtml = `
             <div class="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg border border-white scale-110 z-30">
-                <span class="material-symbols-rounded filled text-[14px] animate-pulse">local_fire_department</span>
+                <span class="material-symbols-rounded filled animate-pulse" style="font-size: 14px;">local_fire_department</span>
             </div>
         `;
     } else if (isOnline) {
@@ -44,16 +45,16 @@ const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
         borderClass = 'border-2 border-yellow-400';
         badgeHtml = `
             <div class="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 text-black rounded-full flex items-center justify-center shadow-sm border border-white z-30">
-                <span class="material-symbols-rounded filled text-[10px]">auto_awesome</span>
+                <span class="material-symbols-rounded filled" style="font-size: 10px;">auto_awesome</span>
             </div>
         `;
     }
     
-    // Hoster Badge no mapa (prioridade menor que Agora)
-    if (user.can_host && !isAgora) {
-         badgeHtml = `
-            <div class="absolute -top-1 -right-1 w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center shadow-sm border border-white z-30">
-                <span class="material-symbols-rounded filled text-[12px]">home</span>
+    // Hoster Badge no mapa (Canto Superior Esquerdo para não conflitar)
+    if (user.can_host) {
+         hosterBadgeHtml = `
+            <div class="absolute -top-1 -left-1 w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center shadow-sm border border-white z-30">
+                <span class="material-symbols-rounded filled" style="font-size: 12px;">home</span>
             </div>
         `;
     }
@@ -65,6 +66,7 @@ const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
                 <img src="${user.avatar_url}" class="w-full h-full object-cover" alt="${user.username}" />
             </div>
             ${badgeHtml}
+            ${hosterBadgeHtml}
         </div>
     `;
 

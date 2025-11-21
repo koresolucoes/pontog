@@ -145,17 +145,17 @@ export const HomeView: React.FC = () => {
                                     <div className="absolute top-3 right-3 flex flex-col gap-2 items-end z-10">
                                         {isAgora && (
                                             <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-full p-1.5 shadow-lg shadow-red-900/50 animate-pulse-fire border border-white/20">
-                                                <span className="material-symbols-rounded filled !text-[16px] block">local_fire_department</span>
+                                                <span className="material-symbols-rounded filled block" style={{ fontSize: '16px' }}>local_fire_department</span>
                                             </div>
                                         )}
                                         {isPlus && !isAgora && (
                                             <div className="bg-yellow-500/90 backdrop-blur-md text-black rounded-full p-1.5 shadow-lg border border-yellow-300/50">
-                                                <span className="material-symbols-rounded filled !text-[14px] block">auto_awesome</span>
+                                                <span className="material-symbols-rounded filled block" style={{ fontSize: '14px' }}>auto_awesome</span>
                                             </div>
                                         )}
                                         {user.can_host && (
                                             <div className="bg-green-600/90 backdrop-blur-md text-white rounded-full p-1.5 shadow-lg border border-green-400/50" title="Tem Local">
-                                                <span className="material-symbols-rounded filled !text-[14px] block">home</span>
+                                                <span className="material-symbols-rounded filled block" style={{ fontSize: '14px' }}>home</span>
                                             </div>
                                         )}
                                     </div>

@@ -237,8 +237,17 @@ export const useInboxStore = create<InboxState>((set, get) => {
         clearWinks: () => {
             if (get().winksHaveBeenSeen) return;
             
-            // Salva o momento atual como "visto"
-            localStorage.setItem('ponto_g_last_viewed_winks', new Date().toISOString());
+            const { winks } = get();
+            
+            if (winks.length > 0) {
+                // Salva a data de criação do wink mais recente + 1 segundo
+                // Isso garante que ao recarregar, a comparação (newest > last_viewed) seja falsa
+                // evitando problemas de diferença de relógio entre cliente/servidor
+                const newestWinkDate = new Date(winks[0].wink_created_at).getTime() + 1000;
+                localStorage.setItem('ponto_g_last_viewed_winks', new Date(newestWinkDate).toISOString());
+            } else {
+                localStorage.setItem('ponto_g_last_viewed_winks', new Date().toISOString());
+            }
             
             set({ winksHaveBeenSeen: true });
             updateTotalUnreadCount();
@@ -247,7 +256,15 @@ export const useInboxStore = create<InboxState>((set, get) => {
         clearAccessRequests: () => {
             if (get().requestsHaveBeenSeen) return;
             
-            localStorage.setItem('ponto_g_last_viewed_requests', new Date().toISOString());
+            const { accessRequests } = get();
+
+            if (accessRequests.length > 0) {
+                // Mesma lógica de timestamp do servidor para requests
+                const newestRequestDate = new Date(accessRequests[0].created_at).getTime() + 1000;
+                localStorage.setItem('ponto_g_last_viewed_requests', new Date(newestRequestDate).toISOString());
+            } else {
+                localStorage.setItem('ponto_g_last_viewed_requests', new Date().toISOString());
+            }
             
             set({ requestsHaveBeenSeen: true });
             updateTotalUnreadCount();

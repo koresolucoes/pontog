@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
@@ -25,7 +24,8 @@ import { Onboarding } from './components/Onboarding';
 import { Sidebar } from './components/Sidebar';
 import { BackgroundParticles } from './components/BackgroundParticles';
 import { SuspendedScreen } from './components/SuspendedScreen';
-import { NewsView } from './components/NewsView'; // Novo Import
+import { NewsView } from './components/NewsView';
+import { VenueDetailModal } from './components/VenueDetailModal'; // Novo Import
 
 const App: React.FC = () => {
     // Roteamento simples para o painel de administração
@@ -40,10 +40,12 @@ const App: React.FC = () => {
     const { 
         selectedUser, 
         setSelectedUser, 
+        selectedVenue,
+        setSelectedVenue,
         requestLocationPermission, 
         stopLocationWatch, 
         cleanupRealtime,
-        fetchVenues // Importar fetchVenues
+        fetchVenues 
     } = useMapStore();
 
     // Estado para controlar se o usuário quer ver a tela de login ou a landing page
@@ -290,6 +292,13 @@ const App: React.FC = () => {
                             user={selectedUser} 
                             onClose={() => setSelectedUser(null)}
                             onStartChat={(userToChat) => setChatUser(userToChat)}
+                        />
+                    )}
+
+                    {selectedVenue && (
+                        <VenueDetailModal 
+                            venue={selectedVenue}
+                            onClose={() => setSelectedVenue(null)}
                         />
                     )}
 

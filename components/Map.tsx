@@ -180,7 +180,7 @@ const MyLocationMarkerIcon = (avatarUrl: string, canHost: boolean, isTraveling: 
 export const Map: React.FC = () => {
   const { 
       users, venues, myLocation, onlineUsers, loading, error, filters, 
-      setSelectedUser, requestLocationPermission, disableTravelMode 
+      setSelectedUser, setSelectedVenue, requestLocationPermission, disableTravelMode 
   } = useMapStore();
   const { profile } = useAuthStore();
   const { agoraUserIds } = useAgoraStore();
@@ -519,11 +519,21 @@ export const Map: React.FC = () => {
                         <p class="text-sm text-slate-300 leading-snug mb-3 line-clamp-2">${venue.description}</p>
                         <div class="flex gap-2">
                             <a href="https://www.google.com/maps/search/?api=1&query=${venue.lat},${venue.lng}" target="_blank" class="flex-1 bg-slate-800 text-white text-xs font-bold py-2 rounded-lg text-center hover:bg-slate-700 transition-colors border border-white/10">Rota</a>
-                            <button class="flex-1 bg-pink-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-pink-700 transition-colors shadow-lg shadow-pink-900/20">Ver Mais</button>
+                            <button class="flex-1 bg-pink-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-pink-700 transition-colors shadow-lg shadow-pink-900/20 btn-view-more">Ver Mais</button>
                         </div>
                     </div>
                 </div>
               `;
+              
+              // Adicionar listener ao botão "Ver Mais"
+              const btnViewMore = popupContent.querySelector('.btn-view-more');
+              if (btnViewMore) {
+                  btnViewMore.addEventListener('click', (e) => {
+                      e.stopPropagation();
+                      setSelectedVenue(venue);
+                      map.closePopup();
+                  });
+              }
               
               marker.bindPopup(popupContent, {
                   className: 'custom-venue-popup',
@@ -537,7 +547,7 @@ export const Map: React.FC = () => {
           }
       });
 
-  }, [venues, isMapCreated]);
+  }, [venues, isMapCreated, setSelectedVenue]);
 
   const handleTravelClick = () => {
       if (profile?.subscription_tier === 'plus') {

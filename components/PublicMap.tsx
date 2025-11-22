@@ -197,6 +197,19 @@ export const PublicMap: React.FC<PublicMapProps> = ({ venues, center, cityName, 
                 </span>
             </div>
 
+            {/* Botão Centralizar */}
+            <button 
+                onClick={() => {
+                    if (mapInstanceRef.current) {
+                        mapInstanceRef.current.flyTo([center.lat, center.lng], 13, { duration: 1.5 });
+                    }
+                }}
+                className="absolute top-20 right-2.5 z-[400] w-[34px] h-[34px] bg-white rounded text-slate-800 shadow-md border-2 border-black/20 flex items-center justify-center hover:bg-slate-50 transition-colors"
+                title="Centralizar"
+            >
+                <span className="material-symbols-rounded text-lg">my_location</span>
+            </button>
+
             {/* CTA Overlay (aparece no hover em telas grandes) */}
             <div className="absolute bottom-4 right-4 z-20 transition-transform duration-300 group-hover:scale-105">
                 <button 

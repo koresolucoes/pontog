@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { usePwaStore } from '../stores/pwaStore';
@@ -315,6 +316,7 @@ export const ProfileView: React.FC = () => {
                     
                     <div className="text-center py-6">
                         <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">Ponto G v1.2.0 (Beta)</p>
+                        <p className="text-[9px] text-slate-700 font-medium mt-1">Propriedade de Kore Serviços de Tecnologia</p>
                     </div>
                 </div>
             </div>

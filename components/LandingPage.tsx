@@ -427,7 +427,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
             </div>
             
             <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-                <p className="text-xs opacity-50">© 2024 Ponto G. Todos os direitos reservados.</p>
+                <div>
+                    <p className="text-xs opacity-50">© 2024 Ponto G. Todos os direitos reservados.</p>
+                    <p className="text-[10px] opacity-30 mt-1">Propriedade de Kore Serviços de Tecnologia</p>
+                </div>
                 <div className="flex items-center gap-2">
                     <p className="text-xs font-bold bg-slate-800 px-3 py-1 rounded-full border border-white/5 text-slate-300">
                         Proibido para menores de 18 anos

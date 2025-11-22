@@ -126,6 +126,7 @@ export const Sidebar: React.FC = () => {
                 {/* Footer */}
                 <div className="p-4 border-t border-white/5 text-center">
                     <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Ponto G v1.2.0</p>
+                    <p className="text-[9px] text-slate-700 font-medium mt-1">Propriedade de Kore Serviços de Tecnologia</p>
                 </div>
             </div>
 

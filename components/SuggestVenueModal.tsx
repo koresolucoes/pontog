@@ -73,15 +73,41 @@ export const SuggestVenueModal: React.FC<SuggestVenueModalProps> = ({ onClose })
       }
 
       navigator.geolocation.getCurrentPosition(
-          (position) => {
+          async (position) => {
+              const { latitude, longitude } = position.coords;
+              
+              let addressText = "Localização via GPS";
+              try {
+                  // Reverse Geocoding to get street, number, etc.
+                  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
+                  const data = await response.json();
+                  if (data && data.display_name) {
+                      // Prefer display_name or construct a better one if needed
+                      // data.address usually has { road, house_number, suburb, city ... }
+                      const addr = data.address;
+                      if (addr && (addr.road || addr.street)) {
+                          const street = addr.road || addr.street;
+                          const number = addr.house_number ? `, ${addr.house_number}` : '';
+                          const district = addr.suburb || addr.neighbourhood ? ` - ${addr.suburb || addr.neighbourhood}` : '';
+                          const city = addr.city || addr.town || addr.municipality ? ` - ${addr.city || addr.town || addr.municipality}` : '';
+                          addressText = `${street}${number}${district}${city}`;
+                      } else {
+                          addressText = data.display_name;
+                      }
+                  }
+              } catch (error) {
+                  console.error("Reverse geocoding error:", error);
+                  // Fallback keeps previous or default text
+              }
+
               setFormData(prev => ({
                   ...prev,
-                  lat: position.coords.latitude,
-                  lng: position.coords.longitude,
-                  address: "Minha localização atual (GPS)" // Visual feedback
+                  lat: latitude,
+                  lng: longitude,
+                  address: addressText
               }));
               setGpsLoading(false);
-              toast.success('Ponto marcado na sua posição atual!');
+              toast.success('Endereço preenchido automaticamente!');
           },
           (error) => {
               console.error(error);

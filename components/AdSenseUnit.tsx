@@ -1,3 +1,4 @@
+
 // components/AdSenseUnit.tsx
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -29,34 +30,34 @@ export const AdSenseUnit: React.FC<AdSenseUnitProps> = ({
 
   useEffect(() => {
     const element = adRef.current;
-    // Se o elemento não existe ou o anúncio já foi solicitado, não faz nada
     if (!element || isAdPushed) return;
 
     const loadAd = () => {
-      try {
-        // Check if element has width before pushing
-        if (element.offsetWidth > 0) {
+      // Double check connection and visibility
+      if (element && element.isConnected && element.offsetWidth > 0 && element.offsetHeight > 0) {
+        try {
           (window.adsbygoogle = window.adsbygoogle || []).push({});
           setIsAdPushed(true);
           return true;
+        } catch (e) {
+          console.error('AdSense error:', e);
         }
-      } catch (e) {
-        console.error('AdSense error:', e);
       }
       return false;
     };
 
-    // Tenta carregar imediatamente (caso já esteja visível)
+    // Attempt to load immediately if visible
     if (loadAd()) return;
 
-    // Se não tiver largura (ex: em uma aba oculta ou carregando), observa o redimensionamento
+    // Use ResizeObserver to wait for dimensions
     const observer = new ResizeObserver(() => {
-      // Assim que ganhar largura, carrega o anúncio e desconecta o observador
-      if (element.offsetWidth > 0) {
-        if (loadAd()) {
-          observer.disconnect();
-        }
-      }
+        // Use RequestAnimationFrame to avoid "ResizeObserver loop limit exceeded" 
+        // and ensure paint is ready
+        requestAnimationFrame(() => {
+            if (loadAd()) {
+                observer.disconnect();
+            }
+        });
     });
 
     observer.observe(element);

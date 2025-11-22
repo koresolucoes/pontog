@@ -1,7 +1,8 @@
 
 import React, { useEffect, useRef } from 'react';
-import * as L from 'leaflet';
 import { Venue, Coordinates } from '../types';
+// Using global L to ensure consistency
+const L = (window as any).L;
 
 interface PublicMapProps {
     venues: Venue[];
@@ -72,8 +73,8 @@ const createVenueIcon = (type: string, isPartner: boolean) => {
 
 export const PublicMap: React.FC<PublicMapProps> = ({ venues, center, cityName, onVenueClick }) => {
     const mapContainerRef = useRef<HTMLDivElement>(null);
-    const mapInstanceRef = useRef<L.Map | null>(null);
-    const markersRef = useRef<L.Marker[]>([]);
+    const mapInstanceRef = useRef<any>(null);
+    const markersRef = useRef<any[]>([]);
     const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
     useEffect(() => {

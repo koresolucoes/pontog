@@ -4,7 +4,8 @@ import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
 import { useAgoraStore } from '../stores/agoraStore';
 import { useUiStore } from '../stores/uiStore';
-import * as L from 'leaflet';
+// Using global L to ensure compatibility with plugins loaded via script tag
+const L = (window as any).L;
 import { User, Venue } from '../types';
 import { TravelModeModal } from './TravelModeModal';
 import { SuggestVenueModal } from './SuggestVenueModal';
@@ -159,14 +160,11 @@ export const Map: React.FC = () => {
   const { activeView, setSubscriptionModalOpen, isSuggestVenueModalOpen, setSuggestVenueModalOpen } = useUiStore();
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
+  const mapInstanceRef = useRef<any>(null); // Using any because L type might mismatch with global
   
-  // Substituindo referências individuais por Cluster Groups
-  // const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
-  // const venueMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
-  const clusterGroupRef = useRef<any>(null); // Tipado como any pois L.markerClusterGroup vem de plugin global
+  const clusterGroupRef = useRef<any>(null);
 
-  const myLocationMarkerRef = useRef<L.Marker | null>(null);
+  const myLocationMarkerRef = useRef<any>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   
   const [isMapCreated, setIsMapCreated] = useState(false); 
@@ -252,10 +250,10 @@ export const Map: React.FC = () => {
             tileLayer.addTo(newMap);
 
             // Inicializa o Cluster Group
-            if ((L as any).markerClusterGroup) {
-                const clusterGroup = (L as any).markerClusterGroup({
+            if (L.markerClusterGroup) {
+                const clusterGroup = L.markerClusterGroup({
                     showCoverageOnHover: false,
-                    maxClusterRadius: 40, // Raio menor para agrupar apenas muito próximos
+                    maxClusterRadius: 60, // Increased slightly to group more aggressively
                     spiderfyOnMaxZoom: true,
                     animate: true,
                     iconCreateFunction: function (cluster: any) {
@@ -270,7 +268,7 @@ export const Map: React.FC = () => {
                 newMap.addLayer(clusterGroup);
                 clusterGroupRef.current = clusterGroup;
             } else {
-                console.warn("Leaflet.markercluster plugin not loaded properly.");
+                console.warn("Leaflet.markercluster plugin not loaded properly. Check if leaflet.js script tag is before markercluster script tag.");
             }
 
             setTimeout(() => {
@@ -342,10 +340,9 @@ export const Map: React.FC = () => {
     if (!map || !isMapCreated || !clusterGroup) return;
     
     // Limpa o cluster group para renderizar novos dados
-    // Em uma implementação mais complexa, faríamos diff, mas clearLayers() é rápido o suficiente para < 2000 pontos.
     clusterGroup.clearLayers();
 
-    const markersToAdd: L.Layer[] = [];
+    const markersToAdd: any[] = [];
 
     // 1. Adiciona Usuários
     users.forEach(user => {

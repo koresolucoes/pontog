@@ -160,8 +160,12 @@ export const Map: React.FC = () => {
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
-  const venueMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
+  
+  // Substituindo referências individuais por Cluster Groups
+  // const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
+  // const venueMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
+  const clusterGroupRef = useRef<any>(null); // Tipado como any pois L.markerClusterGroup vem de plugin global
+
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   
@@ -178,8 +182,7 @@ export const Map: React.FC = () => {
         if (mapInstanceRef.current) {
             mapInstanceRef.current.remove();
             mapInstanceRef.current = null;
-            userMarkersRef.current.clear();
-            venueMarkersRef.current.clear();
+            clusterGroupRef.current = null;
             myLocationMarkerRef.current = null;
         }
         isInitializingRef.current = false;
@@ -248,6 +251,28 @@ export const Map: React.FC = () => {
 
             tileLayer.addTo(newMap);
 
+            // Inicializa o Cluster Group
+            if ((L as any).markerClusterGroup) {
+                const clusterGroup = (L as any).markerClusterGroup({
+                    showCoverageOnHover: false,
+                    maxClusterRadius: 40, // Raio menor para agrupar apenas muito próximos
+                    spiderfyOnMaxZoom: true,
+                    animate: true,
+                    iconCreateFunction: function (cluster: any) {
+                        const count = cluster.getChildCount();
+                        return L.divIcon({
+                            html: `<span>${count}</span>`,
+                            className: 'custom-cluster-icon',
+                            iconSize: [40, 40]
+                        });
+                    }
+                });
+                newMap.addLayer(clusterGroup);
+                clusterGroupRef.current = clusterGroup;
+            } else {
+                console.warn("Leaflet.markercluster plugin not loaded properly.");
+            }
+
             setTimeout(() => {
                 setAreTilesLoaded(true);
                 if (newMap) newMap.invalidateSize();
@@ -309,122 +334,83 @@ export const Map: React.FC = () => {
     }
   }, [myLocation, profile, isMapCreated]);
 
-  // Gerenciamento dos Marcadores de Usuários
+  // Renderização Otimizada: Gerencia Usuários e Locais em Clusters
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !isMapCreated) return;
+    const clusterGroup = clusterGroupRef.current;
+
+    if (!map || !isMapCreated || !clusterGroup) return;
     
-    const markers = userMarkersRef.current;
-    const userIdsInStore = new Set(users.map(u => u.id));
+    // Limpa o cluster group para renderizar novos dados
+    // Em uma implementação mais complexa, faríamos diff, mas clearLayers() é rápido o suficiente para < 2000 pontos.
+    clusterGroup.clearLayers();
 
-    markers.forEach((marker, userId) => {
-        if (!userIdsInStore.has(userId)) {
-            marker.remove();
-            markers.delete(userId);
-        }
-    });
+    const markersToAdd: L.Layer[] = [];
 
+    // 1. Adiciona Usuários
     users.forEach(user => {
         if (!Number.isFinite(user.lat) || !Number.isFinite(user.lng)) return;
 
         const isOnline = onlineUsers.includes(user.id);
-        const isAgora = agoraUserIds.includes(user.id);
         const shouldBeVisible = !filters.onlineOnly || isOnline;
 
-        let marker = markers.get(user.id);
-
         if (shouldBeVisible) {
-            if (!marker) {
-                marker = L.marker([user.lat!, user.lng!]);
-                marker.on('click', () => setSelectedUser(user));
-                markers.set(user.id, marker);
-                marker.addTo(map);
-            } else {
-                const oldLatLng = marker.getLatLng();
-                if (oldLatLng.lat !== user.lat || oldLatLng.lng !== user.lng) {
-                    marker.setLatLng([user.lat!, user.lng!]);
-                }
-                if (!map.hasLayer(marker)) marker.addTo(map);
-            }
-
-            marker.setIcon(createLiveMarker(user, isOnline, isAgora));
-            marker.setZIndexOffset(isAgora ? 800 : isOnline ? 500 : 100);
-        } else {
-            if (marker && map.hasLayer(marker)) {
-                marker.remove();
-            }
+            const isAgora = agoraUserIds.includes(user.id);
+            const marker = L.marker([user.lat!, user.lng!], {
+                icon: createLiveMarker(user, isOnline, isAgora),
+                zIndexOffset: isAgora ? 800 : isOnline ? 500 : 100
+            });
+            marker.on('click', () => setSelectedUser(user));
+            markersToAdd.push(marker);
         }
     });
-  }, [users, onlineUsers, agoraUserIds, filters, setSelectedUser, isMapCreated]);
 
-  // Gerenciamento dos Marcadores de Locais (Venues)
-  useEffect(() => {
-      const map = mapInstanceRef.current;
-      if (!map || !isMapCreated) return;
+    // 2. Adiciona Locais (Venues)
+    venues.forEach(venue => {
+        if (!Number.isFinite(venue.lat) || !Number.isFinite(venue.lng)) return;
 
-      const markers = venueMarkersRef.current;
-      // Se não tem venues carregados, limpa tudo
-      if (venues.length === 0) {
-          markers.forEach(m => m.remove());
-          markers.clear();
-          return;
-      }
+        const marker = L.marker([venue.lat, venue.lng], {
+            icon: createVenueIcon(venue.type, venue.is_partner),
+            zIndexOffset: 200
+        });
 
-      // Remove marcadores antigos que não estão mais na lista (se houver filtro)
-      const venueIds = new Set(venues.map(v => v.id));
-      markers.forEach((marker, id) => {
-          if (!venueIds.has(id)) {
-              marker.remove();
-              markers.delete(id);
-          }
-      });
-
-      venues.forEach(venue => {
-          if (!Number.isFinite(venue.lat) || !Number.isFinite(venue.lng)) return;
-
-          let marker = markers.get(venue.id);
-          if (!marker) {
-              marker = L.marker([venue.lat, venue.lng], {
-                  icon: createVenueIcon(venue.type, venue.is_partner),
-                  zIndexOffset: 200 // Fica abaixo de usuários online, mas acima do mapa
-              });
-              
-              // Popup customizado para o local
-              const popupContent = document.createElement('div');
-              popupContent.innerHTML = `
-                <div class="w-64 overflow-hidden rounded-2xl bg-slate-900 shadow-2xl border border-white/10 font-outfit">
-                    <div class="h-32 w-full relative">
-                        <img src="${venue.image_url || 'https://placehold.co/600x400/1f2937/ffffff?text=Local'}" class="w-full h-full object-cover" />
-                        <div class="absolute top-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase">${venue.type}</div>
-                        ${venue.is_partner ? '<div class="absolute top-2 right-2 bg-yellow-400 text-black text-[10px] font-bold px-2 py-0.5 rounded shadow-md">★ Parceiro</div>' : ''}
-                    </div>
-                    <div class="p-4">
-                        <h3 class="text-lg font-bold text-white leading-tight mb-1">${venue.name}</h3>
-                        <p class="text-xs text-slate-400 mb-2 flex items-center gap-1">
-                            <span class="material-symbols-rounded text-[12px]">location_on</span> ${venue.address}
-                        </p>
-                        <p class="text-sm text-slate-300 leading-snug mb-3 line-clamp-2">${venue.description}</p>
-                        <div class="flex gap-2">
-                            <a href="https://www.google.com/maps/search/?api=1&query=${venue.lat},${venue.lng}" target="_blank" class="flex-1 bg-slate-800 text-white text-xs font-bold py-2 rounded-lg text-center hover:bg-slate-700 transition-colors border border-white/10">Rota</a>
-                            <button class="flex-1 bg-pink-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-pink-700 transition-colors shadow-lg shadow-pink-900/20">Ver Mais</button>
-                        </div>
-                    </div>
+        // Popup customizado para o local
+        const popupContent = document.createElement('div');
+        popupContent.innerHTML = `
+        <div class="w-64 overflow-hidden rounded-2xl bg-slate-900 shadow-2xl border border-white/10 font-outfit">
+            <div class="h-32 w-full relative">
+                <img src="${venue.image_url || 'https://placehold.co/600x400/1f2937/ffffff?text=Local'}" class="w-full h-full object-cover" />
+                <div class="absolute top-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase">${venue.type}</div>
+                ${venue.is_partner ? '<div class="absolute top-2 right-2 bg-yellow-400 text-black text-[10px] font-bold px-2 py-0.5 rounded shadow-md">★ Parceiro</div>' : ''}
+            </div>
+            <div class="p-4">
+                <h3 class="text-lg font-bold text-white leading-tight mb-1">${venue.name}</h3>
+                <p class="text-xs text-slate-400 mb-2 flex items-center gap-1">
+                    <span class="material-symbols-rounded text-[12px]">location_on</span> ${venue.address}
+                </p>
+                <p class="text-sm text-slate-300 leading-snug mb-3 line-clamp-2">${venue.description}</p>
+                <div class="flex gap-2">
+                    <a href="https://www.google.com/maps/search/?api=1&query=${venue.lat},${venue.lng}" target="_blank" class="flex-1 bg-slate-800 text-white text-xs font-bold py-2 rounded-lg text-center hover:bg-slate-700 transition-colors border border-white/10">Rota</a>
+                    <button class="flex-1 bg-pink-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-pink-700 transition-colors shadow-lg shadow-pink-900/20">Ver Mais</button>
                 </div>
-              `;
-              
-              marker.bindPopup(popupContent, {
-                  className: 'custom-venue-popup',
-                  closeButton: false,
-                  maxWidth: 300,
-                  minWidth: 250
-              });
+            </div>
+        </div>
+        `;
+        
+        marker.bindPopup(popupContent, {
+            className: 'custom-venue-popup',
+            closeButton: false,
+            maxWidth: 300,
+            minWidth: 250
+        });
 
-              marker.addTo(map);
-              markers.set(venue.id, marker);
-          }
-      });
+        markersToAdd.push(marker);
+    });
 
-  }, [venues, isMapCreated]);
+    // Adiciona todos os marcadores ao cluster de uma vez para performance
+    clusterGroup.addLayers(markersToAdd);
+
+  }, [users, venues, onlineUsers, agoraUserIds, filters, setSelectedUser, isMapCreated]);
 
   const handleTravelClick = () => {
       if (profile?.subscription_tier === 'plus') {

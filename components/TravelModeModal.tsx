@@ -13,6 +13,7 @@ export const TravelModeModal: React.FC<TravelModeModalProps> = ({ onClose }) => 
     const mapInstance = useRef<L.Map | null>(null);
     const markerRef = useRef<L.Marker | null>(null);
     const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
+    const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
     useEffect(() => {
         if (!mapRef.current) return;
@@ -47,10 +48,26 @@ export const TravelModeModal: React.FC<TravelModeModalProps> = ({ onClose }) => 
 
         mapInstance.current = map;
 
+        // Força atualização imediata do tamanho para evitar problemas de renderização no modal
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 200);
+
+        // Observa redimensionamento do container
+        resizeObserverRef.current = new ResizeObserver(() => {
+            if (mapInstance.current) {
+                mapInstance.current.invalidateSize();
+            }
+        });
+        resizeObserverRef.current.observe(mapRef.current);
+
         return () => {
+            if (resizeObserverRef.current) {
+                resizeObserverRef.current.disconnect();
+            }
             map.remove();
         };
-    }, []); // Run once
+    }, []); 
 
     const handleConfirm = () => {
         if (selectedCoords) {

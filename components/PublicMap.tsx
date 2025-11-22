@@ -82,11 +82,18 @@ export const PublicMap: React.FC<PublicMapProps> = ({ venues, center, cityName, 
         // Inicializa o mapa se não existir
         if (!mapInstanceRef.current) {
             const map = L.map(mapContainerRef.current, {
-                zoomControl: false,
+                zoomControl: false, // Desativamos o padrão para adicionar um customizado ou posicionado
                 attributionControl: false,
-                scrollWheelZoom: false, // Desabilita scroll para não atrapalhar a landing page
-                dragging: !L.Browser.mobile, // Em mobile, desabilita drag para não atrapalhar o scroll da página
+                scrollWheelZoom: false, // Mantém false para não sequestrar o scroll da página
+                dragging: true, // Habilita arrastar em desktop e mobile
+                touchZoom: true, // Habilita zoom de pinça
+                doubleClickZoom: true
             }).setView([center.lat, center.lng], 13);
+
+            // Adiciona controles de zoom no canto superior direito
+            L.control.zoom({
+                position: 'topright'
+            }).addTo(map);
 
             // Dark theme map tiles
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -178,12 +185,12 @@ export const PublicMap: React.FC<PublicMapProps> = ({ venues, center, cityName, 
         <div className="relative w-full h-[400px] rounded-3xl overflow-hidden border border-white/10 shadow-2xl group isolate transform-gpu">
             <div ref={mapContainerRef} className="w-full h-full z-0 bg-slate-900" />
             
-            {/* Overlay Gradients para misturar com a página */}
+            {/* Overlay Gradients para misturar com a página - pointer-events-none garante que o clique passe para o mapa */}
             <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-dark-900/80 via-transparent to-transparent z-10"></div>
             <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-dark-900/20 via-transparent to-transparent z-10"></div>
 
             {/* Badge de Localização */}
-            <div className="absolute top-4 left-4 z-20 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg flex items-center gap-2">
+            <div className="absolute top-4 left-4 z-20 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg flex items-center gap-2 pointer-events-none">
                 <span className="material-symbols-rounded text-pink-500 text-sm animate-pulse">map</span>
                 <span className="text-xs font-bold text-white">
                     {cityName ? `Guia de ${cityName}` : 'Mapa de Hotspots'}
@@ -212,6 +219,10 @@ export const PublicMap: React.FC<PublicMapProps> = ({ venues, center, cityName, 
                 }
                 .landing-page-popup .leaflet-popup-tip {
                     background: rgba(255, 255, 255, 0.95);
+                }
+                /* Garante que o mapa receba eventos de toque */
+                .leaflet-container {
+                    touch-action: none;
                 }
             `}</style>
         </div>

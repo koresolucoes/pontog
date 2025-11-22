@@ -199,4 +199,5 @@ export interface Venue {
     osm_id?: string; // ID do OpenStreetMap
     source_type?: 'user' | 'osm' | 'admin'; // Origem do dado
     website?: string;
+    submitted_by?: string; // ID do usuário que sugeriu
 }

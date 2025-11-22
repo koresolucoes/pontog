@@ -1,4 +1,5 @@
 
+
 // lib/venuesData.ts
 import { Venue } from '../types';
 
@@ -17,6 +18,7 @@ export const VENUES_DATA: Venue[] = [
         image_url: 'https://images.pexels.com/photos/3214958/pexels-photo-3214958.jpeg?auto=compress&cs=tinysrgb&w=600',
         opening_hours: 'Aberto 24h',
         is_partner: true,
+        is_verified: true,
         tags: ['Sauna', 'Bar', 'Cruising', 'Piscina']
     },
     {
@@ -30,6 +32,7 @@ export const VENUES_DATA: Venue[] = [
         image_url: 'https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg?auto=compress&cs=tinysrgb&w=600',
         opening_hours: 'Sex-Sáb 23:00 - 06:00',
         is_partner: false,
+        is_verified: true,
         tags: ['Balada', 'Pop', 'Drags']
     },
     {
@@ -43,6 +46,7 @@ export const VENUES_DATA: Venue[] = [
         image_url: 'https://images.pexels.com/photos/1267325/pexels-photo-1267325.jpeg?auto=compress&cs=tinysrgb&w=600',
         opening_hours: 'Qua-Dom 18:00 - 02:00',
         is_partner: false,
+        is_verified: true,
         tags: ['Bar', 'Rua', 'Esquenta']
     },
     {
@@ -56,6 +60,7 @@ export const VENUES_DATA: Venue[] = [
         image_url: 'https://images.pexels.com/photos/2701660/pexels-photo-2701660.jpeg?auto=compress&cs=tinysrgb&w=600',
         opening_hours: 'Seg-Dom 14:00 - 22:00',
         is_partner: true,
+        is_verified: true,
         tags: ['Cinema', 'Cruising', 'Discreto']
     },
     {
@@ -69,6 +74,7 @@ export const VENUES_DATA: Venue[] = [
         image_url: 'https://images.pexels.com/photos/164693/pexels-photo-164693.jpeg?auto=compress&cs=tinysrgb&w=600',
         opening_hours: 'Qui-Sáb 22:00 - 04:00',
         is_partner: true,
+        is_verified: true,
         tags: ['Bar', 'Balada', 'Ipanema']
     },
     {
@@ -82,6 +88,7 @@ export const VENUES_DATA: Venue[] = [
         image_url: 'https://images.pexels.com/photos/1450353/pexels-photo-1450353.jpeg?auto=compress&cs=tinysrgb&w=600',
         opening_hours: 'Sempre aberto',
         is_partner: false,
+        is_verified: true,
         tags: ['Praia', 'Natureza', 'Sungas']
     }
 ];

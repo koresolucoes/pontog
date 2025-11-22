@@ -152,7 +152,7 @@ const MyLocationMarkerIcon = (avatarUrl: string, canHost: boolean, isTraveling: 
 export const Map: React.FC = () => {
   const { 
       users, venues, myLocation, onlineUsers, loading, error, filters, 
-      setSelectedUser, setSelectedVenue, requestLocationPermission, disableTravelMode 
+      setSelectedUser, requestLocationPermission, disableTravelMode 
   } = useMapStore();
   const { profile } = useAuthStore();
   const { agoraUserIds } = useAgoraStore();
@@ -443,6 +443,9 @@ export const Map: React.FC = () => {
   const isError = !!error;
   const scanColor = isError ? 'red' : 'pink';
 
+  // Empty State Check
+  const hasNoVenues = isMapCreated && !isScanning && !isError && venues.length === 0;
+
   return (
       <div className="w-full h-full relative bg-dark-900 isolate overflow-hidden">
           <div 
@@ -457,7 +460,11 @@ export const Map: React.FC = () => {
                   {/* Botão Adicionar Local */}
                   <button
                     onClick={() => setShowSuggestVenueModal(true)}
-                    className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 bg-slate-800/90 text-pink-500 backdrop-blur-md border border-white/10 hover:text-pink-400"
+                    className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 backdrop-blur-md border border-white/10 ${
+                        hasNoVenues 
+                        ? 'bg-pink-600 text-white animate-pulse-fire shadow-pink-900/50' 
+                        : 'bg-slate-800/90 text-pink-500 hover:text-pink-400'
+                    }`}
                     title="Adicionar Local"
                   >
                       <span className="material-symbols-rounded filled">add_location_alt</span>
@@ -488,6 +495,29 @@ export const Map: React.FC = () => {
               <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[40] bg-blue-600/90 backdrop-blur-md text-white px-4 py-2 rounded-full shadow-lg border border-white/20 flex items-center gap-2 animate-slide-in-up">
                   <span className="material-symbols-rounded filled text-sm">flight</span>
                   <span className="text-xs font-bold uppercase tracking-wide">Modo Viajante Ativo</span>
+              </div>
+          )}
+
+          {/* Gamification Empty State Overlay */}
+          {hasNoVenues && (
+              <div className="absolute top-24 left-4 right-16 z-[40] animate-fade-in">
+                  <div 
+                    className="bg-slate-900/90 backdrop-blur-md border border-pink-500/30 rounded-2xl p-4 shadow-2xl relative overflow-hidden cursor-pointer"
+                    onClick={() => setShowSuggestVenueModal(true)}
+                  >
+                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-pink-500 to-purple-600"></div>
+                      <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center flex-shrink-0">
+                              <span className="material-symbols-rounded filled text-pink-500 text-xl animate-bounce">flag</span>
+                          </div>
+                          <div>
+                              <h3 className="font-bold text-white text-sm">Ainda não chegamos aqui!</h3>
+                              <p className="text-xs text-slate-300 mt-1 leading-snug">
+                                  Seja o <span className="text-pink-400 font-bold">Explorador Local</span>. Adicione o primeiro point e ganhe destaque e recompensas.
+                              </p>
+                          </div>
+                      </div>
+                  </div>
               </div>
           )}
 

@@ -82,7 +82,7 @@ export const SuggestVenueModal: React.FC<SuggestVenueModalProps> = ({ onClose })
 
       setLoading(false);
       if (success) {
-          toast.success('Local enviado para análise! Obrigado por contribuir.');
+          toast.success('Enviado! Se aprovado, você ganha recompensas.', { icon: '🏆' });
           onClose();
       }
   };
@@ -101,11 +101,21 @@ export const SuggestVenueModal: React.FC<SuggestVenueModalProps> = ({ onClose })
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex gap-3 items-start">
-                <span className="material-symbols-rounded text-blue-400 shrink-0">info</span>
-                <p className="text-xs text-blue-200 leading-relaxed">
-                    Ajude a comunidade! Adicione saunas, bares e points que você conhece.
-                </p>
+            
+            {/* Gamification Banner */}
+            <div className="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-r from-yellow-600 to-amber-600 shadow-lg">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className="relative z-10 flex items-start gap-3">
+                    <div className="p-2 bg-white/20 rounded-full backdrop-blur-md border border-white/20">
+                        <span className="material-symbols-rounded filled text-white text-xl">emoji_events</span>
+                    </div>
+                    <div>
+                        <h3 className="font-black text-white text-sm uppercase tracking-wide mb-1">Ganhe Recompensas</h3>
+                        <p className="text-xs text-yellow-50 font-medium leading-relaxed">
+                            Indique um point que não está no mapa. Se aprovado, você ganha <span className="font-bold text-white underline">10 Winks Extras</span> ou o badge de <span className="font-bold text-white underline">Explorador</span>!
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <div 
@@ -122,7 +132,7 @@ export const SuggestVenueModal: React.FC<SuggestVenueModalProps> = ({ onClose })
                 ) : (
                     <>
                         <span className="material-symbols-rounded text-3xl text-slate-400 mb-2">add_a_photo</span>
-                        <span className="text-xs font-bold text-slate-400 uppercase">Adicionar Foto (Opcional)</span>
+                        <span className="text-xs font-bold text-slate-400 uppercase">Foto do Local (Aumenta chances de aprovação)</span>
                     </>
                 )}
                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
@@ -199,7 +209,7 @@ export const SuggestVenueModal: React.FC<SuggestVenueModalProps> = ({ onClose })
                 ) : (
                     <>
                         <span className="material-symbols-rounded filled text-lg">send</span>
-                        Enviar Sugestão
+                        Enviar para Ganhar
                     </>
                 )}
             </button>

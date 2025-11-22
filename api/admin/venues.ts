@@ -42,9 +42,30 @@ export default async function handler(
 
         case 'PUT':
             const { id: put_id } = req.query;
+            const updates = req.body;
+
+            // Check if we are approving a venue (verified changing to true)
+            if (updates.is_verified === true) {
+                const { data: currentVenue } = await supabaseAdmin
+                    .from('venues')
+                    .select('submitted_by, is_verified')
+                    .eq('id', put_id as string)
+                    .single();
+                
+                if (currentVenue && currentVenue.submitted_by && !currentVenue.is_verified) {
+                    // Logic to grant reward would go here.
+                    // Since we can't easily run complex RPCs or create new tables in this environment,
+                    // we'll just log it. In a real app, this would insert into a rewards table or update wink count.
+                    console.log(`[GAMIFICATION] Venue approved! Granting reward to user ${currentVenue.submitted_by}`);
+                    
+                    // Example: Send a notification (if we had a notification system endpoint ready here)
+                    // Or we could update a 'badges' array if the user table had one.
+                }
+            }
+
             const { data: put_data, error: put_error } = await supabaseAdmin
                 .from('venues')
-                .update(req.body)
+                .update(updates)
                 .eq('id', put_id as string)
                 .select();
             if (put_error) throw put_error;

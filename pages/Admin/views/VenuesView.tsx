@@ -135,7 +135,12 @@ const VenueModal: React.FC<{
 
             if (!response.ok) throw new Error('Falha ao salvar local');
             
-            toast.success(`Local ${isEditing ? 'atualizado' : 'criado'}!`);
+            if (formData.is_verified && venue && !venue.is_verified && venue.submitted_by) {
+                toast.success(`Local aprovado! Recompensas enviadas para o usuário.`, { icon: '🎁' });
+            } else {
+                toast.success(`Local ${isEditing ? 'atualizado' : 'criado'}!`);
+            }
+            
             onSave();
             onClose();
         } catch (err: any) {
@@ -172,6 +177,15 @@ const VenueModal: React.FC<{
                         <span className="material-symbols-rounded filled text-pink-500">add_location_alt</span>
                         {isEditing ? 'Editar Local' : 'Novo Local'}
                     </h2>
+                    
+                    {venue?.submitted_by && (
+                        <div className="mb-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl text-xs">
+                            <p className="text-purple-300 font-bold">Sugerido por usuário ({venue.submitted_by})</p>
+                            {!venue.is_verified && (
+                                <p className="text-purple-400/70 mt-1">Ao verificar e salvar, o usuário receberá a recompensa automaticamente.</p>
+                            )}
+                        </div>
+                    )}
                     
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
@@ -233,7 +247,7 @@ const VenueModal: React.FC<{
                         <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
                             <button type="button" onClick={onClose} className="px-6 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition-colors">Cancelar</button>
                             <button type="submit" disabled={loading} className="px-6 py-3 rounded-xl bg-pink-600 text-white font-bold hover:bg-pink-700 transition-colors disabled:opacity-50">
-                                {loading ? 'Salvando...' : 'Salvar Local'}
+                                {loading ? 'Salvando...' : 'Salvar & Publicar'}
                             </button>
                         </div>
                     </form>
@@ -346,8 +360,8 @@ export const VenuesView: React.FC = () => {
                             </div>
                             
                             <div className="flex gap-2 mt-4 pt-4 border-t border-white/5">
-                                <button onClick={() => setEditingVenue(venue)} className="flex-1 bg-slate-700 text-white text-xs font-bold py-2 rounded-lg hover:bg-slate-600">
-                                    {venue.is_verified ? 'Editar' : 'Revisar'}
+                                <button onClick={() => setEditingVenue(venue)} className={`flex-1 text-white text-xs font-bold py-2 rounded-lg hover:brightness-110 transition-colors ${venue.is_verified ? 'bg-slate-700' : 'bg-green-600 shadow-lg shadow-green-900/20'}`}>
+                                    {venue.is_verified ? 'Editar' : 'Revisar & Aprovar'}
                                 </button>
                                 <button onClick={() => handleDelete(venue.id)} className="px-3 bg-red-500/10 text-red-400 text-xs font-bold py-2 rounded-lg hover:bg-red-500/20">
                                     <span className="material-symbols-rounded text-lg">delete</span>

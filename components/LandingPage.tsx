@@ -4,6 +4,7 @@ import { AdSenseUnit } from './AdSenseUnit';
 import { useMapStore } from '../stores/mapStore';
 import { PublicMap } from './PublicMap';
 import { Coordinates } from '../types';
+import { LegalModal, LegalDocType } from './LegalModals';
 
 interface LandingPageProps {
   onEnter: () => void;
@@ -15,6 +16,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
   const [locationAllowed, setLocationAllowed] = useState(false);
   const [cityName, setCityName] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<Coordinates>({ lat: -23.5505, lng: -46.6333 }); // Default SP
+  
+  // State to control legal modals
+  const [activeLegalDoc, setActiveLegalDoc] = useState<LegalDocType | null>(null);
 
   // Função auxiliar para descobrir o nome da cidade via API gratuita (OpenStreetMap)
   const fetchCityName = async (lat: number, lng: number) => {
@@ -309,15 +313,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                       <p className="text-slate-400 mb-8 max-w-md">
                           Para a melhor experiência, instale o Ponto G na tela inicial do seu celular. Sem downloads pesados, rápido e seguro.
                       </p>
-                      <div className="w-full max-w-sm">
-                           {/* AdSense Placeholder for High Value Content Area */}
-                           <AdSenseUnit
-                                client="ca-pub-9015745232467355"
-                                slot="3561488011" // Slot quadrado
-                                format="rectangle"
-                                responsive={true}
-                                className="bg-slate-800/50 min-h-[250px] rounded-xl flex items-center justify-center"
-                            />
+                      <div className="w-full max-w-xs relative group">
+                           <div className="absolute -inset-1 bg-gradient-to-tr from-pink-600 to-purple-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                           <img 
+                                src="https://wwmiqdovqgysncmqnmvp.supabase.co/storage/v1/object/public/user_uploads/Captura%20de%20tela%202025-11-22%20104842.png"
+                                alt="Ponto G App"
+                                className="relative w-full h-auto rounded-xl shadow-2xl border border-white/10 transform transition-transform duration-500 hover:scale-[1.02]"
+                           />
                       </div>
                   </div>
               </div>
@@ -417,9 +419,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                 <div>
                     <h4 className="font-bold text-white mb-4 uppercase text-xs tracking-widest">Legal</h4>
                     <ul className="space-y-2">
-                        <li><a href="#" className="hover:text-pink-500 transition-colors">Termos de Uso</a></li>
-                        <li><a href="#" className="hover:text-pink-500 transition-colors">Política de Privacidade</a></li>
-                        <li><a href="#" className="hover:text-pink-500 transition-colors">Diretrizes de Comunidade</a></li>
+                        <li><button onClick={() => setActiveLegalDoc('terms')} className="hover:text-pink-500 transition-colors text-left">Termos de Uso</button></li>
+                        <li><button onClick={() => setActiveLegalDoc('privacy')} className="hover:text-pink-500 transition-colors text-left">Política de Privacidade</button></li>
+                        <li><button onClick={() => setActiveLegalDoc('guidelines')} className="hover:text-pink-500 transition-colors text-left">Diretrizes de Comunidade</button></li>
                     </ul>
                 </div>
             </div>
@@ -435,6 +437,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
             </div>
         </div>
       </footer>
+      
+      {/* Legal Modals */}
+      {activeLegalDoc && (
+          <LegalModal 
+            type={activeLegalDoc} 
+            onClose={() => setActiveLegalDoc(null)} 
+          />
+      )}
     </div>
   );
 };

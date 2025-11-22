@@ -551,6 +551,14 @@ export const Map: React.FC = () => {
       }
   };
 
+  const handleCenterLocation = () => {
+      if (myLocation && mapInstanceRef.current) {
+          mapInstanceRef.current.flyTo(myLocation, 16, { animate: true, duration: 1 });
+      } else {
+          requestLocationPermission();
+      }
+  };
+
   const isScanning = !myLocation || !isMapCreated || !areTilesLoaded;
   const isError = !!error;
   const scanColor = isError ? 'red' : 'pink';
@@ -569,6 +577,16 @@ export const Map: React.FC = () => {
           {/* Floating Action Button: Travel Mode */}
           {isMapCreated && !isScanning && (
               <div className="absolute top-24 right-4 z-[40] flex flex-col gap-3">
+                  
+                  {/* Botão Centralizar */}
+                  <button
+                    onClick={handleCenterLocation}
+                    className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 bg-slate-800/90 text-white backdrop-blur-md border border-white/10 hover:bg-slate-700"
+                    title="Minha Localização"
+                  >
+                      <span className="material-symbols-rounded filled">my_location</span>
+                  </button>
+
                   {/* Botão Adicionar Local */}
                   <button
                     onClick={() => setSuggestVenueModalOpen(true)}

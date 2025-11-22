@@ -22,6 +22,7 @@ import { AdminPanel } from './pages/Admin/AdminPanel';
 import { Onboarding } from './components/Onboarding';
 import { Sidebar } from './components/Sidebar';
 import { BackgroundParticles } from './components/BackgroundParticles';
+import { SuspendedScreen } from './components/SuspendedScreen';
 
 const App: React.FC = () => {
     // Roteamento simples para o painel de administração
@@ -94,11 +95,18 @@ const App: React.FC = () => {
         // Só iniciamos o mapa e os dados se o usuário estiver logado E o perfil estiver carregado.
         // Isso é crucial para que a verificação de 'is_traveling' no mapStore funcione corretamente
         // e não sobrescreva a localização de viagem com o GPS real.
+        // IMPORTANTE: Não carregar nada se o usuário estiver suspenso.
         if (session && user && !loading) {
-            requestLocationPermission();
-            fetchConversations();
-            fetchWinks();
-            fetchAccessRequests();
+            if (user.status === 'active') {
+                requestLocationPermission();
+                fetchConversations();
+                fetchWinks();
+                fetchAccessRequests();
+            } else {
+                // Cleanup se o usuário for suspenso durante o uso
+                stopLocationWatch();
+                cleanupRealtime();
+            }
         }
         
         // Cleanup apenas quando a sessão morre
@@ -176,6 +184,8 @@ const App: React.FC = () => {
                 </div>
             ) : (!session || !user) ? (
                 <Auth />
+            ) : (user.status === 'suspended' || user.status === 'banned') ? (
+                <SuspendedScreen user={user} />
             ) : showOnboarding ? (
                 <Onboarding />
             ) : (

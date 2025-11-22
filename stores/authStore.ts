@@ -17,12 +17,15 @@ interface AuthState {
   profile: Profile | null; // This is the raw profile from the DB
   loading: boolean;
   showOnboarding: boolean; // Flag to control the onboarding view
+  profileSubscription: any | null; // Realtime channel for profile updates
   setSession: (session: Session | null) => void;
   fetchProfile: (user: SupabaseUser) => Promise<void>;
   signOut: () => Promise<void>;
   toggleIncognitoMode: (isIncognito: boolean) => Promise<void>;
   toggleCanHost: (canHost: boolean) => Promise<void>; // New action
   completeOnboarding: () => Promise<void>; // Function to mark onboarding as done
+  setupProfileSubscription: (userId: string) => void;
+  cleanupProfileSubscription: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -31,6 +34,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   profile: null,
   loading: true,
   showOnboarding: false,
+  profileSubscription: null,
 
   setSession: (session) => set({ session }),
 
@@ -71,6 +75,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             has_completed_onboarding: data.has_completed_onboarding || false,
             kinks: data.kinks || [],
             can_host: data.can_host || false,
+            status: data.status || 'active',
+            suspended_until: data.suspended_until || null,
         };
         delete (profileData as any).profile_tribes;
       } else {
@@ -85,7 +91,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           is_incognito: false,
           has_completed_onboarding: false,
           kinks: [],
-          can_host: false
+          can_host: false,
+          status: 'active'
         };
 
         const { data: insertedProfile, error: insertError } = await supabase
@@ -121,6 +128,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         };
         set({ profile: profileData, user: userData });
         
+        // Inicia a escuta por mudanças no perfil (para detectar ban/suspensão em tempo real)
+        get().setupProfileSubscription(supabaseUser.id);
+
         // Inicia a escuta por eventos da caixa de entrada assim que o perfil é carregado
         (await import('./inboxStore')).useInboxStore.getState().subscribeToInboxChanges();
 
@@ -137,9 +147,63 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  setupProfileSubscription: (userId: string) => {
+      // Limpa assinatura anterior se existir
+      get().cleanupProfileSubscription();
+
+      const channel = supabase
+        .channel(`profile-changes:${userId}`)
+        .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
+            (payload) => {
+                console.log('Profile update detected:', payload);
+                const { user, profile } = get();
+                if (user && profile && payload.new) {
+                    // Atualiza o estado local com os novos dados (focando principalmente em status)
+                    const updatedProfileRaw = payload.new;
+                    
+                    const updatedUser = {
+                        ...user,
+                        status: updatedProfileRaw.status,
+                        suspended_until: updatedProfileRaw.suspended_until,
+                        subscription_tier: updatedProfileRaw.subscription_tier,
+                        // Atualize outros campos se necessário
+                    };
+                    
+                    const updatedProfile = {
+                        ...profile,
+                        status: updatedProfileRaw.status,
+                        suspended_until: updatedProfileRaw.suspended_until,
+                        subscription_tier: updatedProfileRaw.subscription_tier,
+                    };
+
+                    set({ user: updatedUser, profile: updatedProfile });
+
+                    // Feedback visual se for bloqueado ao vivo
+                    if (updatedProfileRaw.status === 'suspended' || updatedProfileRaw.status === 'banned') {
+                        toast.error('Sua conta foi suspensa.');
+                    }
+                }
+            }
+        )
+        .subscribe();
+      
+      set({ profileSubscription: channel });
+  },
+
+  cleanupProfileSubscription: () => {
+      const { profileSubscription } = get();
+      if (profileSubscription) {
+          supabase.removeChannel(profileSubscription);
+          set({ profileSubscription: null });
+      }
+  },
+
   signOut: async () => {
     set({ loading: true });
     const { error } = await supabase.auth.signOut({ scope: 'local' });
+    get().cleanupProfileSubscription();
     if (error) {
         toast.error('Erro ao sair.');
         console.error(error);
@@ -247,6 +311,7 @@ supabase.auth.onAuthStateChange(async (_event: string, session: Session) => {
     usePwaStore.getState().relinkSubscriptionOnLogin();
   } else {
     useAuthStore.setState({ session: null, user: null, profile: null, loading: false, showOnboarding: false });
+    useAuthStore.getState().cleanupProfileSubscription();
     (await import('./pwaStore')).usePwaStore.getState().unlinkSubscriptionOnLogout();
     (await import('./inboxStore')).useInboxStore.getState().cleanupRealtime(); // Limpa a inscrição realtime
     (await import('./inboxStore')).useInboxStore.setState({ conversations: [], winks: [], accessRequests: [], profileViews: [], loadingConversations: false, loadingWinks: false, loadingRequests: false, loadingProfileViews: false });

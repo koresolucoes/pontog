@@ -16,17 +16,26 @@ const VENUE_TYPES: { value: VenueType; label: string }[] = [
     { value: 'shop', label: 'Loja / Sex Shop' },
 ];
 
+const DEFAULT_VENUE_STATE: Partial<Venue> = {
+    name: '', 
+    type: 'bar', 
+    address: '', 
+    description: '', 
+    lat: -23.5505, 
+    lng: -46.6333, 
+    image_url: '', 
+    is_partner: false, 
+    is_verified: true,
+    tags: []
+};
+
 // Componente de Modal para Adicionar/Editar
 const VenueModal: React.FC<{
     venue: Partial<Venue> | null;
     onClose: () => void;
     onSave: () => void;
 }> = ({ venue, onClose, onSave }) => {
-    const [formData, setFormData] = useState<Partial<Venue>>({
-        name: '', type: 'bar', address: '', description: '', 
-        lat: -23.5505, lng: -46.6333, image_url: '', is_partner: false, is_verified: true,
-        tags: []
-    });
+    const [formData, setFormData] = useState<Partial<Venue>>(DEFAULT_VENUE_STATE);
     const [loading, setLoading] = useState(false);
     const token = useAdminStore((state) => state.getToken());
     const mapRef = useRef<HTMLDivElement>(null);
@@ -38,10 +47,11 @@ const VenueModal: React.FC<{
     useEffect(() => {
         if (venue) {
             setFormData({ 
+                ...DEFAULT_VENUE_STATE, // Garante defaults para campos ausentes (ex: type ao criar novo)
                 ...venue, 
-                lat: venue.lat || -23.5505, 
-                lng: venue.lng || -46.6333,
-                tags: venue.tags || []
+                lat: venue.lat ?? DEFAULT_VENUE_STATE.lat, 
+                lng: venue.lng ?? DEFAULT_VENUE_STATE.lng,
+                tags: venue.tags ?? DEFAULT_VENUE_STATE.tags
             });
         }
     }, [venue]);

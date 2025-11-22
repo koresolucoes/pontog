@@ -1,3 +1,4 @@
+
 // stores/inboxStore.ts
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
@@ -30,8 +31,6 @@ interface InboxState {
   loadingProfileViews: boolean;
   realtimeChannel: any | null;
   
-  // FIX: Adiciona flags para rastrear o estado de "visto" das notificações,
-  // desacoplando a contagem de notificação do array de dados.
   winksHaveBeenSeen: boolean;
   requestsHaveBeenSeen: boolean;
   
@@ -54,7 +53,7 @@ export const useInboxStore = create<InboxState>((set, get) => {
         const { conversations, winks, accessRequests, winksHaveBeenSeen, requestsHaveBeenSeen } = get();
         const unreadMessages = conversations.reduce((sum, convo) => sum + (convo.unread_count || 0), 0);
         
-        // FIX: A contagem de notificações agora depende se os itens foram marcados como vistos.
+        // A contagem depende da flag 'seen'
         const newWinksCount = winksHaveBeenSeen ? 0 : winks.length;
         const newRequestsCount = requestsHaveBeenSeen ? 0 : accessRequests.length;
 
@@ -72,7 +71,7 @@ export const useInboxStore = create<InboxState>((set, get) => {
         loadingRequests: false,
         loadingProfileViews: false,
         realtimeChannel: null,
-        winksHaveBeenSeen: true,
+        winksHaveBeenSeen: true, // Default true, atualizado no fetch
         requestsHaveBeenSeen: true,
 
         fetchConversations: async () => {
@@ -118,8 +117,24 @@ export const useInboxStore = create<InboxState>((set, get) => {
                 public_photos: (wink.public_photos || []).map(getPublicImageUrl),
             }));
 
-            // FIX: Ao buscar novos winks, reseta a flag 'seen' para que eles contem como notificação.
-            set({ winks: winksWithAgeAndUrls, loadingWinks: false, winksHaveBeenSeen: false });
+            // LÓGICA DE PERSISTÊNCIA
+            // Verifica o localStorage para ver a última vez que o usuário abriu a aba de winks
+            const lastViewedTime = localStorage.getItem('ponto_g_last_viewed_winks');
+            let hasNewItems = false;
+
+            if (winksWithAgeAndUrls.length > 0) {
+                // Se nunca viu ou se o wink mais recente é mais novo que o último visto
+                const newestWinkDate = new Date(winksWithAgeAndUrls[0].wink_created_at); // Assumindo que vem ordenado por data desc
+                if (!lastViewedTime || newestWinkDate > new Date(lastViewedTime)) {
+                    hasNewItems = true;
+                }
+            }
+
+            set({ 
+                winks: winksWithAgeAndUrls, 
+                loadingWinks: false, 
+                winksHaveBeenSeen: !hasNewItems // Se tem novos itens, não foi visto. Se não tem, foi visto.
+            });
             updateTotalUnreadCount();
         },
 
@@ -138,8 +153,23 @@ export const useInboxStore = create<InboxState>((set, get) => {
                 avatar_url: getPublicImageUrl(req.avatar_url)
             }));
 
-            // FIX: Ao buscar novas solicitações, reseta a flag 'seen'.
-            set({ accessRequests: processedRequests, loadingRequests: false, requestsHaveBeenSeen: false });
+            // Lógica de persistência para pedidos também
+            const lastViewedTime = localStorage.getItem('ponto_g_last_viewed_requests');
+            let hasNewItems = false;
+
+            if (processedRequests.length > 0) {
+                // Assumindo que a query retorna ordenado por created_at DESC
+                const newestRequestDate = new Date(processedRequests[0].created_at); 
+                if (!lastViewedTime || newestRequestDate > new Date(lastViewedTime)) {
+                    hasNewItems = true;
+                }
+            }
+
+            set({ 
+                accessRequests: processedRequests, 
+                loadingRequests: false, 
+                requestsHaveBeenSeen: !hasNewItems 
+            });
             updateTotalUnreadCount();
         },
 
@@ -205,15 +235,20 @@ export const useInboxStore = create<InboxState>((set, get) => {
         },
 
         clearWinks: () => {
-            // FIX: Apenas marca os winks como vistos para zerar a notificação, sem apagar os dados.
             if (get().winksHaveBeenSeen) return;
+            
+            // Salva o momento atual como "visto"
+            localStorage.setItem('ponto_g_last_viewed_winks', new Date().toISOString());
+            
             set({ winksHaveBeenSeen: true });
             updateTotalUnreadCount();
         },
 
         clearAccessRequests: () => {
-            // FIX: Apenas marca as solicitações como vistas para zerar a notificação.
             if (get().requestsHaveBeenSeen) return;
+            
+            localStorage.setItem('ponto_g_last_viewed_requests', new Date().toISOString());
+            
             set({ requestsHaveBeenSeen: true });
             updateTotalUnreadCount();
         },

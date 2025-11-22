@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { AdSenseUnit } from './AdSenseUnit';
 import { useMapStore } from '../stores/mapStore';
-// Removed static data import to rely on store data which comes from DB or fallback
-// import { VENUES_DATA } from '../lib/venuesData'; 
+import { PublicMap } from './PublicMap';
+import { Coordinates } from '../types';
 
 interface LandingPageProps {
   onEnter: () => void;
@@ -14,6 +14,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
   const [locating, setLocating] = useState(true);
   const [locationAllowed, setLocationAllowed] = useState(false);
   const [cityName, setCityName] = useState<string | null>(null);
+  const [mapCenter, setMapCenter] = useState<Coordinates>({ lat: -23.5505, lng: -46.6333 }); // Default SP
 
   // Função auxiliar para descobrir o nome da cidade via API gratuita (OpenStreetMap)
   const fetchCityName = async (lat: number, lng: number) => {
@@ -36,8 +37,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
           navigator.geolocation.getCurrentPosition(
               (position) => {
                   const { latitude, longitude } = position.coords;
-                  fetchVenues({ lat: latitude, lng: longitude });
-                  fetchCityName(latitude, longitude); // Busca o nome da cidade
+                  const coords = { lat: latitude, lng: longitude };
+                  setMapCenter(coords);
+                  fetchVenues(coords);
+                  fetchCityName(latitude, longitude); 
                   setLocationAllowed(true);
                   setLocating(false);
               },
@@ -164,6 +167,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                 )}
             </div>
 
+            {/* Mapa Público */}
+            <div className="mb-12 animate-fade-in-up">
+                <PublicMap 
+                    venues={venues} 
+                    center={mapCenter} 
+                    cityName={cityName} 
+                    onVenueClick={onEnter} 
+                />
+            </div>
+
             {venues.length === 0 && !locating ? (
                  <div className="text-center py-12 bg-slate-800/30 rounded-3xl border border-white/5">
                     <span className="material-symbols-rounded text-5xl text-slate-600 mb-4">explore_off</span>
@@ -172,7 +185,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                  </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {venues.map((venue) => (
+                    {venues.slice(0, 6).map((venue) => (
                         <div 
                             key={venue.id}
                             className="group relative bg-slate-800 rounded-3xl overflow-hidden cursor-pointer hover:shadow-2xl hover:shadow-pink-900/20 transition-all duration-500 border border-white/5 transform hover:-translate-y-1"

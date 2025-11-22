@@ -1,3 +1,4 @@
+
 // pages/Admin/AdminLayout.tsx
 import React, { useState } from 'react';
 import { useAdminStore } from '../../stores/adminStore';
@@ -17,11 +18,13 @@ const NavLink: React.FC<{
 }> = ({ icon, label, isActive, onClick }) => (
     <button 
         onClick={onClick} 
-        className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors text-sm font-medium ${
-            isActive ? 'bg-pink-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all text-sm font-bold ${
+            isActive 
+            ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg shadow-pink-900/20' 
+            : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
         }`}
     >
-        <span className="material-symbols-outlined text-xl">{icon}</span>
+        <span className={`material-symbols-rounded text-xl ${isActive ? 'filled' : ''}`}>{icon}</span>
         <span>{label}</span>
     </button>
 );
@@ -43,20 +46,29 @@ export const AdminLayout: React.FC = () => {
     };
     
     const SidebarContent = () => (
-         <div className="flex flex-col h-full bg-gray-800">
-            <div className="p-4 border-b border-gray-700">
-                <h2 className="text-xl font-bold text-white">Ponto G Admin</h2>
+         <div className="flex flex-col h-full bg-dark-950/95 backdrop-blur-xl border-r border-white/10">
+            <div className="p-6 border-b border-white/5 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <span className="text-white font-black text-xl">G</span>
+                </div>
+                <div>
+                    <h2 className="text-lg font-bold text-white font-outfit leading-none">Ponto G</h2>
+                    <span className="text-[10px] font-bold text-pink-500 uppercase tracking-widest">Admin Panel</span>
+                </div>
             </div>
-            <nav className="flex-1 p-4 space-y-2">
+            
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 mb-2 mt-2">Menu Principal</p>
                 <NavLink icon="dashboard" label="Dashboard" isActive={activeView === 'dashboard'} onClick={() => { setActiveView('dashboard'); setSidebarOpen(false); }} />
                 <NavLink icon="group" label="Usuários" isActive={activeView === 'users'} onClick={() => { setActiveView('users'); setSidebarOpen(false); }} />
                 <NavLink icon="sell" label="Planos" isActive={activeView === 'plans'} onClick={() => { setActiveView('plans'); setSidebarOpen(false); }} />
                 <NavLink icon="receipt_long" label="Pagamentos" isActive={activeView === 'payments'} onClick={() => { setActiveView('payments'); setSidebarOpen(false); }} />
                 <NavLink icon="flag" label="Denúncias" isActive={activeView === 'reports'} onClick={() => { setActiveView('reports'); setSidebarOpen(false); }} />
             </nav>
-            <div className="p-4 border-t border-gray-700">
-                <button onClick={logout} className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-red-400 hover:bg-gray-700 hover:text-red-300">
-                    <span className="material-symbols-outlined">logout</span>
+            
+            <div className="p-4 border-t border-white/5">
+                <button onClick={logout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors font-bold text-sm">
+                    <span className="material-symbols-rounded">logout</span>
                     <span>Sair</span>
                 </button>
             </div>
@@ -64,30 +76,35 @@ export const AdminLayout: React.FC = () => {
     );
 
     return (
-        <div className="flex h-screen">
+        <div className="flex h-screen bg-dark-900 text-slate-50 font-inter overflow-hidden">
             {/* Sidebar para desktop */}
-            <aside className="hidden md:block w-64 flex-shrink-0">
+            <aside className="hidden md:block w-72 flex-shrink-0 z-20 shadow-2xl">
                <SidebarContent />
             </aside>
             
             {/* Sidebar para mobile (overlay) */}
             {isSidebarOpen && (
-                <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={() => setSidebarOpen(false)}>
-                    <aside className="fixed top-0 left-0 bottom-0 w-64 bg-gray-800 z-50 animate-slide-in-up">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden animate-fade-in" onClick={() => setSidebarOpen(false)}>
+                    <aside className="fixed top-0 left-0 bottom-0 w-72 z-50 animate-slide-in-up shadow-2xl">
                         <SidebarContent />
                     </aside>
                 </div>
             )}
 
-            <main className="flex-1 flex flex-col overflow-hidden">
-                <header className="md:hidden p-4 bg-gray-800/80 backdrop-blur-sm border-b border-gray-700 flex items-center justify-between">
-                    <h2 className="font-bold">{activeView.charAt(0).toUpperCase() + activeView.slice(1)}</h2>
-                    <button onClick={() => setSidebarOpen(true)} className="p-2">
-                        <span className="material-symbols-outlined">menu</span>
+            <main className="flex-1 flex flex-col overflow-hidden relative z-10">
+                {/* Mobile Header */}
+                <header className="md:hidden p-4 bg-dark-900/90 backdrop-blur-md border-b border-white/5 flex items-center justify-between z-20">
+                    <h2 className="font-bold text-white font-outfit text-lg">{activeView.charAt(0).toUpperCase() + activeView.slice(1)}</h2>
+                    <button onClick={() => setSidebarOpen(true)} className="p-2 bg-slate-800 rounded-full border border-white/10 text-white">
+                        <span className="material-symbols-rounded">menu</span>
                     </button>
                 </header>
-                <div className="flex-1 overflow-y-auto p-4 md:p-8">
-                    {renderView()}
+                
+                {/* Main View Content */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-dark-900">
+                    <div className="max-w-7xl mx-auto">
+                        {renderView()}
+                    </div>
                 </div>
             </main>
         </div>

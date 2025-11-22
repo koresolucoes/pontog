@@ -92,8 +92,8 @@ export const UserGrid: React.FC = () => {
 
     return (
         <>
-        <div className="h-full flex flex-col pb-24 bg-dark-900"> {/* Background mais profundo */}
-            {/* Header Flutuante com Glassmorphism - Added pl-16 to avoid hamburger menu overlap */}
+        <div className="h-full flex flex-col pb-24 bg-dark-900">
+            {/* Header Flutuante com Glassmorphism - Added pl-16 for hamburger menu safe zone */}
             <div className="px-4 py-3 flex items-center space-x-3 overflow-x-auto sticky top-0 z-20 bg-dark-900/80 backdrop-blur-xl border-b border-white/5 mask-image-b pl-16">
                 <button
                     onClick={toggleOnlineOnly}

@@ -92,7 +92,7 @@ export const HomeView: React.FC = () => {
 
     return (
         <div className="h-full flex flex-col bg-dark-900 pb-24">
-            {/* Added pl-16 to header */}
+            {/* Header with pl-16 safe zone for hamburger menu */}
             <header className="p-5 pb-3 bg-dark-900/90 backdrop-blur-xl sticky top-0 z-10 border-b border-white/5 pl-16">
                 <h1 className="text-2xl font-black text-white tracking-tight font-outfit">Destaques</h1>
                 <p className="text-sm text-slate-400 font-medium">Perfis em alta na sua região 🔥</p>

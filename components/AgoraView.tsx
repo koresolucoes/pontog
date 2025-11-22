@@ -23,7 +23,7 @@ export const AgoraView: React.FC = () => {
     };
 
     const renderHeader = () => (
-        // Added pl-16 to accommodate the global hamburger menu
+        // Header with pl-16 safe zone for hamburger menu
         <div className="px-5 py-4 bg-gradient-to-b from-red-900/40 to-transparent backdrop-blur-md sticky top-0 z-20 border-b border-white/5 pl-16">
             <div className="flex justify-between items-center">
                 <div>

@@ -1,8 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useMapStore } from '../stores/mapStore';
-// Using global L to ensure consistency across map components
-const L = (window as any).L;
+import * as L from 'leaflet';
 
 interface TravelModeModalProps {
     onClose: () => void;
@@ -11,10 +10,9 @@ interface TravelModeModalProps {
 export const TravelModeModal: React.FC<TravelModeModalProps> = ({ onClose }) => {
     const { myLocation, enableTravelMode } = useMapStore();
     const mapRef = useRef<HTMLDivElement>(null);
-    const mapInstance = useRef<any>(null);
-    const markerRef = useRef<any>(null);
+    const mapInstance = useRef<L.Map | null>(null);
+    const markerRef = useRef<L.Marker | null>(null);
     const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
-    const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
     useEffect(() => {
         if (!mapRef.current) return;
@@ -49,27 +47,10 @@ export const TravelModeModal: React.FC<TravelModeModalProps> = ({ onClose }) => 
 
         mapInstance.current = map;
 
-        // Força atualização imediata do tamanho para evitar problemas de renderização no modal
-        // Increased delay to ensure modal animation is finished
-        setTimeout(() => {
-            map.invalidateSize();
-        }, 500);
-
-        // Observa redimensionamento do container
-        resizeObserverRef.current = new ResizeObserver(() => {
-            if (mapInstance.current) {
-                mapInstance.current.invalidateSize();
-            }
-        });
-        resizeObserverRef.current.observe(mapRef.current);
-
         return () => {
-            if (resizeObserverRef.current) {
-                resizeObserverRef.current.disconnect();
-            }
             map.remove();
         };
-    }, []); 
+    }, []); // Run once
 
     const handleConfirm = () => {
         if (selectedCoords) {

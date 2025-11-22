@@ -47,8 +47,10 @@ const VenueModal: React.FC<{
     useEffect(() => {
         if (venue) {
             setFormData({ 
-                ...DEFAULT_VENUE_STATE, // Garante defaults para campos ausentes (ex: type ao criar novo)
+                ...DEFAULT_VENUE_STATE, // Garante defaults para campos ausentes
                 ...venue, 
+                // Força valores padrão se vierem nulos/undefined
+                type: venue.type || DEFAULT_VENUE_STATE.type,
                 lat: venue.lat ?? DEFAULT_VENUE_STATE.lat, 
                 lng: venue.lng ?? DEFAULT_VENUE_STATE.lng,
                 tags: venue.tags ?? DEFAULT_VENUE_STATE.tags
@@ -98,13 +100,12 @@ const VenueModal: React.FC<{
             map.remove();
             mapInstance.current = null;
         };
-    }, []); // Executa na montagem, mas usa refs para atualizar
+    }, []); // Executa na montagem
 
-    // Atualiza marcador se formData mudar externamente (ex: edição ou autocomplete)
+    // Atualiza marcador se formData mudar externamente
     useEffect(() => {
         if (markerRef.current && formData.lat && formData.lng && mapInstance.current) {
             const currentLatLng = markerRef.current.getLatLng();
-            // Só move se a distância for significativa para evitar loops
             if (Math.abs(currentLatLng.lat - formData.lat) > 0.0001 || Math.abs(currentLatLng.lng - formData.lng) > 0.0001) {
                 markerRef.current.setLatLng([formData.lat, formData.lng]);
                 mapInstance.current.panTo([formData.lat, formData.lng]);
@@ -132,12 +133,10 @@ const VenueModal: React.FC<{
             const url = isEditing ? `/api/admin/venues?id=${venue?.id}` : '/api/admin/venues';
             const method = isEditing ? 'PUT' : 'POST';
 
-            // Construct a clean payload containing ONLY the fields we want to update/save.
-            // This avoids sending system fields like 'id', 'created_at', 'submitted_by' back to the server,
-            // which can cause database errors (500) or silent failures.
+            // Construct payload
             const payload = {
                 name: formData.name,
-                type: formData.type,
+                type: formData.type || 'bar', // Fallback de segurança
                 address: formData.address,
                 description: formData.description,
                 lat: formData.lat,
@@ -146,7 +145,7 @@ const VenueModal: React.FC<{
                 is_partner: formData.is_partner,
                 is_verified: formData.is_verified,
                 tags: formData.tags || [],
-                osm_id: formData.osm_id // Include only if exists
+                osm_id: formData.osm_id
             };
 
             const response = await fetch(url, {
@@ -161,13 +160,12 @@ const VenueModal: React.FC<{
             const data = await response.json();
 
             if (!response.ok) {
-                // Log full details to console for debugging
                 console.error("Server Error Details:", data);
                 throw new Error(data.details || data.error || 'Falha ao salvar local');
             }
             
             if (formData.is_verified && venue && !venue.is_verified && venue.submitted_by) {
-                toast.success(`Local aprovado! Recompensas enviadas para o usuário.`, { icon: '🎁' });
+                toast.success(`Local aprovado! Recompensas enviadas.`, { icon: '🎁' });
             } else {
                 toast.success(`Local ${isEditing ? 'atualizado' : 'criado'}!`);
             }
@@ -175,7 +173,7 @@ const VenueModal: React.FC<{
             onSave();
             onClose();
         } catch (err: any) {
-            toast.error(err.message);
+            toast.error(`Erro: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -213,7 +211,7 @@ const VenueModal: React.FC<{
                         <div className="mb-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl text-xs">
                             <p className="text-purple-300 font-bold">Sugerido por usuário ({venue.submitted_by})</p>
                             {!venue.is_verified && (
-                                <p className="text-purple-400/70 mt-1">Ao verificar e salvar, o usuário receberá a recompensa automaticamente.</p>
+                                <p className="text-purple-400/70 mt-1">Ao verificar e salvar, o usuário receberá a recompensa.</p>
                             )}
                         </div>
                     )}
@@ -221,13 +219,13 @@ const VenueModal: React.FC<{
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="text-xs font-bold text-slate-400 uppercase ml-1">Nome do Local</label>
-                            <input name="name" value={formData.name} onChange={handleChange} className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50" required />
+                            <input name="name" value={formData.name || ''} onChange={handleChange} className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50" required />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-slate-400 uppercase ml-1">Tipo</label>
-                                <select name="type" value={formData.type} onChange={handleChange} className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50 appearance-none">
+                                <select name="type" value={formData.type || 'bar'} onChange={handleChange} className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50 appearance-none">
                                     {VENUE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                 </select>
                             </div>
@@ -235,7 +233,7 @@ const VenueModal: React.FC<{
                                 <label className="text-xs font-bold text-slate-400 uppercase ml-1">Verificado?</label>
                                 <div className="flex items-center h-full px-2">
                                     <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" name="is_verified" checked={formData.is_verified} onChange={handleChange} className="w-5 h-5 rounded bg-slate-700 border-none text-pink-600 focus:ring-pink-500/50" />
+                                        <input type="checkbox" name="is_verified" checked={formData.is_verified || false} onChange={handleChange} className="w-5 h-5 rounded bg-slate-700 border-none text-pink-600 focus:ring-pink-500/50" />
                                         <span className="text-sm text-white">Sim, publicar.</span>
                                     </label>
                                 </div>
@@ -246,7 +244,7 @@ const VenueModal: React.FC<{
                             <label className="text-xs font-bold text-slate-400 uppercase ml-1">Endereço (Exibição)</label>
                             <input 
                                 name="address" 
-                                value={formData.address} 
+                                value={formData.address || ''} 
                                 onChange={handleChange} 
                                 placeholder="Rua, Número - Bairro" 
                                 className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50" 
@@ -256,12 +254,12 @@ const VenueModal: React.FC<{
 
                         <div>
                             <label className="text-xs font-bold text-slate-400 uppercase ml-1">Descrição</label>
-                            <textarea name="description" rows={3} value={formData.description} onChange={handleChange} className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50 resize-none" />
+                            <textarea name="description" rows={3} value={formData.description || ''} onChange={handleChange} className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50 resize-none" />
                         </div>
 
                         <div>
                             <label className="text-xs font-bold text-slate-400 uppercase ml-1">URL da Imagem</label>
-                            <input name="image_url" value={formData.image_url} onChange={handleChange} placeholder="https://..." className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50 text-sm" />
+                            <input name="image_url" value={formData.image_url || ''} onChange={handleChange} placeholder="https://..." className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50 text-sm" />
                         </div>
 
                         <div className="p-4 bg-slate-800/50 rounded-xl border border-white/5 flex items-center justify-between">
@@ -270,7 +268,7 @@ const VenueModal: React.FC<{
                                 Destaque / Parceiro
                             </span>
                             <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" name="is_partner" checked={formData.is_partner} onChange={handleChange} className="sr-only peer" />
+                                <input type="checkbox" name="is_partner" checked={formData.is_partner || false} onChange={handleChange} className="sr-only peer" />
                                 <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
                             </label>
                         </div>
@@ -343,7 +341,7 @@ export const VenuesView: React.FC = () => {
                     <p className="text-slate-400">Adicione e gerencie os pontos do Guia.</p>
                 </div>
                 <button 
-                    onClick={() => setEditingVenue({})}
+                    onClick={() => setEditingVenue(DEFAULT_VENUE_STATE)}
                     className="bg-pink-600 text-white font-bold py-3 px-6 rounded-xl hover:bg-pink-700 transition-colors shadow-lg flex items-center gap-2"
                 >
                     <span className="material-symbols-rounded">add_location_alt</span>

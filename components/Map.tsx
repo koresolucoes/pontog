@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
 import { useAgoraStore } from '../stores/agoraStore';
+import { useUiStore } from '../stores/uiStore'; // Importar store de UI
 import * as L from 'leaflet';
 import { User } from '../types';
 
@@ -47,7 +48,7 @@ const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
     
     if (user.can_host) {
          hosterBadgeHtml = `
-            <div class="absolute -top-1.5 -left-1.5 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center shadow-md border-2 border-white z-40">
+            <div class="absolute -top-1.5 -left-1.5 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center shadow-md border-2 border-white z-40" style="z-index: 40;">
                 <span class="material-symbols-rounded filled" style="font-size: 14px;">home</span>
             </div>
         `;
@@ -77,7 +78,7 @@ const MyLocationMarkerIcon = (avatarUrl: string, canHost: boolean) => {
     let hosterBadgeHtml = '';
     if (canHost) {
          hosterBadgeHtml = `
-            <div class="absolute -top-2 -left-2 w-7 h-7 bg-green-600 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white z-50">
+            <div class="absolute -top-2 -left-2 w-7 h-7 bg-green-600 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white z-50" style="z-index: 50;">
                 <span class="material-symbols-rounded filled" style="font-size: 16px;">home</span>
             </div>
         `;
@@ -108,6 +109,7 @@ export const Map: React.FC = () => {
   const { users, myLocation, onlineUsers, loading, error, filters, setSelectedUser, requestLocationPermission } = useMapStore();
   const { profile } = useAuthStore();
   const { agoraUserIds } = useAgoraStore();
+  const { activeView } = useUiStore(); // Observa a view ativa
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -136,6 +138,16 @@ export const Map: React.FC = () => {
     };
   }, []);
 
+  // Garante que o mapa se redesenhe quando a aba muda para 'map'
+  useEffect(() => {
+      if (activeView === 'map' && mapInstanceRef.current) {
+          // Um pequeno delay para garantir que a transição CSS/DOM ocorreu
+          setTimeout(() => {
+              mapInstanceRef.current?.invalidateSize();
+          }, 100);
+      }
+  }, [activeView]);
+
   // Inicialização do Mapa com Verificação de Dimensões e Carregamento de Tiles
   useEffect(() => {
     // Só inicializa se tivermos localização e o container
@@ -159,7 +171,8 @@ export const Map: React.FC = () => {
         }
 
         // Se a altura ou largura for 0, o elemento ainda não foi renderizado ou animado corretamente.
-        // Aguarda o próximo frame.
+        // Agora que o mapa está sempre montado (z-index), ele deve ter tamanho desde o início.
+        // Mas mantemos a verificação por segurança.
         if (element.clientWidth === 0 || element.clientHeight === 0) {
             requestAnimationFrame(waitForDimensionsAndInit);
             return;
@@ -244,7 +257,7 @@ export const Map: React.FC = () => {
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (map && myLocation && profile) {
-        const canHost = !!profile.can_host;
+        const canHost = !!profile.can_host; // Force boolean check
 
         if (!myLocationMarkerRef.current) {
             myLocationMarkerRef.current = L.marker(myLocation, { 
@@ -256,6 +269,7 @@ export const Map: React.FC = () => {
             if (oldLatLng.distanceTo(myLocation) > 2) {
                 myLocationMarkerRef.current.setLatLng(myLocation);
             }
+            // Atualiza ícone apenas se mudou
             myLocationMarkerRef.current.setIcon(MyLocationMarkerIcon(profile.avatar_url, canHost));
             myLocationMarkerRef.current.setZIndexOffset(1000);
         }

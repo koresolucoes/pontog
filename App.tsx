@@ -102,14 +102,15 @@ const App: React.FC = () => {
         };
     }, [session, requestLocationPermission, stopLocationWatch, cleanupRealtime, fetchConversations, fetchWinks, fetchAccessRequests]);
 
-    const renderActiveView = () => {
+    // Renderiza as visualizações que NÃO são o mapa
+    const renderOtherViews = () => {
         switch (activeView) {
             case 'home': return <HomeView />;
             case 'grid': return <UserGrid />;
-            case 'map': return <Map />;
             case 'agora': return <AgoraView />;
             case 'inbox': return <Inbox />;
             case 'profile': return <ProfileView />;
+            case 'map': return null; // Mapa é tratado separadamente
             default: return <HomeView />;
         }
     };
@@ -174,8 +175,8 @@ const App: React.FC = () => {
             ) : (
                 <div className="h-screen w-screen bg-gradient-to-b from-dark-900 to-slate-900 text-slate-50 flex flex-col antialiased overflow-hidden relative">
                     
-                    {/* Animated Particle Background */}
-                    <BackgroundParticles />
+                    {/* Animated Particle Background (Visível apenas quando não estamos no mapa) */}
+                    {activeView !== 'map' && <BackgroundParticles />}
 
                     {/* Sidebar Navigation Drawer */}
                     <Sidebar />
@@ -188,12 +189,29 @@ const App: React.FC = () => {
                         <span className="material-symbols-rounded">menu</span>
                     </button>
 
-                    {/* Main Content Area with Transition Wrapper */}
+                    {/* Main Content Area */}
                     <main className="flex-1 overflow-hidden pb-0 z-10 relative">
-                        {/* A prop 'key' força o React a recriar o componente, disparando a animação CSS novamente */}
-                        <div key={activeView} className="w-full h-full animate-fade-in">
-                            {renderActiveView()}
+                        
+                        {/* ESTRATÉGIA MAPA PERSISTENTE:
+                            O Mapa é SEMPRE renderizado em uma camada absoluta.
+                            Quando activeView === 'map', ele ganha z-index alto e opacidade total.
+                            Quando não, ele fica no fundo (z-0) esperando.
+                        */}
+                        <div 
+                            className={`absolute inset-0 w-full h-full transition-opacity duration-500 ease-in-out ${
+                                activeView === 'map' ? 'z-10 opacity-100 pointer-events-auto' : '-z-10 opacity-0 pointer-events-none'
+                            }`}
+                        >
+                            <Map />
                         </div>
+
+                        {/* As outras views são renderizadas SOBRE o mapa quando ativas */}
+                        {activeView !== 'map' && (
+                            <div key={activeView} className="w-full h-full animate-fade-in relative z-20 bg-dark-900">
+                                {renderOtherViews()}
+                            </div>
+                        )}
+
                     </main>
                     
                     {selectedUser && (

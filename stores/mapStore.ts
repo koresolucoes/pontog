@@ -65,21 +65,28 @@ export const useMapStore = create<MapState>((set, get) => ({
     // Se o usuário estiver em modo viajante, NÃO iniciamos o GPS.
     // Usamos a localização salva no banco.
     if (authUser?.is_traveling && authUser.lat && authUser.lng) {
-        console.log("User is in travel mode. Skipping GPS.");
+        console.log("Modo Viajante detectado. Usando coordenadas salvas.", { lat: authUser.lat, lng: authUser.lng });
         const travelLocation = { lat: authUser.lat, lng: authUser.lng };
+        
+        // Define a localização imediatamente
         set({ myLocation: travelLocation, loading: false, error: null });
+        
+        // Busca usuários com base na localização de viagem
         get().fetchNearbyUsers(travelLocation);
+        
+        // Inicia o Realtime para manter os dados atualizados
         get().setupRealtime();
         return;
     }
 
+    // Se não estiver em modo viajante, limpa watchers antigos e inicia GPS
     if (get().watchId) {
       get().stopLocationWatch();
     }
 
     if (navigator.geolocation) {
       const updateLocation = () => {
-        // Verifica novamente se entrou em modo viagem durante o intervalo
+        // Verifica novamente se entrou em modo viagem durante o intervalo para evitar conflito
         const currentUser = useAuthStore.getState().user;
         if (currentUser?.is_traveling) {
             get().stopLocationWatch();
@@ -101,16 +108,18 @@ export const useMapStore = create<MapState>((set, get) => ({
               get().updateMyLocationInDb(newLocation);
               get().fetchNearbyUsers(newLocation);
             } else if (get().loading) {
-              // Se a localização não mudou, mas ainda estávamos carregando, para de carregar.
               set({ loading: false });
             }
           },
           (error) => {
             console.error("Geolocation error:", error);
-            set({ 
-              loading: false, 
-              error: "Não foi possível obter sua localização. Verifique as permissões do seu navegador e tente novamente." 
-            });
+            // Se houver erro no GPS, não sobrescreva se já tivermos uma localização válida (ex: modo viajante acabou de ser desativado)
+            if (!get().myLocation) {
+                set({ 
+                  loading: false, 
+                  error: "Não foi possível obter sua localização. Verifique as permissões do seu navegador e tente novamente." 
+                });
+            }
             get().stopLocationWatch();
           },
           { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
@@ -138,7 +147,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   updateMyLocationInDb: async (coords: Coordinates) => {
     const user = useAuthStore.getState().user;
     if (!user) return;
-    // Se estiver viajando, não atualiza com GPS
+    // Se estiver viajando, não atualiza com GPS para não sobrescrever o ponto fixo
     if (user.is_traveling) return;
 
     const { lat, lng } = coords;
@@ -149,8 +158,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   },
 
   fetchNearbyUsers: async (coords: Coordinates) => {
-    const user = useAuthStore.getState().user;
-    if (!user) return;
+    // const user = useAuthStore.getState().user; // Removido check desnecessário que poderia causar race conditions
     
     const { lat, lng } = coords;
     const { data, error } = await supabase.rpc('get_nearby_profiles', {
@@ -171,11 +179,13 @@ export const useMapStore = create<MapState>((set, get) => ({
   },
 
   setupRealtime: () => {
-    const profile = useAuthStore.getState().profile;
-    if (!profile) return;
-    
+    // Garante que só existe uma conexão ativa
     get().cleanupRealtime();
 
+    const profile = useAuthStore.getState().profile;
+    if (!profile) return;
+
+    // Canal de Presença (Online/Offline)
     const presenceChannel = supabase.channel('online-users');
     presenceChannel
         .on('presence', { event: 'sync' }, () => {
@@ -189,12 +199,18 @@ export const useMapStore = create<MapState>((set, get) => ({
             }
         });
 
+    // Canal de Dados (Atualizações de Perfil/Localização)
     const realtimeChannel = supabase
         .channel('public:profiles')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' },
             (payload) => {
-                if (get().myLocation) {
-                    get().fetchNearbyUsers(get().myLocation!);
+                // Quando houver qualquer mudança na tabela de perfis (alguém moveu, mudou foto, etc.)
+                // Recarregamos os usuários próximos baseados na MINHA localização atual.
+                // A 'myLocation' aqui já estará correta (GPS ou Viajante) graças ao requestLocationPermission.
+                const currentLocation = get().myLocation;
+                if (currentLocation) {
+                    console.log("Realtime update received. Refreshing map for location:", currentLocation);
+                    get().fetchNearbyUsers(currentLocation);
                 }
             }
         )
@@ -219,7 +235,15 @@ export const useMapStore = create<MapState>((set, get) => ({
       if (!user) return;
 
       get().stopLocationWatch();
+      
+      // Atualização Otimista da UI
       set({ myLocation: coords, loading: true });
+      
+      // Atualiza a store de Auth para que a persistência funcione se o usuário der F5 imediatamente
+      useAuthStore.setState({ 
+          user: { ...user, lat: coords.lat, lng: coords.lng, is_traveling: true },
+          profile: { ...useAuthStore.getState().profile!, lat: coords.lat, lng: coords.lng, is_traveling: true }
+      });
 
       const { error } = await supabase
           .from('profiles')
@@ -234,12 +258,12 @@ export const useMapStore = create<MapState>((set, get) => ({
           console.error("Error enabling travel mode:", error);
           toast.error("Erro ao ativar Modo Viajante.");
           get().requestLocationPermission(); // Fallback to GPS
+          
+          // Reverte store de Auth em caso de erro
+          useAuthStore.getState().fetchProfile(user);
       } else {
-          // Update local auth store
-          useAuthStore.setState({ 
-              user: { ...user, lat: coords.lat, lng: coords.lng, is_traveling: true } 
-          });
           get().fetchNearbyUsers(coords);
+          get().setupRealtime(); // Garante que o realtime continua ativo na nova coordenada
           toast.success("Modo Viajante ativado! ✈️");
       }
       set({ loading: false });
@@ -249,6 +273,8 @@ export const useMapStore = create<MapState>((set, get) => ({
       const user = useAuthStore.getState().user;
       if (!user) return;
 
+      set({ loading: true });
+
       const { error } = await supabase
           .from('profiles')
           .update({ is_traveling: false })
@@ -256,12 +282,16 @@ export const useMapStore = create<MapState>((set, get) => ({
 
       if (error) {
           toast.error("Erro ao desativar Modo Viajante.");
+          set({ loading: false });
       } else {
           useAuthStore.setState({ 
-              user: { ...user, is_traveling: false } 
+              user: { ...user, is_traveling: false },
+              profile: { ...useAuthStore.getState().profile!, is_traveling: false }
           });
           toast.success("Bem-vindo de volta!");
-          // Reinicia GPS
+          
+          // Reinicia GPS limpo
+          set({ myLocation: null }); 
           get().requestLocationPermission();
       }
   }

@@ -89,18 +89,24 @@ const App: React.FC = () => {
         }
     }, [session, fetchProfile]);
 
+    // Lógica principal de inicialização de dados e localização
     useEffect(() => {
-        if (session) {
+        // Só iniciamos o mapa e os dados se o usuário estiver logado E o perfil estiver carregado.
+        // Isso é crucial para que a verificação de 'is_traveling' no mapStore funcione corretamente
+        // e não sobrescreva a localização de viagem com o GPS real.
+        if (session && user && !loading) {
             requestLocationPermission();
             fetchConversations();
             fetchWinks();
             fetchAccessRequests();
         }
-        return () => {
+        
+        // Cleanup apenas quando a sessão morre
+        if (!session) {
             stopLocationWatch();
             cleanupRealtime();
-        };
-    }, [session, requestLocationPermission, stopLocationWatch, cleanupRealtime, fetchConversations, fetchWinks, fetchAccessRequests]);
+        }
+    }, [session, user, loading, requestLocationPermission, stopLocationWatch, cleanupRealtime, fetchConversations, fetchWinks, fetchAccessRequests]);
 
     // Renderiza as visualizações que NÃO são o mapa
     const renderOtherViews = () => {

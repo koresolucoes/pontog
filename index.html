@@ -48,6 +48,10 @@
             'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
             'slide-in-up': 'slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
             'radar-spin': 'radarSpin 3s linear infinite',
+            'spin-slow': 'spin 3s linear infinite',
+            'spin-reverse': 'spinReverse 4s linear infinite',
+            'spin-reverse-slow': 'spinReverse 8s linear infinite',
+            'ping-slow': 'pingSlow 3s cubic-bezier(0, 0, 0.2, 1) infinite',
             'ripple': 'ripple 3s cubic-bezier(0, 0.2, 0.8, 1) infinite',
           },
           keyframes: {
@@ -75,6 +79,13 @@
             radarSpin: {
                 'from': { transform: 'rotate(0deg)' },
                 'to': { transform: 'rotate(360deg)' }
+            },
+            spinReverse: {
+                'from': { transform: 'rotate(360deg)' },
+                'to': { transform: 'rotate(0deg)' }
+            },
+            pingSlow: {
+                '75%, 100%': { transform: 'scale(2)', opacity: '0' }
             },
             ripple: {
                 '0%': { top: '50%', left: '50%', width: '0', height: '0', opacity: '1' },

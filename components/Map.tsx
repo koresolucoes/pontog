@@ -379,36 +379,50 @@ export const Map: React.FC = () => {
           <div 
             className={`absolute inset-0 z-50 flex flex-col items-center justify-center bg-dark-900 transition-opacity duration-1000 ease-in-out ${!isScanning && !isError ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
           >
-            <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-800/50 via-dark-900 to-dark-900"></div>
             
             <div className="relative z-10 flex flex-col items-center">
-                <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center mb-8">
-                    <div className={`absolute inset-0 rounded-full border border-${scanColor}-500/20 shadow-[0_0_30px_rgba(0,0,0,0.5)]`}></div>
+                {/* NEW ANIMATION: Digital Radar Pulse */}
+                <div className="relative w-64 h-64 flex items-center justify-center mb-10">
+                    
+                    {/* Central Glowing Core */}
+                    <div className={`absolute w-6 h-6 rounded-full bg-${scanColor}-500 shadow-[0_0_30px_rgba(236,72,153,0.8)] z-20 animate-pulse`}></div>
+                    <div className={`absolute w-full h-full rounded-full bg-${scanColor}-500/5 animate-ping-slow`}></div>
+
+                    {/* Rotating Rings */}
                     {!isError && (
                         <>
-                            <div className={`absolute inset-0 rounded-full border-2 border-${scanColor}-500/10 animate-ripple`}></div>
-                            <div className={`absolute inset-0 rounded-full border-2 border-${scanColor}-500/10 animate-ripple delay-75`}></div>
-                            <div className={`absolute inset-0 rounded-full border-2 border-${scanColor}-500/10 animate-ripple delay-150`}></div>
+                            {/* Inner Ring (Reverse) */}
+                            <div className={`absolute w-32 h-32 rounded-full border-2 border-dashed border-${scanColor}-500/30 animate-spin-reverse border-t-transparent border-b-transparent`}></div>
+                            
+                            {/* Middle Ring (Slow) */}
+                            <div className={`absolute w-48 h-48 rounded-full border border-${scanColor}-500/20 animate-spin-slow border-r-transparent border-l-transparent`}></div>
+                            
+                            {/* Outer Ring (Slower Reverse) */}
+                            <div className={`absolute w-64 h-64 rounded-full border border-slate-700/50 animate-spin-reverse-slow border-t-${scanColor}-500/40`}></div>
+                            
+                            {/* Radar Sweep Gradient */}
+                            <div className={`absolute w-full h-full rounded-full animate-radar-spin opacity-30 bg-gradient-to-tr from-transparent via-${scanColor}-500/10 to-transparent`}></div>
                         </>
                     )}
-                    <div className={`absolute w-[80%] h-[80%] rounded-full border border-${scanColor}-500/30 border-dashed`}></div>
-                    <div className={`absolute w-[50%] h-[50%] rounded-full border border-${scanColor}-500/40`}></div>
-                    {!isError && (
-                        <div className={`absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-${scanColor}-500/20 to-transparent animate-radar-spin`}></div>
-                    )}
-                    <div className={`w-4 h-4 bg-${scanColor}-500 rounded-full shadow-[0_0_15px_currentColor] ${!isError ? 'animate-pulse' : ''}`}></div>
+                    
+                    {/* Static Decorators */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                        <div className="w-[1px] h-full bg-white/20"></div>
+                        <div className="absolute h-[1px] w-full bg-white/20"></div>
+                    </div>
                 </div>
 
                 <div className="text-center space-y-2">
-                    <h2 className={`text-2xl font-black tracking-widest font-outfit ${isError ? 'text-red-500' : 'text-white animate-pulse'}`}>
-                        {isError ? 'SINAL PERDIDO' : 'ESCANEANDO...'}
+                    <h2 className={`text-2xl font-black tracking-[0.2em] font-outfit uppercase ${isError ? 'text-red-500' : 'text-white animate-pulse'}`}>
+                        {isError ? 'SINAL PERDIDO' : 'ESCANEANDO'}
                     </h2>
-                    <p className={`text-xs font-mono uppercase tracking-wide ${isError ? 'text-red-400/70' : 'text-pink-400/70'}`}>
-                        {isError ? 'Não foi possível obter GPS' : 'Triangulando sua posição'}
+                    <p className={`text-xs font-mono uppercase tracking-widest ${isError ? 'text-red-400/70' : 'text-pink-400/70'}`}>
+                        {isError ? 'Verifique sua conexão' : 'Triangulando Localização...'}
                     </p>
                 </div>
 
-                {isError ? (
+                {isError && (
                     <button 
                         onClick={() => requestLocationPermission()} 
                         className="mt-8 px-8 py-3 bg-red-500/10 border border-red-500/50 text-red-400 font-bold rounded-xl hover:bg-red-500/20 transition-all active:scale-95 flex items-center gap-2 cursor-pointer pointer-events-auto"
@@ -416,11 +430,6 @@ export const Map: React.FC = () => {
                         <span className="material-symbols-rounded animate-spin">refresh</span>
                         Tentar Novamente
                     </button>
-                ) : (
-                    <div className="mt-8 flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-full border border-white/5">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
-                        <span className="text-[10px] text-slate-400 font-mono">BUSCANDO SATÉLITES</span>
-                    </div>
                 )}
             </div>
           </div>

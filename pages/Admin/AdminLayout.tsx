@@ -48,6 +48,12 @@ export const AdminLayout: React.FC = () => {
             default: return <DashboardView />;
         }
     };
+
+    // Função centralizada para navegar e fechar o menu (útil no mobile)
+    const handleNavigation = (view: AdminView) => {
+        setActiveView(view);
+        setSidebarOpen(false);
+    };
     
     const SidebarContent = () => (
          <div className="flex flex-col h-full bg-dark-950/95 backdrop-blur-xl border-r border-white/10">
@@ -63,13 +69,13 @@ export const AdminLayout: React.FC = () => {
             
             <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 mb-2 mt-2">Menu Principal</p>
-                <NavLink icon="dashboard" label="Dashboard" isActive={activeView === 'dashboard'} onClick={() => { setActiveView('dashboard'); setSidebarOpen(false); }} />
-                <NavLink icon="group" label="Usuários" isActive={activeView === 'users'} onClick={() => { setActiveView('users'); setSidebarOpen(false); }} />
-                <NavLink icon="newspaper" label="Notícias" isActive={activeView === 'news'} onClick={() => { setActiveView('news'); setSidebarOpen(false); }} />
-                <NavLink icon="map" label="Locais (Guia)" isActive={activeView === 'venues'} onClick={() => { setActiveView('venues'); setSidebarOpen(false); }} />
-                <NavLink icon="sell" label="Planos" isActive={activeView === 'plans'} onClick={() => { setActiveView('plans'); setSidebarOpen(false); }} />
-                <NavLink icon="receipt_long" label="Pagamentos" isActive={activeView === 'payments'} onClick={() => { setActiveView('payments'); setSidebarOpen(false); }} />
-                <NavLink icon="flag" label="Denúncias" isActive={activeView === 'reports'} onClick={() => { setActiveView('reports'); setSidebarOpen(false); }} />
+                <NavLink icon="dashboard" label="Dashboard" isActive={activeView === 'dashboard'} onClick={() => handleNavigation('dashboard')} />
+                <NavLink icon="group" label="Usuários" isActive={activeView === 'users'} onClick={() => handleNavigation('users')} />
+                <NavLink icon="newspaper" label="Notícias" isActive={activeView === 'news'} onClick={() => handleNavigation('news')} />
+                <NavLink icon="map" label="Locais (Guia)" isActive={activeView === 'venues'} onClick={() => handleNavigation('venues')} />
+                <NavLink icon="sell" label="Planos" isActive={activeView === 'plans'} onClick={() => handleNavigation('plans')} />
+                <NavLink icon="receipt_long" label="Pagamentos" isActive={activeView === 'payments'} onClick={() => handleNavigation('payments')} />
+                <NavLink icon="flag" label="Denúncias" isActive={activeView === 'reports'} onClick={() => handleNavigation('reports')} />
             </nav>
             
             <div className="p-4 border-t border-white/5">
@@ -91,7 +97,10 @@ export const AdminLayout: React.FC = () => {
             {/* Sidebar para mobile (overlay) */}
             {isSidebarOpen && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden animate-fade-in" onClick={() => setSidebarOpen(false)}>
-                    <aside className="fixed top-0 left-0 bottom-0 w-72 z-50 animate-slide-in-up shadow-2xl">
+                    <aside 
+                        className="fixed top-0 left-0 bottom-0 w-72 z-50 animate-slide-in-up shadow-2xl"
+                        onClick={(e) => e.stopPropagation()} // Impede fechar ao clicar dentro da sidebar
+                    >
                         <SidebarContent />
                     </aside>
                 </div>

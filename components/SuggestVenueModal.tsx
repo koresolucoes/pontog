@@ -1,0 +1,203 @@
+
+import React, { useState, useRef, useEffect } from 'react';
+import { useMapStore } from '../stores/mapStore';
+import toast from 'react-hot-toast';
+import { VenueType } from '../types';
+
+interface SuggestVenueModalProps {
+  onClose: () => void;
+}
+
+const VENUE_TYPES: { value: VenueType; label: string }[] = [
+    { value: 'sauna', label: 'Sauna' },
+    { value: 'bar', label: 'Bar / Balada' },
+    { value: 'club', label: 'Boate' },
+    { value: 'cruising', label: 'Cruising / Pegação' },
+    { value: 'cinema', label: 'Cinema' },
+    { value: 'shop', label: 'Loja / Sex Shop' },
+];
+
+export const SuggestVenueModal: React.FC<SuggestVenueModalProps> = ({ onClose }) => {
+  const { myLocation, suggestVenue } = useMapStore();
+  const [loading, setLoading] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [formData, setFormData] = useState({
+      name: '',
+      type: 'bar' as VenueType,
+      address: '',
+      description: '',
+      lat: myLocation?.lat || 0,
+      lng: myLocation?.lng || 0,
+  });
+
+  // Auto-fill address (Mock for now, would use Reverse Geocoding in prod)
+  useEffect(() => {
+      if (myLocation) {
+          setFormData(prev => ({ ...prev, lat: myLocation.lat, lng: myLocation.lng }));
+      }
+  }, [myLocation]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+          setPhotoFile(file);
+          setPreview(URL.createObjectURL(file));
+      }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!formData.name || !formData.address) {
+          toast.error('Nome e endereço são obrigatórios.');
+          return;
+      }
+      setLoading(true);
+      const success = await suggestVenue({
+          name: formData.name,
+          type: formData.type,
+          address: formData.address,
+          description: formData.description,
+          lat: formData.lat,
+          lng: formData.lng,
+          tags: [], // Could add a tag input later
+      }, photoFile);
+
+      setLoading(false);
+      if (success) {
+          toast.success('Local enviado para análise! Obrigado por contribuir.');
+          onClose();
+      }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-dark-900/90 backdrop-blur-sm flex items-end sm:items-center justify-center z-[80] animate-fade-in p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md mx-auto animate-slide-in-up flex flex-col max-h-[90vh] border border-white/10" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6 border-b border-white/5 flex justify-between items-center flex-shrink-0 bg-slate-800/50 rounded-t-3xl">
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <span className="material-symbols-rounded filled text-pink-500">add_location_alt</span>
+            Sugerir Local
+          </h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-slate-400 hover:text-white">
+              <span className="material-symbols-rounded">close</span>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex gap-3 items-start">
+                <span className="material-symbols-rounded text-blue-400 shrink-0">info</span>
+                <p className="text-xs text-blue-200 leading-relaxed">
+                    Ajude a comunidade! Adicione saunas, bares e points que você conhece. Sua sugestão será analisada antes de aparecer no mapa.
+                </p>
+            </div>
+
+            <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full aspect-video bg-slate-800 rounded-xl border-2 border-dashed border-slate-600 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700/50 hover:border-pink-500 transition-all overflow-hidden relative group"
+            >
+                {preview ? (
+                    <>
+                        <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="text-white font-bold text-sm flex items-center gap-2"><span className="material-symbols-rounded">edit</span> Alterar Foto</span>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <span className="material-symbols-rounded text-3xl text-slate-400 mb-2">add_a_photo</span>
+                        <span className="text-xs font-bold text-slate-400 uppercase">Adicionar Foto (Opcional)</span>
+                    </>
+                )}
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+            </div>
+
+            <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nome do Local</label>
+                <input 
+                    type="text" 
+                    name="name" 
+                    value={formData.name} 
+                    onChange={handleChange} 
+                    placeholder="Ex: Sauna Paradise" 
+                    className="w-full bg-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-pink-500/50 border border-white/5 text-sm"
+                    required 
+                />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Tipo</label>
+                    <div className="relative">
+                        <select 
+                            name="type" 
+                            value={formData.type} 
+                            onChange={handleChange}
+                            className="w-full bg-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50 border border-white/5 text-sm appearance-none"
+                        >
+                            {VENUE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </select>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none material-symbols-rounded text-lg">expand_more</span>
+                    </div>
+                </div>
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Localização</label>
+                    <div className="w-full bg-slate-800/50 border border-white/5 rounded-xl px-3 py-3 text-slate-400 text-xs flex items-center gap-2 cursor-not-allowed" title="Usa sua localização atual">
+                        <span className="material-symbols-rounded text-base">my_location</span>
+                        {formData.lat.toFixed(4)}, {formData.lng.toFixed(4)}
+                    </div>
+                </div>
+            </div>
+
+            <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Endereço</label>
+                <input 
+                    type="text" 
+                    name="address" 
+                    value={formData.address} 
+                    onChange={handleChange} 
+                    placeholder="Rua, Número - Bairro" 
+                    className="w-full bg-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-pink-500/50 border border-white/5 text-sm"
+                    required 
+                />
+            </div>
+
+            <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Descrição</label>
+                <textarea 
+                    name="description" 
+                    rows={3} 
+                    value={formData.description} 
+                    onChange={handleChange} 
+                    placeholder="O que tem de bom lá? Preço? Horário?" 
+                    className="w-full bg-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-pink-500/50 border border-white/5 text-sm resize-none"
+                />
+            </div>
+        </form>
+
+        <div className="p-5 border-t border-white/10 bg-slate-800/30 flex gap-3">
+            <button onClick={onClose} className="flex-1 bg-slate-700 text-slate-300 font-bold py-3 rounded-xl hover:bg-slate-600 transition-colors">Cancelar</button>
+            <button 
+                onClick={handleSubmit} 
+                disabled={loading}
+                className="flex-[2] bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg hover:shadow-pink-900/30 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+                {loading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                    <>
+                        <span className="material-symbols-rounded filled text-lg">send</span>
+                        Enviar Sugestão
+                    </>
+                )}
+            </button>
+        </div>
+      </div>
+    </div>
+  );
+};

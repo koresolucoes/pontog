@@ -194,4 +194,7 @@ export interface Venue {
     opening_hours?: string;
     is_partner: boolean; // Se é parceiro pagante (destaque)
     tags: string[];
+    osm_id?: string; // ID do OpenStreetMap
+    source_type?: 'user' | 'osm'; // Origem do dado
+    website?: string;
 }

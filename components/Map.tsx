@@ -7,6 +7,7 @@ import { useUiStore } from '../stores/uiStore';
 import * as L from 'leaflet';
 import { User, Venue } from '../types';
 import { TravelModeModal } from './TravelModeModal';
+import { SuggestVenueModal } from './SuggestVenueModal';
 
 // Helper para ícone do Venue
 const createVenueIcon = (type: string, isPartner: boolean) => {
@@ -167,6 +168,7 @@ export const Map: React.FC = () => {
   const [isMapCreated, setIsMapCreated] = useState(false); 
   const [areTilesLoaded, setAreTilesLoaded] = useState(false);
   const [showTravelModal, setShowTravelModal] = useState(false);
+  const [showSuggestVenueModal, setShowSuggestVenueModal] = useState(false);
   const isInitializingRef = useRef(false);
 
   useEffect(() => {
@@ -393,7 +395,7 @@ export const Map: React.FC = () => {
               popupContent.innerHTML = `
                 <div class="w-64 overflow-hidden rounded-2xl bg-slate-900 shadow-2xl border border-white/10 font-outfit">
                     <div class="h-32 w-full relative">
-                        <img src="${venue.image_url}" class="w-full h-full object-cover" />
+                        <img src="${venue.image_url || 'https://placehold.co/600x400/1f2937/ffffff?text=Local'}" class="w-full h-full object-cover" />
                         <div class="absolute top-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase">${venue.type}</div>
                         ${venue.is_partner ? '<div class="absolute top-2 right-2 bg-yellow-400 text-black text-[10px] font-bold px-2 py-0.5 rounded shadow-md">★ Parceiro</div>' : ''}
                     </div>
@@ -451,21 +453,34 @@ export const Map: React.FC = () => {
 
           {/* Floating Action Button: Travel Mode */}
           {isMapCreated && !isScanning && (
-              <button
-                onClick={handleTravelClick}
-                className={`absolute top-24 right-4 z-[40] w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 ${
-                    profile?.is_traveling 
-                    ? 'bg-blue-600 text-white border-2 border-white animate-pulse' 
-                    : 'bg-slate-800/90 text-slate-400 backdrop-blur-md border border-white/10 hover:text-white'
-                }`}
-              >
-                  <span className="material-symbols-rounded filled">{profile?.is_traveling ? 'flight_land' : 'flight_takeoff'}</span>
-                  {!profile?.is_traveling && profile?.subscription_tier !== 'plus' && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center border border-slate-900">
-                          <span className="material-symbols-rounded text-[10px] text-black font-bold">lock</span>
-                      </span>
-                  )}
-              </button>
+              <div className="absolute top-24 right-4 z-[40] flex flex-col gap-3">
+                  {/* Botão Adicionar Local */}
+                  <button
+                    onClick={() => setShowSuggestVenueModal(true)}
+                    className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 bg-slate-800/90 text-pink-500 backdrop-blur-md border border-white/10 hover:text-pink-400"
+                    title="Adicionar Local"
+                  >
+                      <span className="material-symbols-rounded filled">add_location_alt</span>
+                  </button>
+
+                  {/* Botão Viajar */}
+                  <button
+                    onClick={handleTravelClick}
+                    className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 ${
+                        profile?.is_traveling 
+                        ? 'bg-blue-600 text-white border-2 border-white animate-pulse' 
+                        : 'bg-slate-800/90 text-slate-400 backdrop-blur-md border border-white/10 hover:text-white'
+                    }`}
+                    title="Modo Viajante"
+                  >
+                      <span className="material-symbols-rounded filled">{profile?.is_traveling ? 'flight_land' : 'flight_takeoff'}</span>
+                      {!profile?.is_traveling && profile?.subscription_tier !== 'plus' && (
+                          <span className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center border border-slate-900">
+                              <span className="material-symbols-rounded text-[10px] text-black font-bold">lock</span>
+                          </span>
+                      )}
+                  </button>
+              </div>
           )}
           
           {/* Banner Modo Viajante */}
@@ -536,6 +551,7 @@ export const Map: React.FC = () => {
           </div>
           
           {showTravelModal && <TravelModeModal onClose={() => setShowTravelModal(false)} />}
+          {showSuggestVenueModal && <SuggestVenueModal onClose={() => setShowSuggestVenueModal(false)} />}
       </div>
   );
 };

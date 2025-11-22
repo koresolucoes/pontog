@@ -36,6 +36,8 @@ interface MapState {
   updateMyLocationInDb: (coords: Coordinates) => Promise<void>;
   fetchNearbyUsers: (coords: Coordinates) => Promise<void>;
   fetchVenues: (coords?: Coordinates) => Promise<void>; // Updated to accept optional coords
+  syncVenuesWithOSM: (coords: Coordinates) => Promise<void>; // Nova ação interna
+  suggestVenue: (venueData: Partial<Venue>, photoFile: File | null) => Promise<boolean>; 
   setupRealtime: () => void;
   cleanupRealtime: () => void;
   enableTravelMode: (coords: Coordinates) => Promise<void>;
@@ -173,10 +175,11 @@ export const useMapStore = create<MapState>((set, get) => ({
     }
   },
 
+  // Lógica principal de busca e sincronização de locais
   fetchVenues: async (coords?: Coordinates) => {
       let data, error;
 
-      // Se temos coordenadas, tentamos buscar por proximidade usando a RPC
+      // 1. Tenta buscar do DB local primeiro (Rápido)
       if (coords) {
           const result = await supabase.rpc('get_nearby_venues', {
               p_lat: coords.lat,
@@ -184,14 +187,18 @@ export const useMapStore = create<MapState>((set, get) => ({
           });
           data = result.data;
           error = result.error;
+          
+          // Dispara a sincronização em background (sem await para não travar a UI)
+          get().syncVenuesWithOSM(coords);
       } 
       
-      // Fallback: se não tem coordenadas ou se a RPC falhar/não retornar nada, busca os gerais
+      // 2. Fallback: se não tem coordenadas ou falhou
       if (!coords || error || !data || data.length === 0) {
           const result = await supabase
             .from('venues')
             .select('*')
-            .limit(20); // Limite para não carregar demais
+            .eq('is_verified', true) 
+            .limit(20); 
           data = result.data;
           error = result.error;
       }
@@ -202,8 +209,104 @@ export const useMapStore = create<MapState>((set, get) => ({
       }
 
       if (data) {
-          set({ venues: data as Venue[] });
+          // Remove duplicatas baseadas no ID antes de setar
+          const uniqueVenues = Array.from(new Map(data.map((v: Venue) => [v.id, v])).values());
+          set({ venues: uniqueVenues as Venue[] });
       }
+  },
+
+  syncVenuesWithOSM: async (coords: Coordinates) => {
+      try {
+          const session = useAuthStore.getState().session;
+          // Só sincroniza se tiver sessão (por segurança/rate limit)
+          // Ou se quiser permitir na landing page, remova a checagem de session
+          
+          const response = await fetch('/api/sync-venues', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}) 
+              },
+              body: JSON.stringify({ lat: coords.lat, lng: coords.lng })
+          });
+
+          if (!response.ok) return;
+
+          const result = await response.json();
+          
+          // Se encontrou novos locais, atualiza o estado local mesclando
+          if (result.success && result.venues && result.venues.length > 0) {
+              set(state => {
+                  const existingIds = new Set(state.venues.map(v => v.id));
+                  // Filtrar o que já temos (embora o ID do Supabase seja diferente do OSM, 
+                  // aqui estamos confiando que a API de sync já fez o upsert e retornou os dados corretos)
+                  // Para simplificar no front, vamos apenas adicionar os novos que a API retornou
+                  // que não estejam na lista atual (pelo ID se a API retornar o ID do Supabase, 
+                  // mas como é insert/upsert, talvez precisemos refetchar ou confiar no retorno).
+                  
+                  // A estratégia mais segura após um sync positivo é chamar o RPC de novo silenciosamente
+                  // ou adicionar a lista retornada se ela contiver os IDs do Supabase.
+                  
+                  // Vamos fazer um refetch silencioso da RPC para garantir consistência
+                  supabase.rpc('get_nearby_venues', {
+                      p_lat: coords.lat,
+                      p_lng: coords.lng
+                  }).then(({ data }) => {
+                      if (data) set({ venues: data as Venue[] });
+                  });
+
+                  return {}; // Retorna nada aqui pois o then acima fará o update
+              });
+              
+              if (result.count > 0) {
+                  toast(`Encontramos ${result.count} novos locais na região!`, { icon: '🗺️', position: 'bottom-center', duration: 3000 });
+              }
+          }
+      } catch (e) {
+          console.error("Background sync failed:", e);
+      }
+  },
+
+  suggestVenue: async (venueData: Partial<Venue>, photoFile: File | null) => {
+      const user = useAuthStore.getState().user;
+      if (!user) return false;
+
+      let imageUrl = null;
+
+      // Upload da foto se houver
+      if (photoFile) {
+          const fileExt = photoFile.name.split('.').pop();
+          const fileName = `venue_${Date.now()}.${fileExt}`;
+          const filePath = `venues/${fileName}`; 
+
+          const { error: uploadError } = await supabase.storage
+              .from('user_uploads')
+              .upload(filePath, photoFile);
+          
+          if (uploadError) {
+              console.error("Upload error:", uploadError);
+              toast.error("Erro ao enviar a foto.");
+              return false;
+          }
+          imageUrl = filePath;
+      }
+
+      const { error } = await supabase.from('venues').insert({
+          ...venueData,
+          image_url: imageUrl,
+          submitted_by: user.id,
+          is_verified: false, // Precisa de aprovação
+          is_partner: false,
+          source_type: 'user'
+      });
+
+      if (error) {
+          console.error("Error submitting venue:", error);
+          toast.error("Erro ao enviar sugestão.");
+          return false;
+      }
+
+      return true;
   },
 
   setupRealtime: () => {

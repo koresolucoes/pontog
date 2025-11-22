@@ -201,6 +201,26 @@ const App: React.FC = () => {
             ) : (
                 <div className="h-screen w-screen bg-dark-900 text-slate-50 flex flex-col antialiased overflow-hidden relative">
                     
+                    {/* 
+                       ANIMATED BACKGROUND LAYER
+                       Visible only on non-map views.
+                       Creates a deep pink/purple atmosphere.
+                    */}
+                    {activeView !== 'map' && (
+                        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+                            {/* Deep Dark Base */}
+                            <div className="absolute inset-0 bg-dark-900"></div>
+                            
+                            {/* Animated Blobs - Dark Pink & Purple Palette */}
+                            <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-900/30 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob"></div>
+                            <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-pink-900/30 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob" style={{ animationDelay: '2s' }}></div>
+                            <div className="absolute -bottom-32 left-20 w-96 h-96 bg-fuchsia-900/30 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob" style={{ animationDelay: '4s' }}></div>
+                            
+                            {/* Subtle Mesh Gradient Overlay for texture */}
+                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03]"></div>
+                        </div>
+                    )}
+
                     {/* Animated Particle Background (Visível apenas quando não estamos no mapa) */}
                     {activeView !== 'map' && <BackgroundParticles />}
 
@@ -232,9 +252,10 @@ const App: React.FC = () => {
                             As outras views são uma "Cortina" sobre o mapa.
                             Mudança: Usamos 'fixed inset-0' para garantir que cubra 100% da tela, 
                             cobrindo o mapa totalmente sem vazamentos.
+                            Note: No background is applied here so it uses the global animated one.
                         */}
                         {activeView !== 'map' && (
-                            <div key={activeView} className="fixed inset-0 z-10 w-full h-full bg-dark-900 animate-fade-in overflow-hidden">
+                            <div key={activeView} className="fixed inset-0 z-10 w-full h-full animate-fade-in overflow-hidden">
                                 {renderOtherViews()}
                             </div>
                         )}

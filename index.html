@@ -53,6 +53,7 @@
             'spin-reverse-slow': 'spinReverse 8s linear infinite',
             'ping-slow': 'pingSlow 3s cubic-bezier(0, 0, 0.2, 1) infinite',
             'ripple': 'ripple 3s cubic-bezier(0, 0.2, 0.8, 1) infinite',
+            'blob': 'blob 10s infinite',
           },
           keyframes: {
             float: {
@@ -90,6 +91,12 @@
             ripple: {
                 '0%': { top: '50%', left: '50%', width: '0', height: '0', opacity: '1' },
                 '100%': { top: '0', left: '0', width: '100%', height: '100%', opacity: '0' }
+            },
+            blob: {
+              '0%': { transform: 'translate(0px, 0px) scale(1)' },
+              '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+              '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+              '100%': { transform: 'translate(0px, 0px) scale(1)' },
             }
           }
         }

@@ -156,7 +156,7 @@ export const Map: React.FC = () => {
   } = useMapStore();
   const { profile } = useAuthStore();
   const { agoraUserIds } = useAgoraStore();
-  const { activeView, setSubscriptionModalOpen } = useUiStore();
+  const { activeView, setSubscriptionModalOpen, isSuggestVenueModalOpen, setSuggestVenueModalOpen } = useUiStore();
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -168,7 +168,6 @@ export const Map: React.FC = () => {
   const [isMapCreated, setIsMapCreated] = useState(false); 
   const [areTilesLoaded, setAreTilesLoaded] = useState(false);
   const [showTravelModal, setShowTravelModal] = useState(false);
-  const [showSuggestVenueModal, setShowSuggestVenueModal] = useState(false);
   const isInitializingRef = useRef(false);
 
   useEffect(() => {
@@ -459,7 +458,7 @@ export const Map: React.FC = () => {
               <div className="absolute top-24 right-4 z-[40] flex flex-col gap-3">
                   {/* Botão Adicionar Local */}
                   <button
-                    onClick={() => setShowSuggestVenueModal(true)}
+                    onClick={() => setSuggestVenueModalOpen(true)}
                     className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 backdrop-blur-md border border-white/10 ${
                         hasNoVenues 
                         ? 'bg-pink-600 text-white animate-pulse-fire shadow-pink-900/50' 
@@ -503,7 +502,7 @@ export const Map: React.FC = () => {
               <div className="absolute top-24 left-4 right-16 z-[40] animate-fade-in">
                   <div 
                     className="bg-slate-900/90 backdrop-blur-md border border-pink-500/30 rounded-2xl p-4 shadow-2xl relative overflow-hidden cursor-pointer"
-                    onClick={() => setShowSuggestVenueModal(true)}
+                    onClick={() => setSuggestVenueModalOpen(true)}
                   >
                       <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-pink-500 to-purple-600"></div>
                       <div className="flex items-start gap-3">
@@ -581,7 +580,7 @@ export const Map: React.FC = () => {
           </div>
           
           {showTravelModal && <TravelModeModal onClose={() => setShowTravelModal(false)} />}
-          {showSuggestVenueModal && <SuggestVenueModal onClose={() => setShowSuggestVenueModal(false)} />}
+          {isSuggestVenueModalOpen && <SuggestVenueModal onClose={() => setSuggestVenueModalOpen(false)} />}
       </div>
   );
 };

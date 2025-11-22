@@ -32,7 +32,7 @@ const App: React.FC = () => {
     }
 
     const { session, user, loading, fetchProfile, showOnboarding } = useAuthStore();
-    const { activeView, setActiveView, chatUser, setChatUser, isSubscriptionModalOpen, isDonationModalOpen, setSidebarOpen } = useUiStore();
+    const { activeView, setActiveView, chatUser, setChatUser, isSubscriptionModalOpen, isDonationModalOpen, setSidebarOpen, isSuggestVenueModalOpen } = useUiStore();
     const { totalUnreadCount, fetchConversations, fetchWinks, fetchAccessRequests } = useInboxStore();
     const { setInstallPromptEvent, subscribeToPushNotifications } = usePwaStore();
     const { 
@@ -267,19 +267,21 @@ const App: React.FC = () => {
 
                     <PwaInstallButton />
 
-                    {/* Modern Floating Navigation Bar */}
-                    <div className="fixed bottom-4 left-4 right-4 z-20 flex justify-center pointer-events-none">
-                        <nav className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 pointer-events-auto max-w-md w-full">
-                            <div className="grid grid-cols-6 p-1.5">
-                                <NavButton icon="home" label="Início" isActive={activeView === 'home'} onClick={() => setActiveView('home')} />
-                                <NavButton icon="grid_view" label="Grade" isActive={activeView === 'grid'} onClick={() => setActiveView('grid')} />
-                                <NavButton icon="map" label="Mapa" isActive={activeView === 'map'} onClick={() => setActiveView('map')} />
-                                <NavButton icon="local_fire_department" label="Agora" isActive={activeView === 'agora'} onClick={() => setActiveView('agora')} isFire />
-                                <NavButton icon="chat_bubble" label="Chat" isActive={activeView === 'inbox'} onClick={() => setActiveView('inbox')} notificationCount={totalUnreadCount} />
-                                <NavButton icon="person" label="Perfil" isActive={activeView === 'profile'} onClick={() => setActiveView('profile')} isPlus={user.subscription_tier === 'plus'} />
-                            </div>
-                        </nav>
-                    </div>
+                    {/* Modern Floating Navigation Bar - Hidden when Suggest Venue Modal is Open */}
+                    {!isSuggestVenueModalOpen && (
+                        <div className="fixed bottom-4 left-4 right-4 z-20 flex justify-center pointer-events-none">
+                            <nav className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 pointer-events-auto max-w-md w-full">
+                                <div className="grid grid-cols-6 p-1.5">
+                                    <NavButton icon="home" label="Início" isActive={activeView === 'home'} onClick={() => setActiveView('home')} />
+                                    <NavButton icon="grid_view" label="Grade" isActive={activeView === 'grid'} onClick={() => setActiveView('grid')} />
+                                    <NavButton icon="map" label="Mapa" isActive={activeView === 'map'} onClick={() => setActiveView('map')} />
+                                    <NavButton icon="local_fire_department" label="Agora" isActive={activeView === 'agora'} onClick={() => setActiveView('agora')} isFire />
+                                    <NavButton icon="chat_bubble" label="Chat" isActive={activeView === 'inbox'} onClick={() => setActiveView('inbox')} notificationCount={totalUnreadCount} />
+                                    <NavButton icon="person" label="Perfil" isActive={activeView === 'profile'} onClick={() => setActiveView('profile')} isPlus={user.subscription_tier === 'plus'} />
+                                </div>
+                            </nav>
+                        </div>
+                    )}
                 </div>
             )}
         </>

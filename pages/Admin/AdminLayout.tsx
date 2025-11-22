@@ -49,14 +49,14 @@ export const AdminLayout: React.FC = () => {
         }
     };
 
-    // Função centralizada para navegar e fechar o menu (útil no mobile)
+    // Função centralizada para navegar e fechar o menu (útil no mobile e desktop agora)
     const handleNavigation = (view: AdminView) => {
         setActiveView(view);
         setSidebarOpen(false);
     };
     
     const SidebarContent = () => (
-         <div className="flex flex-col h-full bg-dark-950/95 backdrop-blur-xl border-r border-white/10">
+         <div className="flex flex-col h-full bg-dark-950/95 backdrop-blur-xl border-r border-white/10 shadow-2xl">
             <div className="p-6 border-b border-white/5 flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                     <span className="text-white font-black text-xl">G</span>
@@ -89,16 +89,12 @@ export const AdminLayout: React.FC = () => {
 
     return (
         <div className="flex h-screen bg-dark-900 text-slate-50 font-inter overflow-hidden">
-            {/* Sidebar para desktop */}
-            <aside className="hidden md:block w-72 flex-shrink-0 z-20 shadow-2xl">
-               <SidebarContent />
-            </aside>
             
-            {/* Sidebar para mobile (overlay) */}
+            {/* Sidebar Drawer (Overlay para Mobile e Desktop) */}
             {isSidebarOpen && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden animate-fade-in" onClick={() => setSidebarOpen(false)}>
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 animate-fade-in" onClick={() => setSidebarOpen(false)}>
                     <aside 
-                        className="fixed top-0 left-0 bottom-0 w-72 z-50 animate-slide-in-up shadow-2xl"
+                        className="fixed top-0 left-0 bottom-0 w-72 z-50 animate-slide-in-up h-full"
                         onClick={(e) => e.stopPropagation()} // Impede fechar ao clicar dentro da sidebar
                     >
                         <SidebarContent />
@@ -107,12 +103,12 @@ export const AdminLayout: React.FC = () => {
             )}
 
             <main className="flex-1 flex flex-col overflow-hidden relative z-10">
-                {/* Mobile Header */}
-                <header className="md:hidden p-4 bg-dark-900/90 backdrop-blur-md border-b border-white/5 flex items-center justify-between z-20">
-                    <h2 className="font-bold text-white font-outfit text-lg">{activeView.charAt(0).toUpperCase() + activeView.slice(1)}</h2>
-                    <button onClick={() => setSidebarOpen(true)} className="p-2 bg-slate-800 rounded-full border border-white/10 text-white">
+                {/* Header Global (Visível em Mobile e Desktop) */}
+                <header className="p-4 bg-dark-900/90 backdrop-blur-md border-b border-white/5 flex items-center gap-4 z-20">
+                    <button onClick={() => setSidebarOpen(true)} className="p-2 bg-slate-800 rounded-full border border-white/10 text-white hover:bg-slate-700 transition-colors shadow-lg">
                         <span className="material-symbols-rounded">menu</span>
                     </button>
+                    <h2 className="font-bold text-white font-outfit text-lg">{activeView.charAt(0).toUpperCase() + activeView.slice(1)}</h2>
                 </header>
                 
                 {/* Main View Content */}

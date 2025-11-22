@@ -33,22 +33,30 @@ export default async function handler(
 
         case 'POST':
             // Criação manual pelo admin
-            // Exclude system fields ID/created_at/submitted_by to prevent DB errors on insert
             const { id: _id, created_at: _cat, submitted_by: _sub, ...newVenueData } = req.body;
             
+            // Ensure types are correct to prevent 500 DB errors
+            const postPayload = {
+                ...newVenueData,
+                lat: parseFloat(newVenueData.lat),
+                lng: parseFloat(newVenueData.lng),
+                tags: Array.isArray(newVenueData.tags) ? newVenueData.tags : [],
+                is_verified: true,
+                source_type: 'admin'
+            };
+
             const { data: post_data, error: post_error } = await supabaseAdmin
                 .from('venues')
-                .insert([{ ...newVenueData, is_verified: true, source_type: 'admin' }])
+                .insert([postPayload])
                 .select();
             if (post_error) throw post_error;
             return res.status(201).json(post_data[0]);
 
         case 'PUT':
             const { id: put_id } = req.query;
-            // Sanitize body for updates too
             const { id: _pid, created_at: _pcat, submitted_by: _psub, ...updates } = req.body;
 
-            // Check if we are approving a venue (verified changing to true)
+            // Check if we are approving a venue
             if (updates.is_verified === true) {
                 const { data: currentVenue } = await supabaseAdmin
                     .from('venues')
@@ -61,9 +69,17 @@ export default async function handler(
                 }
             }
 
+            // Ensure types are correct
+            const putPayload = {
+                ...updates,
+                lat: updates.lat ? parseFloat(updates.lat) : undefined,
+                lng: updates.lng ? parseFloat(updates.lng) : undefined,
+                tags: updates.tags ? (Array.isArray(updates.tags) ? updates.tags : []) : undefined
+            };
+
             const { data: put_data, error: put_error } = await supabaseAdmin
                 .from('venues')
-                .update(updates)
+                .update(putPayload)
                 .eq('id', put_id as string)
                 .select();
             if (put_error) throw put_error;

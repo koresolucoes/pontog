@@ -80,6 +80,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
 
             <div className="flex items-center gap-4">
                 <a href="#guide" className="text-sm font-medium text-slate-400 hover:text-white transition-colors hidden md:block">Guia Local</a>
+                <a href="#faq" className="text-sm font-medium text-slate-400 hover:text-white transition-colors hidden md:block">Dúvidas</a>
                 <button 
                     onClick={onEnter}
                     className="px-5 py-2 rounded-full bg-white text-dark-950 hover:bg-slate-200 transition-all font-bold text-sm shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center gap-2"
@@ -248,95 +249,139 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section id="features" className="py-24 px-6 bg-dark-950 relative border-t border-white/5">
-        <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-                <div className="order-2 md:order-1">
-                    <div className="relative group">
-                        <div className="absolute -inset-4 bg-gradient-to-r from-pink-600 to-purple-600 rounded-[2.5rem] opacity-20 blur-xl group-hover:opacity-40 transition-opacity duration-500"></div>
-                        <img 
-                            src="https://images.pexels.com/photos/6598517/pexels-photo-6598517.jpeg?auto=compress&cs=tinysrgb&w=1600" 
-                            alt="App Interface Mockup" 
-                            className="relative rounded-[2rem] shadow-2xl border border-white/10 w-full transform group-hover:scale-[1.02] transition-transform duration-500"
-                        />
-                        
-                        {/* UI Elements Mockup */}
-                        <div className="absolute -right-6 top-12 bg-slate-900/90 backdrop-blur-xl p-4 rounded-2xl shadow-2xl border border-white/10 animate-float hidden sm:flex items-center gap-3 max-w-[200px]">
-                            <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-500">
-                                <span className="material-symbols-rounded filled">radar</span>
-                            </div>
-                            <div>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Radar</p>
-                                <p className="text-sm font-bold text-white">12 pessoas perto</p>
-                            </div>
-                        </div>
+      {/* NEW SECTION: Features & Safety (Content Rich for SEO/AdSense) */}
+      <section className="py-20 px-6 bg-dark-950 relative">
+          <div className="max-w-7xl mx-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                  {/* Column 1: Features Text */}
+                  <div>
+                      <span className="text-pink-500 font-bold tracking-widest uppercase text-xs mb-2 block">Segurança & Comunidade</span>
+                      <h2 className="text-3xl md:text-4xl font-black font-outfit text-white mb-6 leading-tight">
+                          Encontros reais com <br/>
+                          <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">total discrição.</span>
+                      </h2>
+                      <p className="text-slate-400 text-lg leading-relaxed mb-8">
+                          O Ponto G foi desenhado para a comunidade gay moderna. Priorizamos sua privacidade e segurança enquanto facilitamos conexões autênticas. Sem algoritmos complicados, apenas pessoas e lugares perto de você.
+                      </p>
+                      
+                      <div className="space-y-6">
+                          <div className="flex gap-4">
+                              <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center flex-shrink-0 text-green-400">
+                                  <span className="material-symbols-rounded filled text-2xl">verified_user</span>
+                              </div>
+                              <div>
+                                  <h4 className="text-white font-bold text-lg">Segurança em Primeiro Lugar</h4>
+                                  <p className="text-slate-400 text-sm leading-relaxed">
+                                      Ferramentas de denúncia, bloqueio e verificação de perfil para garantir que sua experiência seja segura e livre de assédio.
+                                  </p>
+                              </div>
+                          </div>
+                          <div className="flex gap-4">
+                              <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center flex-shrink-0 text-blue-400">
+                                  <span className="material-symbols-rounded filled text-2xl">visibility_off</span>
+                              </div>
+                              <div>
+                                  <h4 className="text-white font-bold text-lg">Modo Fantasma e Álbuns Privados</h4>
+                                  <p className="text-slate-400 text-sm leading-relaxed">
+                                      Controle total sobre quem vê suas fotos e sua localização. Compartilhe acesso apenas com quem você confiar.
+                                  </p>
+                              </div>
+                          </div>
+                          <div className="flex gap-4">
+                              <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center flex-shrink-0 text-yellow-400">
+                                  <span className="material-symbols-rounded filled text-2xl">health_and_safety</span>
+                              </div>
+                              <div>
+                                  <h4 className="text-white font-bold text-lg">Saúde e Bem-Estar</h4>
+                                  <p className="text-slate-400 text-sm leading-relaxed">
+                                      Incentivamos práticas de sexo seguro e oferecemos campos no perfil para compartilhar seu status de saúde de forma transparente.
+                                  </p>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
 
-                        <div className="absolute -left-6 bottom-24 bg-slate-900/90 backdrop-blur-xl p-4 rounded-2xl shadow-2xl border border-white/10 animate-float hidden sm:flex items-center gap-3" style={{ animationDelay: '2s' }}>
-                            <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-500">
-                                <span className="material-symbols-rounded filled">favorite</span>
-                            </div>
-                            <div>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Novo Wink</p>
-                                <p className="text-sm font-bold text-white">Alguém te curtiu</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div className="order-1 md:order-2">
-                    <h2 className="text-4xl md:text-5xl font-black font-outfit text-white mb-8 leading-tight">
-                        Conexão real.<br/>
-                        <span className="text-slate-500">Sem enrolação.</span>
-                    </h2>
-                    <div className="space-y-8">
-                        <div className="flex gap-5">
-                            <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-white/5 flex items-center justify-center flex-shrink-0 shadow-lg">
-                                <span className="material-symbols-rounded text-3xl text-red-500 filled">local_fire_department</span>
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-white mb-2">Modo Agora</h3>
-                                <p className="text-slate-400 leading-relaxed">
-                                    Ative a chama para mostrar que você está buscando encontros imediatos. Sua foto ganha destaque no topo para quem está perto.
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div className="flex gap-5">
-                            <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-white/5 flex items-center justify-center flex-shrink-0 shadow-lg">
-                                <span className="material-symbols-rounded text-3xl text-purple-500 filled">lock</span>
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-white mb-2">Álbuns Privados</h3>
-                                <p className="text-slate-400 leading-relaxed">
-                                    Controle total. Crie galerias secretas e conceda acesso temporário apenas para quem você confia durante o chat.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-5">
-                            <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-white/5 flex items-center justify-center flex-shrink-0 shadow-lg">
-                                <span className="material-symbols-rounded text-3xl text-blue-500 filled">flight</span>
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-white mb-2">Modo Viajante</h3>
-                                <p className="text-slate-400 leading-relaxed">
-                                    Vai viajar? Mude sua localização para qualquer cidade do mundo e comece a fazer conexões antes mesmo de embarcar.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                  {/* Column 2: Visual/Ad Placeholder */}
+                  <div className="bg-slate-900/50 p-8 rounded-3xl border border-white/5 h-full flex flex-col items-center justify-center text-center relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl pointer-events-none"></div>
+                      <span className="material-symbols-rounded text-6xl text-slate-700 mb-6">mobile_friendly</span>
+                      <h3 className="text-2xl font-bold text-white mb-4">Baixe o App (PWA)</h3>
+                      <p className="text-slate-400 mb-8 max-w-md">
+                          Para a melhor experiência, instale o Ponto G na tela inicial do seu celular. Sem downloads pesados, rápido e seguro.
+                      </p>
+                      <div className="w-full max-w-sm">
+                           {/* AdSense Placeholder for High Value Content Area */}
+                           <AdSenseUnit
+                                client="ca-pub-9015745232467355"
+                                slot="3561488011" // Slot quadrado
+                                format="rectangle"
+                                responsive={true}
+                                className="bg-slate-800/50 min-h-[250px] rounded-xl flex items-center justify-center"
+                            />
+                      </div>
+                  </div>
+              </div>
+          </div>
       </section>
 
-      {/* AdSense Placeholder Area */}
+      {/* NEW SECTION: FAQ (Great for SEO and AdSense Approval) */}
+      <section id="faq" className="py-20 px-6 bg-gradient-to-b from-dark-950 to-slate-900 border-t border-white/5">
+          <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-12">
+                  <h2 className="text-3xl font-black font-outfit text-white mb-4">Perguntas Frequentes</h2>
+                  <p className="text-slate-400">Tudo o que você precisa saber para começar.</p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                  <div className="bg-slate-800/40 p-6 rounded-2xl border border-white/5 hover:bg-slate-800/60 transition-colors">
+                      <h3 className="text-white font-bold mb-2 flex items-center gap-2">
+                          <span className="text-pink-500 material-symbols-rounded text-sm">help</span>
+                          O Ponto G é gratuito?
+                      </h3>
+                      <p className="text-slate-400 text-sm leading-relaxed">
+                          Sim! O cadastro, visualização do mapa e chat básico são totalmente gratuitos. Oferecemos um plano "Plus" para funcionalidades extras como ver quem te visitou e modo invisível.
+                      </p>
+                  </div>
+                  
+                  <div className="bg-slate-800/40 p-6 rounded-2xl border border-white/5 hover:bg-slate-800/60 transition-colors">
+                      <h3 className="text-white font-bold mb-2 flex items-center gap-2">
+                          <span className="text-pink-500 material-symbols-rounded text-sm">help</span>
+                          Minha localização é exata?
+                      </h3>
+                      <p className="text-slate-400 text-sm leading-relaxed">
+                          Para sua segurança, nunca mostramos sua localização exata. Exibimos apenas a distância aproximada em relação a outros usuários.
+                      </p>
+                  </div>
+
+                  <div className="bg-slate-800/40 p-6 rounded-2xl border border-white/5 hover:bg-slate-800/60 transition-colors">
+                      <h3 className="text-white font-bold mb-2 flex items-center gap-2">
+                          <span className="text-pink-500 material-symbols-rounded text-sm">help</span>
+                          Como funcionam os Álbuns Privados?
+                      </h3>
+                      <p className="text-slate-400 text-sm leading-relaxed">
+                          Você pode carregar fotos sensíveis em álbuns bloqueados. Eles só ficam visíveis para usuários específicos aos quais você conceder acesso durante uma conversa.
+                      </p>
+                  </div>
+
+                  <div className="bg-slate-800/40 p-6 rounded-2xl border border-white/5 hover:bg-slate-800/60 transition-colors">
+                      <h3 className="text-white font-bold mb-2 flex items-center gap-2">
+                          <span className="text-pink-500 material-symbols-rounded text-sm">help</span>
+                          Posso usar em qualquer cidade?
+                      </h3>
+                      <p className="text-slate-400 text-sm leading-relaxed">
+                          O Ponto G funciona globalmente via GPS. Além disso, com o modo Viajante (Plus), você pode explorar outras cidades antes mesmo de chegar lá.
+                      </p>
+                  </div>
+              </div>
+          </div>
+      </section>
+
+      {/* AdSense Placeholder Area Final */}
       <div className="max-w-5xl mx-auto w-full py-12 px-6">
          <div className="bg-slate-900/50 p-1 rounded-2xl border border-white/5 text-center relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 opacity-30"></div>
             <div className="relative z-10 p-8">
-                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-4">Parceiros</p>
+                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-4">Publicidade</p>
                 <AdSenseUnit
                     client="ca-pub-9015745232467355"
                     slot="4962199596"
@@ -365,7 +410,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                     <h4 className="font-bold text-white mb-4 uppercase text-xs tracking-widest">Mapa do Site</h4>
                     <ul className="space-y-2">
                         <li><a href="#guide" className="hover:text-pink-500 transition-colors">Guia da Cidade</a></li>
-                        <li><a href="#features" className="hover:text-pink-500 transition-colors">Funcionalidades</a></li>
+                        <li><a href="#faq" className="hover:text-pink-500 transition-colors">Perguntas Frequentes</a></li>
                         <li><button onClick={onEnter} className="hover:text-pink-500 transition-colors">Entrar / Cadastro</button></li>
                     </ul>
                 </div>
@@ -374,7 +419,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                     <ul className="space-y-2">
                         <li><a href="#" className="hover:text-pink-500 transition-colors">Termos de Uso</a></li>
                         <li><a href="#" className="hover:text-pink-500 transition-colors">Política de Privacidade</a></li>
-                        <li><a href="#" className="hover:text-pink-500 transition-colors">Contato</a></li>
+                        <li><a href="#" className="hover:text-pink-500 transition-colors">Diretrizes de Comunidade</a></li>
                     </ul>
                 </div>
             </div>

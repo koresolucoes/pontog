@@ -53,7 +53,7 @@ const VenueModal: React.FC<{
                 type: venue.type || DEFAULT_VENUE_STATE.type,
                 lat: venue.lat ?? DEFAULT_VENUE_STATE.lat, 
                 lng: venue.lng ?? DEFAULT_VENUE_STATE.lng,
-                tags: venue.tags ?? DEFAULT_VENUE_STATE.tags
+                tags: venue.tags || []
             });
         }
     }, [venue]);
@@ -144,7 +144,7 @@ const VenueModal: React.FC<{
                 image_url: formData.image_url,
                 is_partner: formData.is_partner,
                 is_verified: formData.is_verified,
-                tags: formData.tags || [],
+                tags: Array.isArray(formData.tags) ? formData.tags : [], // Ensure array
                 osm_id: formData.osm_id
             };
 

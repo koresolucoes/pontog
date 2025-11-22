@@ -96,7 +96,7 @@ const ArticleModal: React.FC<{
                 
                 <div className="p-6 overflow-y-auto">
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-slate-400 uppercase ml-1">Título</label>
                                 <input name="title" value={formData.title || ''} onChange={handleChange} className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50" required />
@@ -125,7 +125,7 @@ const ArticleModal: React.FC<{
                             )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-slate-400 uppercase ml-1">URL Imagem</label>
                                 <input name="image_url" value={formData.image_url || ''} onChange={handleChange} className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50" required />
@@ -142,8 +142,8 @@ const ArticleModal: React.FC<{
                         </div>
 
                         <div className="flex justify-end gap-3 pt-4">
-                            <button type="button" onClick={onClose} className="px-6 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition-colors">Cancelar</button>
-                            <button type="submit" disabled={loading} className="px-6 py-3 rounded-xl bg-pink-600 text-white font-bold hover:bg-pink-700 transition-colors disabled:opacity-50">
+                            <button type="button" onClick={onClose} className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition-colors">Cancelar</button>
+                            <button type="submit" disabled={loading} className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-pink-600 text-white font-bold hover:bg-pink-700 transition-colors disabled:opacity-50">
                                 {loading ? 'Salvando...' : 'Salvar'}
                             </button>
                         </div>
@@ -197,14 +197,14 @@ export const AdminNewsView: React.FC = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                 <div>
                     <h1 className="text-3xl font-black text-white font-outfit">G News & Blog</h1>
                     <p className="text-slate-400">Gerencie o conteúdo editorial do app.</p>
                 </div>
                 <button 
                     onClick={() => setEditingArticle(DEFAULT_ARTICLE_STATE)}
-                    className="bg-pink-600 text-white font-bold py-3 px-6 rounded-xl hover:bg-pink-700 transition-colors shadow-lg flex items-center gap-2"
+                    className="w-full sm:w-auto bg-pink-600 text-white font-bold py-3 px-6 rounded-xl hover:bg-pink-700 transition-colors shadow-lg flex items-center justify-center gap-2"
                 >
                     <span className="material-symbols-rounded">add_circle</span>
                     Novo Artigo
@@ -216,13 +216,13 @@ export const AdminNewsView: React.FC = () => {
             ) : (
                 <div className="grid gap-4">
                     {articles.map(article => (
-                        <div key={article.id} className="bg-slate-800 rounded-2xl p-4 border border-white/5 flex gap-4 items-center">
+                        <div key={article.id} className="bg-slate-800 rounded-2xl p-4 border border-white/5 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                             <img 
                                 src={article.image_url} 
-                                className="w-24 h-24 rounded-xl object-cover bg-slate-900 flex-shrink-0"
+                                className="w-full sm:w-24 h-40 sm:h-24 rounded-xl object-cover bg-slate-900 flex-shrink-0"
                                 alt="thumbnail"
                             />
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 w-full min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${article.type === 'blog' ? 'bg-purple-600 text-white' : 'bg-blue-600 text-white'}`}>
                                         {article.type}
@@ -231,15 +231,15 @@ export const AdminNewsView: React.FC = () => {
                                 </div>
                                 <h3 className="font-bold text-white text-lg truncate mb-1">{article.title}</h3>
                                 <p className="text-sm text-slate-400 truncate mb-2">{article.summary}</p>
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2">
                                     {article.tags.map(t => <span key={t} className="text-[10px] bg-slate-700 px-2 py-0.5 rounded text-slate-300">{t}</span>)}
                                 </div>
                             </div>
-                            <div className="flex flex-col gap-2">
-                                <button onClick={() => setEditingArticle(article)} className="p-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600">
+                            <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                <button onClick={() => setEditingArticle(article)} className="flex-1 sm:flex-none p-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 flex items-center justify-center">
                                     <span className="material-symbols-rounded text-lg">edit</span>
                                 </button>
-                                <button onClick={() => handleDelete(article.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20">
+                                <button onClick={() => handleDelete(article.id)} className="flex-1 sm:flex-none p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 flex items-center justify-center">
                                     <span className="material-symbols-rounded text-lg">delete</span>
                                 </button>
                             </div>

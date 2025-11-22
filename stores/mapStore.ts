@@ -1,8 +1,10 @@
+
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { User, Coordinates } from '../types';
 import { useAuthStore } from './authStore';
 import { transformProfileToUser } from '../lib/utils';
+import toast from 'react-hot-toast';
 
 interface MapState {
   users: User[];
@@ -31,6 +33,8 @@ interface MapState {
   fetchNearbyUsers: (coords: Coordinates) => Promise<void>;
   setupRealtime: () => void;
   cleanupRealtime: () => void;
+  enableTravelMode: (coords: Coordinates) => Promise<void>;
+  disableTravelMode: () => Promise<void>;
 }
 
 export const useMapStore = create<MapState>((set, get) => ({
@@ -56,12 +60,32 @@ export const useMapStore = create<MapState>((set, get) => ({
   setFilters: (newFilters) => set(state => ({ filters: { ...state.filters, ...newFilters } })),
 
   requestLocationPermission: () => {
+    const authUser = useAuthStore.getState().user;
+    
+    // Se o usuário estiver em modo viajante, NÃO iniciamos o GPS.
+    // Usamos a localização salva no banco.
+    if (authUser?.is_traveling && authUser.lat && authUser.lng) {
+        console.log("User is in travel mode. Skipping GPS.");
+        const travelLocation = { lat: authUser.lat, lng: authUser.lng };
+        set({ myLocation: travelLocation, loading: false, error: null });
+        get().fetchNearbyUsers(travelLocation);
+        get().setupRealtime();
+        return;
+    }
+
     if (get().watchId) {
       get().stopLocationWatch();
     }
 
     if (navigator.geolocation) {
       const updateLocation = () => {
+        // Verifica novamente se entrou em modo viagem durante o intervalo
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser?.is_traveling) {
+            get().stopLocationWatch();
+            return;
+        }
+
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
@@ -114,6 +138,9 @@ export const useMapStore = create<MapState>((set, get) => ({
   updateMyLocationInDb: async (coords: Coordinates) => {
     const user = useAuthStore.getState().user;
     if (!user) return;
+    // Se estiver viajando, não atualiza com GPS
+    if (user.is_traveling) return;
+
     const { lat, lng } = coords;
     await supabase.rpc('update_my_location', {
         new_lat: lat,
@@ -186,4 +213,56 @@ export const useMapStore = create<MapState>((set, get) => ({
     }
     set({ realtimeChannel: null, presenceChannel: null });
   },
+
+  enableTravelMode: async (coords: Coordinates) => {
+      const user = useAuthStore.getState().user;
+      if (!user) return;
+
+      get().stopLocationWatch();
+      set({ myLocation: coords, loading: true });
+
+      const { error } = await supabase
+          .from('profiles')
+          .update({ 
+              lat: coords.lat, 
+              lng: coords.lng, 
+              is_traveling: true 
+          })
+          .eq('id', user.id);
+
+      if (error) {
+          console.error("Error enabling travel mode:", error);
+          toast.error("Erro ao ativar Modo Viajante.");
+          get().requestLocationPermission(); // Fallback to GPS
+      } else {
+          // Update local auth store
+          useAuthStore.setState({ 
+              user: { ...user, lat: coords.lat, lng: coords.lng, is_traveling: true } 
+          });
+          get().fetchNearbyUsers(coords);
+          toast.success("Modo Viajante ativado! ✈️");
+      }
+      set({ loading: false });
+  },
+
+  disableTravelMode: async () => {
+      const user = useAuthStore.getState().user;
+      if (!user) return;
+
+      const { error } = await supabase
+          .from('profiles')
+          .update({ is_traveling: false })
+          .eq('id', user.id);
+
+      if (error) {
+          toast.error("Erro ao desativar Modo Viajante.");
+      } else {
+          useAuthStore.setState({ 
+              user: { ...user, is_traveling: false } 
+          });
+          toast.success("Bem-vindo de volta!");
+          // Reinicia GPS
+          get().requestLocationPermission();
+      }
+  }
 }));

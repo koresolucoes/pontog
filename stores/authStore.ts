@@ -61,11 +61,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         profileData = {
             ...data,
             avatar_url: getPublicImageUrl(data.avatar_url),
+            video_url: data.video_url ? getPublicImageUrl(data.video_url) : null,
             public_photos: (data.public_photos || []).map(getPublicImageUrl),
             tribes: data.profile_tribes?.map((pt: any) => pt.tribes.name) || [],
             distance_km: null,
             subscription_tier: data.subscription_tier || 'free',
             is_incognito: data.is_incognito || false,
+            is_traveling: data.is_traveling || false,
             has_completed_onboarding: data.has_completed_onboarding || false,
             kinks: data.kinks || [],
             can_host: data.can_host || false,
@@ -101,11 +103,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           profileData = {
             ...(insertedProfile as unknown as Profile),
             avatar_url: getPublicImageUrl(insertedProfile.avatar_url),
+            video_url: null,
             public_photos: [],
             tribes: [],
             distance_km: null,
             kinks: [],
             can_host: false,
+            is_traveling: false,
           };
         }
       }

@@ -6,6 +6,7 @@ import { useAgoraStore } from '../stores/agoraStore';
 import { useUiStore } from '../stores/uiStore'; // Importar store de UI
 import * as L from 'leaflet';
 import { User } from '../types';
+import { TravelModeModal } from './TravelModeModal';
 
 // Função para gerar o HTML do marcador dinâmico
 const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
@@ -74,12 +75,21 @@ const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
     });
 };
 
-const MyLocationMarkerIcon = (avatarUrl: string, canHost: boolean) => {
+const MyLocationMarkerIcon = (avatarUrl: string, canHost: boolean, isTraveling: boolean) => {
     let hosterBadgeHtml = '';
     if (canHost) {
          hosterBadgeHtml = `
             <div class="absolute -top-2 -left-2 w-7 h-7 bg-green-600 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white z-50" style="z-index: 50;">
                 <span class="material-symbols-rounded filled" style="font-size: 16px;">home</span>
+            </div>
+        `;
+    }
+    
+    let travelingBadgeHtml = '';
+    if (isTraveling) {
+        travelingBadgeHtml = `
+            <div class="absolute -bottom-2 -right-2 w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white z-50 animate-bounce" style="z-index: 50;">
+                <span class="material-symbols-rounded filled" style="font-size: 16px;">flight</span>
             </div>
         `;
     }
@@ -92,6 +102,7 @@ const MyLocationMarkerIcon = (avatarUrl: string, canHost: boolean) => {
                 <img src="${avatarUrl}" class="w-full h-full object-cover" />
             </div>
             ${hosterBadgeHtml}
+            ${travelingBadgeHtml}
             <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full border border-white shadow-md z-20 whitespace-nowrap">
                 VOCÊ
             </div>
@@ -106,10 +117,10 @@ const MyLocationMarkerIcon = (avatarUrl: string, canHost: boolean) => {
 };
 
 export const Map: React.FC = () => {
-  const { users, myLocation, onlineUsers, loading, error, filters, setSelectedUser, requestLocationPermission } = useMapStore();
+  const { users, myLocation, onlineUsers, loading, error, filters, setSelectedUser, requestLocationPermission, disableTravelMode } = useMapStore();
   const { profile } = useAuthStore();
   const { agoraUserIds } = useAgoraStore();
-  const { activeView } = useUiStore(); // Observa a view ativa
+  const { activeView, setSubscriptionModalOpen } = useUiStore(); // Observa a view ativa
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -117,9 +128,10 @@ export const Map: React.FC = () => {
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   
-  // Estados de controle de carga
-  const [isMapCreated, setIsMapCreated] = useState(false); // O objeto Leaflet foi instanciado
-  const [areTilesLoaded, setAreTilesLoaded] = useState(false); // As imagens do mapa baixaram
+  // Estados de controle
+  const [isMapCreated, setIsMapCreated] = useState(false); 
+  const [areTilesLoaded, setAreTilesLoaded] = useState(false);
+  const [showTravelModal, setShowTravelModal] = useState(false);
   const isInitializingRef = useRef(false);
 
   // Cleanup robusto
@@ -141,24 +153,19 @@ export const Map: React.FC = () => {
   // Garante que o mapa se redesenhe quando a aba muda para 'map'
   useEffect(() => {
       if (activeView === 'map' && mapInstanceRef.current) {
-          // Invalidação agressiva ao entrar na aba para garantir que o preto suma
           mapInstanceRef.current.invalidateSize();
-          setTimeout(() => {
-              mapInstanceRef.current?.invalidateSize();
-          }, 50);
           setTimeout(() => {
               mapInstanceRef.current?.invalidateSize();
           }, 300);
       }
   }, [activeView]);
 
-  // Inicialização do Mapa com Verificação de Dimensões e Carregamento de Tiles
+  // Inicialização do Mapa
   useEffect(() => {
-    // Só inicializa se tivermos localização e o container
     if (!myLocation || !mapContainerRef.current) return;
     
-    // Se já existe, apenas atualiza a view
     if (mapInstanceRef.current) {
+        // Se mudou drasticamente (ex: modo viajante ativado), centraliza
         mapInstanceRef.current.setView(myLocation);
         return;
     }
@@ -166,7 +173,6 @@ export const Map: React.FC = () => {
     if (isInitializingRef.current) return;
     isInitializingRef.current = true;
 
-    // Função recursiva para aguardar o elemento ter tamanho (evita erro de tela cinza)
     const waitForDimensionsAndInit = () => {
         const element = mapContainerRef.current;
         if (!element) {
@@ -174,13 +180,11 @@ export const Map: React.FC = () => {
             return;
         }
 
-        // Se a altura ou largura for 0, o elemento ainda não foi renderizado ou animado corretamente.
         if (element.clientWidth === 0 || element.clientHeight === 0) {
             requestAnimationFrame(waitForDimensionsAndInit);
             return;
         }
 
-        // Verifica novamente se o mapa já foi criado nesse meio tempo
         if (mapInstanceRef.current) {
             isInitializingRef.current = false;
             return;
@@ -196,26 +200,21 @@ export const Map: React.FC = () => {
                 preferCanvas: true
             }).setView(myLocation, 15);
 
-            // Adiciona camada de tiles com listener de carregamento
             const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 maxZoom: 19,
                 subdomains: 'abcd',
-                updateWhenIdle: true, // Melhora performance em mobile
+                updateWhenIdle: true,
             });
 
-            // Estratégia: O radar só some quando os tiles terminarem de carregar visualmente
             tileLayer.on('load', () => {
-                // Pequeno delay para garantir que o browser pintou os pixels
                 setTimeout(() => {
                     setAreTilesLoaded(true);
-                    newMap.invalidateSize(); // Garante layout final
+                    newMap.invalidateSize();
                 }, 300); 
             });
 
             tileLayer.addTo(newMap);
 
-            // Fallback de segurança: Se os tiles vierem do cache ou algo falhar, libera a tela em 2s
-            // Reduzi para 2s para ser mais rápido
             setTimeout(() => {
                 setAreTilesLoaded(true);
                 if (newMap) newMap.invalidateSize();
@@ -224,7 +223,6 @@ export const Map: React.FC = () => {
             mapInstanceRef.current = newMap;
             setIsMapCreated(true);
 
-            // Invalidação agressiva inicial para garantir que o mapa ocupe o container
             let frames = 0;
             const aggressiveInvalidate = () => {
                 if (newMap && frames < 30) {
@@ -235,7 +233,6 @@ export const Map: React.FC = () => {
             };
             aggressiveInvalidate();
 
-            // Observer para mudanças futuras de tamanho
             const observer = new ResizeObserver(() => {
                 if (mapInstanceRef.current) {
                     mapInstanceRef.current.invalidateSize();
@@ -251,7 +248,6 @@ export const Map: React.FC = () => {
         }
     };
 
-    // Inicia o processo de espera
     requestAnimationFrame(waitForDimensionsAndInit);
 
   }, [myLocation]);
@@ -260,20 +256,21 @@ export const Map: React.FC = () => {
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (map && myLocation && profile) {
-        const canHost = !!profile.can_host; // Force boolean check
+        const canHost = !!profile.can_host;
+        const isTraveling = !!profile.is_traveling;
 
         if (!myLocationMarkerRef.current) {
             myLocationMarkerRef.current = L.marker(myLocation, { 
-                icon: MyLocationMarkerIcon(profile.avatar_url, canHost), 
+                icon: MyLocationMarkerIcon(profile.avatar_url, canHost, isTraveling), 
                 zIndexOffset: 1000 
             }).addTo(map);
         } else {
             const oldLatLng = myLocationMarkerRef.current.getLatLng();
             if (oldLatLng.distanceTo(myLocation) > 2) {
                 myLocationMarkerRef.current.setLatLng(myLocation);
+                map.panTo(myLocation); // Segue o usuário se mudar muito
             }
-            // Atualiza ícone apenas se mudou
-            myLocationMarkerRef.current.setIcon(MyLocationMarkerIcon(profile.avatar_url, canHost));
+            myLocationMarkerRef.current.setIcon(MyLocationMarkerIcon(profile.avatar_url, canHost, isTraveling));
             myLocationMarkerRef.current.setZIndexOffset(1000);
         }
     }
@@ -287,7 +284,6 @@ export const Map: React.FC = () => {
     const markers = userMarkersRef.current;
     const userIdsInStore = new Set(users.map(u => u.id));
 
-    // Remove marcadores antigos
     markers.forEach((marker, userId) => {
         if (!userIdsInStore.has(userId)) {
             marker.remove();
@@ -295,7 +291,6 @@ export const Map: React.FC = () => {
         }
     });
 
-    // Adiciona/Atualiza marcadores
     users.forEach(user => {
         if (!Number.isFinite(user.lat) || !Number.isFinite(user.lng)) return;
 
@@ -329,23 +324,56 @@ export const Map: React.FC = () => {
     });
   }, [users, onlineUsers, agoraUserIds, filters, setSelectedUser, isMapCreated]);
 
-  // O radar só some quando o mapa existe, temos localização e OS TILES CARREGARAM
+  const handleTravelClick = () => {
+      if (profile?.subscription_tier === 'plus') {
+          if (profile.is_traveling) {
+              disableTravelMode();
+          } else {
+              setShowTravelModal(true);
+          }
+      } else {
+          setSubscriptionModalOpen(true);
+      }
+  };
+
   const isScanning = !myLocation || !isMapCreated || !areTilesLoaded;
   const isError = !!error;
   const scanColor = isError ? 'red' : 'pink';
 
   return (
       <div className="w-full h-full relative bg-dark-900 isolate overflow-hidden">
-          {/* Container do Mapa 
-              FIX: Removed opacity toggle logic. Map is always opacity 1.
-              Visibility is handled by the 'Curtain' overlay in App.tsx.
-              This prevents Leaflet from stopping rendering due to invisibility.
-          */}
           <div 
             ref={mapContainerRef} 
             className="w-full h-full absolute inset-0 z-0 outline-none focus:outline-none"
             style={{ opacity: 1 }} 
           />
+
+          {/* Floating Action Button: Travel Mode */}
+          {isMapCreated && !isScanning && (
+              <button
+                onClick={handleTravelClick}
+                className={`absolute top-24 right-4 z-[40] w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 ${
+                    profile?.is_traveling 
+                    ? 'bg-blue-600 text-white border-2 border-white animate-pulse' 
+                    : 'bg-slate-800/90 text-slate-400 backdrop-blur-md border border-white/10 hover:text-white'
+                }`}
+              >
+                  <span className="material-symbols-rounded filled">{profile?.is_traveling ? 'flight_land' : 'flight_takeoff'}</span>
+                  {!profile?.is_traveling && profile?.subscription_tier !== 'plus' && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center border border-slate-900">
+                          <span className="material-symbols-rounded text-[10px] text-black font-bold">lock</span>
+                      </span>
+                  )}
+              </button>
+          )}
+          
+          {/* Banner Modo Viajante */}
+          {profile?.is_traveling && (
+              <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[40] bg-blue-600/90 backdrop-blur-md text-white px-4 py-2 rounded-full shadow-lg border border-white/20 flex items-center gap-2 animate-slide-in-up">
+                  <span className="material-symbols-rounded filled text-sm">flight</span>
+                  <span className="text-xs font-bold uppercase tracking-wide">Modo Viajante Ativo</span>
+              </div>
+          )}
 
           {/* Overlay de Carregamento / Scanner (Fade Out quando pronto) */}
           <div 
@@ -396,6 +424,8 @@ export const Map: React.FC = () => {
                 )}
             </div>
           </div>
+          
+          {showTravelModal && <TravelModeModal onClose={() => setShowTravelModal(false)} />}
       </div>
   );
 };

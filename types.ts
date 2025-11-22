@@ -18,6 +18,7 @@ export interface Profile {
   email: string; // Adicionado para o painel admin
   display_name: string | null;
   avatar_url: string;
+  video_url: string | null; // Adicionado na Fase 1
   public_photos: string[] | null;
   status_text: string | null;
   date_of_birth: string | null;
@@ -35,6 +36,7 @@ export interface Profile {
   subscription_tier: 'free' | 'plus'; // Adicionado para o plano premium
   subscription_expires_at: string | null; // Adicionado para data de expiração
   is_incognito: boolean; // Adicionado para o Modo Invisível
+  is_traveling: boolean; // Adicionado na Fase 1 - Modo Viajante
   has_completed_onboarding: boolean; // Adicionado para o fluxo de boas-vindas
   has_private_albums: boolean; // Adicionado para saber se o usuário tem álbuns
   status: 'active' | 'suspended' | 'banned'; // Adicionado para moderação

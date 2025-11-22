@@ -24,11 +24,12 @@ const getPathFromUrl = (url: string): string => {
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) => {
   const { profile, fetchProfile } = useAuthStore();
   const { tribes, fetchTribes } = useDataStore();
-  const { uploadPhoto } = useAlbumStore();
+  const { uploadPhoto } = useAlbumStore(); // Reusing uploadPhoto since it handles generic file upload
   const [formData, setFormData] = useState<Partial<Profile>>({});
   const [loading, setLoading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const publicPhotoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (profile) {
@@ -93,6 +94,49 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
       setLoading(false);
   }
 
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !profile) return;
+
+      if (file.size > 20 * 1024 * 1024) { // 20MB limit
+          toast.error('Vídeo muito grande (Max 20MB).');
+          return;
+      }
+
+      setLoading(true);
+      const toastId = toast.loading('Enviando vídeo de apresentação...');
+
+      const videoPath = await uploadPhoto(file); // Reuse upload mechanism
+      if (!videoPath) {
+          toast.error('Falha ao enviar o vídeo.', { id: toastId });
+          setLoading(false);
+          return;
+      }
+
+      const { error: updateError } = await supabase.from('profiles').update({ video_url: videoPath }).eq('id', profile.id);
+
+      if (updateError) {
+          toast.error('Falha ao salvar o vídeo.', { id: toastId });
+      } else {
+          toast.success('Vídeo adicionado!', { id: toastId });
+          await fetchProfile(profile as any);
+      }
+      setLoading(false);
+  };
+
+  const handleRemoveVideo = async () => {
+      if (!profile) return;
+      setLoading(true);
+      const { error } = await supabase.from('profiles').update({ video_url: null }).eq('id', profile.id);
+      if (error) {
+          toast.error('Erro ao remover vídeo.');
+      } else {
+          toast.success('Vídeo removido.');
+          await fetchProfile(profile as any);
+      }
+      setLoading(false);
+  };
+
   const handlePublicPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !profile) return;
@@ -147,7 +191,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
     setLoading(true);
     const toastId = toast.loading('Atualizando perfil...');
     
-    const { tribes: formTribes, distance_km, lat, lng, ...profileUpdates } = formData;
+    const { tribes: formTribes, distance_km, lat, lng, video_url, is_traveling, ...profileUpdates } = formData;
 
     const { error: profileError } = await supabase.from('profiles').update(profileUpdates).eq('id', profile.id);
         
@@ -253,6 +297,35 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
                         />
                    </div>
                 </div>
+              </div>
+
+              {/* Video Presentation Section */}
+              <div className="bg-slate-800/50 p-4 rounded-2xl border border-white/5">
+                  <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
+                          <span className="material-symbols-rounded text-pink-500 filled">videocam</span> Vídeo de Apresentação
+                      </h3>
+                      {profile.video_url && (
+                          <button type="button" onClick={handleRemoveVideo} className="text-xs text-red-400 hover:text-red-300 font-bold">
+                              Remover Vídeo
+                          </button>
+                      )}
+                  </div>
+                  
+                  {profile.video_url ? (
+                      <div className="relative aspect-video rounded-xl overflow-hidden bg-black group">
+                          <video src={profile.video_url} className="w-full h-full object-cover" controls />
+                          <div className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded-md text-xs font-bold">
+                              Video Ativo
+                          </div>
+                      </div>
+                  ) : (
+                      <button type="button" onClick={() => videoInputRef.current?.click()} className="w-full aspect-video border-2 border-dashed border-slate-600 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:bg-slate-800 hover:text-white hover:border-pink-500 transition-all gap-2">
+                          <span className="material-symbols-rounded text-4xl">upload_file</span>
+                          <span className="text-sm font-bold">Carregar Vídeo (Max 15s)</span>
+                      </button>
+                  )}
+                  <input type="file" accept="video/mp4,video/webm,video/quicktime" ref={videoInputRef} onChange={handleVideoUpload} className="hidden" />
               </div>
 
               {/* Logistics Switch */}

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, PrivateAlbum } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
@@ -41,6 +41,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
   const [isOptionsMenuOpen, setOptionsMenuOpen] = useState(false);
   const [isReportModalOpen, setReportModalOpen] = useState(false);
   const [isBlockConfirmOpen, setBlockConfirmOpen] = useState(false);
+  
+  // Video Control
+  const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   
   const agoraPost = posts.find(p => p.user_id === user.id);
 
@@ -134,6 +138,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
   const nextPhoto = () => setCurrentPhotoIndex((prev) => (prev + 1) % allPhotos.length);
   const prevPhoto = () => setCurrentPhotoIndex((prev) => (prev - 1 + allPhotos.length) % allPhotos.length);
 
+  const toggleVideo = () => {
+      if (videoRef.current) {
+          if (videoRef.current.paused) {
+              videoRef.current.play();
+              setIsPlayingVideo(true);
+          } else {
+              videoRef.current.pause();
+              setIsPlayingVideo(false);
+          }
+      }
+  }
+
   const renderAccessButton = () => {
       switch (viewedUserAccessStatus) {
           case 'pending':
@@ -160,43 +176,71 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
             <div className="w-12 h-1.5 bg-slate-600 rounded-full"></div>
         </div>
 
-        {/* Photo Carousel Area */}
-        <div className={`relative w-full aspect-[4/5] sm:aspect-square flex-shrink-0 group`}>
-          <img src={allPhotos[currentPhotoIndex]} alt={user.username} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-90"></div>
+        {/* Options Button (Moved up for z-index safety) */}
+        <div className="absolute top-4 right-4 z-30 flex gap-2">
+             <button onClick={() => setOptionsMenuOpen(true)} className="text-white bg-black/20 backdrop-blur-md p-2.5 rounded-full hover:bg-black/40 transition-colors border border-white/10">
+                <span className="material-symbols-rounded">more_vert</span>
+            </button>
+            <button onClick={onClose} className="text-white bg-black/20 backdrop-blur-md p-2.5 rounded-full hover:bg-black/40 transition-colors border border-white/10">
+                <span className="material-symbols-rounded">close</span>
+            </button>
+        </div>
 
-          {/* Options Button */}
-          <button onClick={() => setOptionsMenuOpen(true)} className="absolute top-4 left-4 text-white bg-black/20 backdrop-blur-md p-2.5 rounded-full hover:bg-black/40 transition-colors z-10 border border-white/10">
-              <span className="material-symbols-rounded">more_vert</span>
-          </button>
+        {isOptionsMenuOpen && (
+            <>
+            <div className="absolute top-16 right-4 bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 z-40 w-48 overflow-hidden animate-fade-in">
+                <button 
+                    onClick={() => { setBlockConfirmOpen(true); setOptionsMenuOpen(false); }} 
+                    className="w-full flex items-center gap-3 p-3.5 text-sm text-red-400 hover:bg-white/5 transition-colors"
+                >
+                    <span className="material-symbols-rounded text-xl">block</span>
+                    Bloquear
+                </button>
+                <div className="h-px bg-white/5"></div>
+                <button 
+                    onClick={() => { setReportModalOpen(true); setOptionsMenuOpen(false); }} 
+                    className="w-full flex items-center gap-3 p-3.5 text-sm text-yellow-400 hover:bg-white/5 transition-colors"
+                >
+                    <span className="material-symbols-rounded text-xl">flag</span>
+                    Denunciar
+                </button>
+            </div>
+            <div className="fixed inset-0 z-20" onClick={() => setOptionsMenuOpen(false)}></div>
+            </>
+        )}
 
-          {isOptionsMenuOpen && (
-              <>
-                <div className="absolute top-16 left-4 bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 z-20 w-48 overflow-hidden animate-fade-in">
-                    <button 
-                        onClick={() => { setBlockConfirmOpen(true); setOptionsMenuOpen(false); }} 
-                        className="w-full flex items-center gap-3 p-3.5 text-sm text-red-400 hover:bg-white/5 transition-colors"
-                    >
-                        <span className="material-symbols-rounded text-xl">block</span>
-                        Bloquear
-                    </button>
-                    <div className="h-px bg-white/5"></div>
-                    <button 
-                        onClick={() => { setReportModalOpen(true); setOptionsMenuOpen(false); }} 
-                        className="w-full flex items-center gap-3 p-3.5 text-sm text-yellow-400 hover:bg-white/5 transition-colors"
-                    >
-                        <span className="material-symbols-rounded text-xl">flag</span>
-                        Denunciar
-                    </button>
-                </div>
-                <div className="fixed inset-0 z-10" onClick={() => setOptionsMenuOpen(false)}></div>
-              </>
+        {/* Media Area: Video or Carousel */}
+        <div className={`relative w-full aspect-[4/5] sm:aspect-square flex-shrink-0 group bg-black`}>
+          {user.video_url && currentPhotoIndex === 0 ? (
+              <div className="w-full h-full relative" onClick={toggleVideo}>
+                  <video 
+                    ref={videoRef}
+                    src={user.video_url} 
+                    className="w-full h-full object-cover" 
+                    loop 
+                    muted={!isPlayingVideo} // Start muted for autoplay policies
+                    playsInline
+                    autoPlay
+                  />
+                  {!isPlayingVideo && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                          <span className="material-symbols-rounded text-white text-5xl opacity-80 shadow-lg">play_circle</span>
+                      </div>
+                  )}
+                  <div className="absolute bottom-24 right-4 bg-black/50 p-2 rounded-full text-white text-xs font-bold flex items-center gap-1 backdrop-blur-sm">
+                      <span className="material-symbols-rounded filled text-sm">videocam</span>
+                      Vídeo
+                  </div>
+              </div>
+          ) : (
+              <img src={allPhotos[currentPhotoIndex]} alt={user.username} className="w-full h-full object-cover" />
           )}
           
-          <button onClick={onClose} className="absolute top-4 right-4 text-white bg-black/20 backdrop-blur-md p-2.5 rounded-full hover:bg-black/40 transition-colors z-10 border border-white/10">
-            <span className="material-symbols-rounded">close</span>
-          </button>
-          
+          {!user.video_url || currentPhotoIndex > 0 ? (
+             <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-90 pointer-events-none"></div>
+          ) : null}
+
+          {/* Carousel Controls */}
           {allPhotos.length > 1 && (
             <>
               <button onClick={prevPhoto} className="absolute left-2 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2 transition-colors z-10 sm:opacity-0 sm:group-hover:opacity-100">
@@ -205,19 +249,24 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
               <button onClick={nextPhoto} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2 transition-colors z-10 sm:opacity-0 sm:group-hover:opacity-100">
                 <span className="material-symbols-rounded text-4xl shadow-black drop-shadow-lg">chevron_right</span>
               </button>
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 flex space-x-1.5 z-10 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+              
+              {/* Pagination Dots */}
+              <div className="absolute top-4 left-4 flex space-x-1.5 z-10 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                {user.video_url && (
+                    <div className={`w-1.5 h-1.5 rounded-full transition-all ${currentPhotoIndex === 0 ? 'bg-pink-500 scale-125' : 'bg-white/40'}`}></div>
+                )}
                 {allPhotos.map((_, index) => (
-                  <div key={index} className={`w-1.5 h-1.5 rounded-full transition-all ${index === currentPhotoIndex ? 'bg-white scale-125' : 'bg-white/40'}`}></div>
+                  <div key={index} className={`w-1.5 h-1.5 rounded-full transition-all ${(user.video_url ? index + 1 : index) === currentPhotoIndex ? 'bg-white scale-125' : 'bg-white/40'}`}></div>
                 ))}
               </div>
             </>
           )}
 
           {/* Header Info Over Photo */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+          <div className="absolute bottom-0 left-0 right-0 p-6 text-white pointer-events-none">
             <div className="flex items-end justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold flex items-center gap-2 flex-wrap leading-none mb-2">
+                    <h2 className="text-3xl font-bold flex items-center gap-2 flex-wrap leading-none mb-2 drop-shadow-lg">
                     <span>{user.username}, {user.age}</span>
                     {user.subscription_tier === 'plus' && (
                         <span className="bg-yellow-500/90 text-black p-1 rounded-full shadow-lg flex items-center justify-center">
@@ -226,7 +275,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
                     )}
                     </h2>
                     <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-                        <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium backdrop-blur-sm ${isOnline ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-slate-500/20 text-slate-300 border border-white/10'}`}>
+                        <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium backdrop-blur-sm shadow-sm ${isOnline ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-slate-500/20 text-slate-300 border border-white/10'}`}>
                             <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-slate-400'}`}></div>
                             {statusText}
                         </span>

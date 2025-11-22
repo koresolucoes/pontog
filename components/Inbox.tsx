@@ -109,7 +109,9 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             status: 'active',
             suspended_until: null,
             kinks: [],
-            can_host: false
+            can_host: false,
+            video_url: null,
+            is_traveling: false
         };
         setChatUser(chatPartner);
     };

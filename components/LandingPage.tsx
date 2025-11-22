@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AdSenseUnit } from './AdSenseUnit';
+import { useMapStore } from '../stores/mapStore';
 import { VENUES_DATA } from '../lib/venuesData';
 
 interface LandingPageProps {
@@ -8,7 +9,35 @@ interface LandingPageProps {
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
-  const [activeTab, setActiveTab] = useState<'map' | 'guide'>('guide');
+  const { venues, fetchVenues } = useMapStore();
+  const [locating, setLocating] = useState(true);
+  const [locationAllowed, setLocationAllowed] = useState(false);
+
+  // Inicialização: Tenta pegar localização para personalizar a página
+  useEffect(() => {
+      if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+              (position) => {
+                  const { latitude, longitude } = position.coords;
+                  fetchVenues({ lat: latitude, lng: longitude });
+                  setLocationAllowed(true);
+                  setLocating(false);
+              },
+              (error) => {
+                  console.log("Location for Landing Page denied/error:", error);
+                  fetchVenues(); // Busca genérica
+                  setLocating(false);
+                  setLocationAllowed(false);
+              }
+          );
+      } else {
+          fetchVenues();
+          setLocating(false);
+      }
+  }, [fetchVenues]);
+
+  // Use venues do store se disponíveis, senão usa fallback estático para visual imediato
+  const displayVenues = venues.length > 0 ? venues : VENUES_DATA.slice(0, 6);
 
   return (
     <div className="min-h-screen bg-dark-950 text-white flex flex-col font-inter overflow-x-hidden selection:bg-pink-500 selection:text-white">
@@ -42,8 +71,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
         
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800/50 border border-white/10 text-slate-300 text-[10px] font-bold uppercase tracking-widest mb-8 animate-fade-in-up backdrop-blur-md">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-            O Guia LGBTQIA+ Definitivo
+            <span className={`w-1.5 h-1.5 rounded-full ${locationAllowed ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`}></span>
+            {locationAllowed ? 'Localizado na sua região' : 'O Guia LGBTQIA+ Definitivo'}
         </div>
 
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black font-outfit tracking-tight mb-6 leading-[1] max-w-5xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
@@ -76,21 +105,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         </div>
       </header>
 
-      {/* City Guide Section (AdSense Friendly Content) */}
+      {/* City Guide Section (Location Aware) */}
       <section id="guide" className="py-20 px-6 bg-dark-900 border-t border-white/5 relative">
         <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
                 <div>
                     <h2 className="text-3xl md:text-4xl font-black font-outfit text-white mb-2 flex items-center gap-3">
                         <span className="material-symbols-rounded text-pink-500 filled text-4xl">place</span>
-                        Em Destaque na Cidade
+                        {locationAllowed ? 'Destaques na sua região' : 'Em Destaque Global'}
                     </h2>
-                    <p className="text-slate-400 text-lg">Explore os locais mais quentes avaliados pela nossa comunidade.</p>
+                    <p className="text-slate-400 text-lg">
+                        {locationAllowed 
+                            ? 'Encontramos estes locais incríveis perto de você.' 
+                            : 'Explore os locais mais quentes avaliados pela nossa comunidade.'}
+                    </p>
                 </div>
+                {locating && (
+                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <div className="w-4 h-4 border-2 border-slate-500 border-t-transparent rounded-full animate-spin"></div>
+                        Buscando locais próximos...
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {VENUES_DATA.slice(0, 6).map((venue) => (
+                {displayVenues.map((venue) => (
                     <div 
                         key={venue.id}
                         className="group relative bg-slate-800 rounded-3xl overflow-hidden cursor-pointer hover:shadow-2xl hover:shadow-pink-900/20 transition-all duration-500 border border-white/5"
@@ -98,7 +137,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                     >
                         <div className="relative aspect-[16/10] overflow-hidden">
                             <img 
-                                src={venue.image_url} 
+                                src={venue.image_url || 'https://placehold.co/600x400/1f2937/ffffff?text=Venue'} 
                                 alt={venue.name} 
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                             />

@@ -35,7 +35,7 @@ interface MapState {
   stopLocationWatch: () => void;
   updateMyLocationInDb: (coords: Coordinates) => Promise<void>;
   fetchNearbyUsers: (coords: Coordinates) => Promise<void>;
-  fetchVenues: () => Promise<void>; // Changed to async Promise
+  fetchVenues: (coords?: Coordinates) => Promise<void>; // Updated to accept optional coords
   setupRealtime: () => void;
   cleanupRealtime: () => void;
   enableTravelMode: (coords: Coordinates) => Promise<void>;
@@ -75,7 +75,7 @@ export const useMapStore = create<MapState>((set, get) => ({
         const travelLocation = { lat: authUser.lat, lng: authUser.lng };
         set({ myLocation: travelLocation, loading: false, error: null });
         get().fetchNearbyUsers(travelLocation);
-        get().fetchVenues(); 
+        get().fetchVenues(travelLocation); 
         get().setupRealtime();
         return;
     }
@@ -105,7 +105,7 @@ export const useMapStore = create<MapState>((set, get) => ({
               set({ myLocation: newLocation, loading: false, error: null });
               get().updateMyLocationInDb(newLocation);
               get().fetchNearbyUsers(newLocation);
-              get().fetchVenues(); 
+              get().fetchVenues(newLocation); 
             } else if (get().loading) {
               set({ loading: false });
             }
@@ -173,20 +173,35 @@ export const useMapStore = create<MapState>((set, get) => ({
     }
   },
 
-  fetchVenues: async () => {
-      // Agora busca do banco de dados real
-      const { data, error } = await supabase
-        .from('venues')
-        .select('*');
+  fetchVenues: async (coords?: Coordinates) => {
+      let data, error;
+
+      // Se temos coordenadas, tentamos buscar por proximidade usando a RPC
+      if (coords) {
+          const result = await supabase.rpc('get_nearby_venues', {
+              p_lat: coords.lat,
+              p_lng: coords.lng
+          });
+          data = result.data;
+          error = result.error;
+      } 
+      
+      // Fallback: se não tem coordenadas ou se a RPC falhar/não retornar nada, busca os gerais
+      if (!coords || error || !data || data.length === 0) {
+          const result = await supabase
+            .from('venues')
+            .select('*')
+            .limit(20); // Limite para não carregar demais
+          data = result.data;
+          error = result.error;
+      }
 
       if (error) {
           console.error("Error fetching venues:", error);
-          // Fallback silencioso ou tratamento de erro se necessário
           return;
       }
 
       if (data) {
-          // Casting simples pois a estrutura do DB deve bater com a interface Venue
           set({ venues: data as Venue[] });
       }
   },
@@ -266,7 +281,7 @@ export const useMapStore = create<MapState>((set, get) => ({
           useAuthStore.getState().fetchProfile(user);
       } else {
           get().fetchNearbyUsers(coords);
-          get().fetchVenues(); 
+          get().fetchVenues(coords); 
           get().setupRealtime();
           toast.success("Modo Viajante ativado! ✈️");
       }

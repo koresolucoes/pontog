@@ -3,10 +3,42 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
 import { useAgoraStore } from '../stores/agoraStore';
-import { useUiStore } from '../stores/uiStore'; // Importar store de UI
+import { useUiStore } from '../stores/uiStore';
 import * as L from 'leaflet';
-import { User } from '../types';
+import { User, Venue } from '../types';
 import { TravelModeModal } from './TravelModeModal';
+
+// Helper para ícone do Venue
+const createVenueIcon = (type: string, isPartner: boolean) => {
+    let iconName = 'place';
+    let colorClass = 'bg-purple-600';
+    let ringClass = isPartner ? 'ring-4 ring-yellow-400/50' : 'ring-2 ring-white';
+
+    switch(type) {
+        case 'sauna': iconName = 'hot_tub'; colorClass = 'bg-orange-600'; break;
+        case 'bar': iconName = 'local_bar'; colorClass = 'bg-pink-600'; break;
+        case 'club': iconName = 'nightlife'; colorClass = 'bg-indigo-600'; break;
+        case 'cruising': iconName = 'visibility'; colorClass = 'bg-slate-800'; break;
+    }
+
+    const html = `
+        <div class="relative w-10 h-10 transition-transform hover:scale-110">
+            <div class="absolute -inset-2 ${colorClass} opacity-30 rounded-full blur-sm ${isPartner ? 'animate-pulse' : ''}"></div>
+            <div class="relative w-full h-full rounded-full ${colorClass} flex items-center justify-center shadow-lg ${ringClass} z-10">
+                <span class="material-symbols-rounded text-white text-xl">${iconName}</span>
+            </div>
+            ${isPartner ? '<div class="absolute -top-1 -right-1 bg-yellow-400 text-black text-[8px] font-bold px-1 rounded-full border border-white z-20">★</div>' : ''}
+        </div>
+    `;
+
+    return L.divIcon({
+        html: html,
+        className: 'bg-transparent',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -24]
+    });
+};
 
 // Função para gerar o HTML do marcador dinâmico
 const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
@@ -117,24 +149,26 @@ const MyLocationMarkerIcon = (avatarUrl: string, canHost: boolean, isTraveling: 
 };
 
 export const Map: React.FC = () => {
-  const { users, myLocation, onlineUsers, loading, error, filters, setSelectedUser, requestLocationPermission, disableTravelMode } = useMapStore();
+  const { 
+      users, venues, myLocation, onlineUsers, loading, error, filters, 
+      setSelectedUser, setSelectedVenue, requestLocationPermission, disableTravelMode 
+  } = useMapStore();
   const { profile } = useAuthStore();
   const { agoraUserIds } = useAgoraStore();
-  const { activeView, setSubscriptionModalOpen } = useUiStore(); // Observa a view ativa
+  const { activeView, setSubscriptionModalOpen } = useUiStore();
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
+  const venueMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   
-  // Estados de controle
   const [isMapCreated, setIsMapCreated] = useState(false); 
   const [areTilesLoaded, setAreTilesLoaded] = useState(false);
   const [showTravelModal, setShowTravelModal] = useState(false);
   const isInitializingRef = useRef(false);
 
-  // Cleanup robusto
   useEffect(() => {
     return () => {
         if (resizeObserverRef.current) {
@@ -144,13 +178,13 @@ export const Map: React.FC = () => {
             mapInstanceRef.current.remove();
             mapInstanceRef.current = null;
             userMarkersRef.current.clear();
+            venueMarkersRef.current.clear();
             myLocationMarkerRef.current = null;
         }
         isInitializingRef.current = false;
     };
   }, []);
 
-  // Garante que o mapa se redesenhe quando a aba muda para 'map'
   useEffect(() => {
       if (activeView === 'map' && mapInstanceRef.current) {
           mapInstanceRef.current.invalidateSize();
@@ -160,12 +194,10 @@ export const Map: React.FC = () => {
       }
   }, [activeView]);
 
-  // Inicialização do Mapa
   useEffect(() => {
     if (!myLocation || !mapContainerRef.current) return;
     
     if (mapInstanceRef.current) {
-        // Se mudou drasticamente (ex: modo viajante ativado), centraliza
         mapInstanceRef.current.setView(myLocation);
         return;
     }
@@ -268,7 +300,7 @@ export const Map: React.FC = () => {
             const oldLatLng = myLocationMarkerRef.current.getLatLng();
             if (oldLatLng.distanceTo(myLocation) > 2) {
                 myLocationMarkerRef.current.setLatLng(myLocation);
-                map.panTo(myLocation); // Segue o usuário se mudar muito
+                map.panTo(myLocation); 
             }
             myLocationMarkerRef.current.setIcon(MyLocationMarkerIcon(profile.avatar_url, canHost, isTraveling));
             myLocationMarkerRef.current.setZIndexOffset(1000);
@@ -323,6 +355,75 @@ export const Map: React.FC = () => {
         }
     });
   }, [users, onlineUsers, agoraUserIds, filters, setSelectedUser, isMapCreated]);
+
+  // Gerenciamento dos Marcadores de Locais (Venues)
+  useEffect(() => {
+      const map = mapInstanceRef.current;
+      if (!map || !isMapCreated) return;
+
+      const markers = venueMarkersRef.current;
+      // Se não tem venues carregados, limpa tudo
+      if (venues.length === 0) {
+          markers.forEach(m => m.remove());
+          markers.clear();
+          return;
+      }
+
+      // Remove marcadores antigos que não estão mais na lista (se houver filtro)
+      const venueIds = new Set(venues.map(v => v.id));
+      markers.forEach((marker, id) => {
+          if (!venueIds.has(id)) {
+              marker.remove();
+              markers.delete(id);
+          }
+      });
+
+      venues.forEach(venue => {
+          if (!Number.isFinite(venue.lat) || !Number.isFinite(venue.lng)) return;
+
+          let marker = markers.get(venue.id);
+          if (!marker) {
+              marker = L.marker([venue.lat, venue.lng], {
+                  icon: createVenueIcon(venue.type, venue.is_partner),
+                  zIndexOffset: 200 // Fica abaixo de usuários online, mas acima do mapa
+              });
+              
+              // Popup customizado para o local
+              const popupContent = document.createElement('div');
+              popupContent.innerHTML = `
+                <div class="w-64 overflow-hidden rounded-2xl bg-slate-900 shadow-2xl border border-white/10 font-outfit">
+                    <div class="h-32 w-full relative">
+                        <img src="${venue.image_url}" class="w-full h-full object-cover" />
+                        <div class="absolute top-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase">${venue.type}</div>
+                        ${venue.is_partner ? '<div class="absolute top-2 right-2 bg-yellow-400 text-black text-[10px] font-bold px-2 py-0.5 rounded shadow-md">★ Parceiro</div>' : ''}
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-lg font-bold text-white leading-tight mb-1">${venue.name}</h3>
+                        <p class="text-xs text-slate-400 mb-2 flex items-center gap-1">
+                            <span class="material-symbols-rounded text-[12px]">location_on</span> ${venue.address}
+                        </p>
+                        <p class="text-sm text-slate-300 leading-snug mb-3 line-clamp-2">${venue.description}</p>
+                        <div class="flex gap-2">
+                            <a href="https://www.google.com/maps/search/?api=1&query=${venue.lat},${venue.lng}" target="_blank" class="flex-1 bg-slate-800 text-white text-xs font-bold py-2 rounded-lg text-center hover:bg-slate-700 transition-colors border border-white/10">Rota</a>
+                            <button class="flex-1 bg-pink-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-pink-700 transition-colors shadow-lg shadow-pink-900/20">Ver Mais</button>
+                        </div>
+                    </div>
+                </div>
+              `;
+              
+              marker.bindPopup(popupContent, {
+                  className: 'custom-venue-popup',
+                  closeButton: false,
+                  maxWidth: 300,
+                  minWidth: 250
+              });
+
+              marker.addTo(map);
+              markers.set(venue.id, marker);
+          }
+      });
+
+  }, [venues, isMapCreated]);
 
   const handleTravelClick = () => {
       if (profile?.subscription_tier === 'plus') {

@@ -178,3 +178,20 @@ export interface TemporaryPerk {
     perk: PerkType;
     expires_at: string;
 }
+
+// Novo tipo para Locais/Venues (Mapa e Landing Page)
+export type VenueType = 'sauna' | 'bar' | 'club' | 'cruising' | 'cinema' | 'shop';
+
+export interface Venue {
+    id: string;
+    name: string;
+    type: VenueType;
+    description: string;
+    address: string;
+    lat: number;
+    lng: number;
+    image_url: string;
+    opening_hours?: string;
+    is_partner: boolean; // Se é parceiro pagante (destaque)
+    tags: string[];
+}

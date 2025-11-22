@@ -1,11 +1,12 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
 import { useUiStore, View } from './stores/uiStore';
 import { useMapStore } from './stores/mapStore';
 import { useInboxStore } from './stores/inboxStore';
 import { Auth } from './components/Auth';
+import { LandingPage } from './components/LandingPage';
 import { HomeView } from './components/HomeView';
 import { UserGrid } from './components/UserGrid';
 import { Map } from './components/Map';
@@ -39,8 +40,12 @@ const App: React.FC = () => {
         setSelectedUser, 
         requestLocationPermission, 
         stopLocationWatch, 
-        cleanupRealtime 
+        cleanupRealtime,
+        fetchVenues // Importar fetchVenues
     } = useMapStore();
+
+    // Estado para controlar se o usuário quer ver a tela de login ou a landing page
+    const [showAuth, setShowAuth] = useState(false);
 
     useEffect(() => {
         const registerServiceWorker = async () => {
@@ -93,12 +98,10 @@ const App: React.FC = () => {
     // Lógica principal de inicialização de dados e localização
     useEffect(() => {
         // Só iniciamos o mapa e os dados se o usuário estiver logado E o perfil estiver carregado.
-        // Isso é crucial para que a verificação de 'is_traveling' no mapStore funcione corretamente
-        // e não sobrescreva a localização de viagem com o GPS real.
-        // IMPORTANTE: Não carregar nada se o usuário estiver suspenso.
         if (session && user && !loading) {
             if (user.status === 'active') {
                 requestLocationPermission();
+                fetchVenues(); // Carregar locais públicos
                 fetchConversations();
                 fetchWinks();
                 fetchAccessRequests();
@@ -114,7 +117,7 @@ const App: React.FC = () => {
             stopLocationWatch();
             cleanupRealtime();
         }
-    }, [session, user, loading, requestLocationPermission, stopLocationWatch, cleanupRealtime, fetchConversations, fetchWinks, fetchAccessRequests]);
+    }, [session, user, loading, requestLocationPermission, stopLocationWatch, cleanupRealtime, fetchConversations, fetchWinks, fetchAccessRequests, fetchVenues]);
 
     // Renderiza as visualizações que NÃO são o mapa
     const renderOtherViews = () => {
@@ -127,6 +130,13 @@ const App: React.FC = () => {
             case 'map': return null; // Mapa é tratado separadamente
             default: return <HomeView />;
         }
+    };
+
+    const renderUnauthenticatedView = () => {
+        if (showAuth) {
+            return <Auth />;
+        }
+        return <LandingPage onEnter={() => setShowAuth(true)} />;
     };
 
     return (
@@ -183,7 +193,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
             ) : (!session || !user) ? (
-                <Auth />
+                renderUnauthenticatedView()
             ) : (user.status === 'suspended' || user.status === 'banned') ? (
                 <SuspendedScreen user={user} />
             ) : showOnboarding ? (

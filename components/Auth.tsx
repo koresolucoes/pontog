@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
@@ -89,6 +90,12 @@ export const Auth: React.FC = () => {
     }
   };
 
+  const handleBack = () => {
+      // Simple window reload to go back to initial state where Landing Page is shown
+      // Or if we passed a prop 'onBack', we could use that. For now, reload works as a "Reset".
+      window.location.reload();
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Background Image with Overlay */}
@@ -102,8 +109,14 @@ export const Auth: React.FC = () => {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
       </div>
 
-      <div className="w-full max-w-md z-10 animate-fade-in-up">
+      <div className="w-full max-w-md z-10 animate-fade-in-up relative">
         
+        {/* Back Button */}
+        <button onClick={handleBack} className="absolute -top-16 left-0 text-slate-400 hover:text-white flex items-center gap-2 transition-colors">
+            <span className="material-symbols-rounded">arrow_back</span>
+            Voltar
+        </button>
+
         <div className="text-center mb-8">
             <div className="w-20 h-20 bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl flex items-center justify-center font-black text-5xl text-white mx-auto shadow-2xl shadow-pink-500/30 mb-4 rotate-3 transform hover:rotate-0 transition-all duration-500">
                 G

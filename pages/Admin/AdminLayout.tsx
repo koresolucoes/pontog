@@ -7,8 +7,9 @@ import { UsersView } from './views/UsersView';
 import { PlansView } from './views/PlansView';
 import { PaymentsView } from './views/PaymentsView';
 import { ReportsView } from './views/ReportsView';
+import { VenuesView } from './views/VenuesView';
 
-type AdminView = 'dashboard' | 'users' | 'plans' | 'payments' | 'reports';
+type AdminView = 'dashboard' | 'users' | 'plans' | 'payments' | 'reports' | 'venues';
 
 const NavLink: React.FC<{
     icon: string;
@@ -41,6 +42,7 @@ export const AdminLayout: React.FC = () => {
             case 'plans': return <PlansView />;
             case 'payments': return <PaymentsView />;
             case 'reports': return <ReportsView />;
+            case 'venues': return <VenuesView />;
             default: return <DashboardView />;
         }
     };
@@ -61,6 +63,7 @@ export const AdminLayout: React.FC = () => {
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 mb-2 mt-2">Menu Principal</p>
                 <NavLink icon="dashboard" label="Dashboard" isActive={activeView === 'dashboard'} onClick={() => { setActiveView('dashboard'); setSidebarOpen(false); }} />
                 <NavLink icon="group" label="Usuários" isActive={activeView === 'users'} onClick={() => { setActiveView('users'); setSidebarOpen(false); }} />
+                <NavLink icon="map" label="Locais (Guia)" isActive={activeView === 'venues'} onClick={() => { setActiveView('venues'); setSidebarOpen(false); }} />
                 <NavLink icon="sell" label="Planos" isActive={activeView === 'plans'} onClick={() => { setActiveView('plans'); setSidebarOpen(false); }} />
                 <NavLink icon="receipt_long" label="Pagamentos" isActive={activeView === 'payments'} onClick={() => { setActiveView('payments'); setSidebarOpen(false); }} />
                 <NavLink icon="flag" label="Denúncias" isActive={activeView === 'reports'} onClick={() => { setActiveView('reports'); setSidebarOpen(false); }} />

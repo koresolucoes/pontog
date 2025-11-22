@@ -220,8 +220,8 @@ export const Map: React.FC = () => {
       const zoom = map.getZoom();
       
       // Configuração de Clusterização
-      const CLUSTER_RADIUS_PX = 60; // Distância em pixels para agrupar
-      const shouldCluster = zoom < 17; // Não agrupa se estiver muito perto (zoom de rua)
+      const CLUSTER_RADIUS_PX = 75; // Aumentado para 75px para evitar overlap excessivo e melhorar performance
+      const shouldCluster = zoom < 18; // Clusteriza até o zoom 17
 
       if (!shouldCluster) {
           // Renderização Normal (Sem Cluster)
@@ -308,7 +308,7 @@ export const Map: React.FC = () => {
               clusterMarker.on('click', () => {
                   // Ao clicar, zoom para caber todos os usuários do cluster
                   const bounds = L.latLngBounds(cluster.users.map(u => [u.lat!, u.lng!]));
-                  map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18, animate: true });
+                  map.fitBounds(bounds, { padding: [50, 50], maxZoom: 19, animate: true });
               });
 
               clusterMarker.addTo(map);
@@ -317,6 +317,14 @@ export const Map: React.FC = () => {
       });
 
   }, [users, onlineUsers, agoraUserIds, filters, setSelectedUser, isMapCreated]);
+
+  // FIX: UseRef para manter a referência da função updateMarkers atualizada dentro dos listeners do Leaflet
+  // Isso resolve o problema de "Stale Closure" onde o mapa não atualizava ao mover/zoom
+  const updateMarkersRef = useRef(updateMarkers);
+
+  useEffect(() => {
+      updateMarkersRef.current = updateMarkers;
+  }, [updateMarkers]);
 
 
   useEffect(() => {
@@ -399,9 +407,10 @@ export const Map: React.FC = () => {
 
             tileLayer.addTo(newMap);
 
-            // Events for Re-Clustering
-            newMap.on('zoomend', () => updateMarkers());
-            newMap.on('moveend', () => updateMarkers());
+            // FIX: Use the Ref to call the latest version of updateMarkers
+            // This ensures clustering logic works with current state (users array) on zoom/move
+            newMap.on('zoomend', () => updateMarkersRef.current());
+            newMap.on('moveend', () => updateMarkersRef.current());
 
             setTimeout(() => {
                 setAreTilesLoaded(true);
@@ -429,7 +438,7 @@ export const Map: React.FC = () => {
 
     requestAnimationFrame(waitForDimensionsAndInit);
 
-  }, [myLocation, updateMarkers]);
+  }, [myLocation]); // Removed updateMarkers from dependency to prevent re-init, Ref handles updates
 
   // Atualiza posição e Ícone do "Você"
   useEffect(() => {

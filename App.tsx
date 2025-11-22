@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
@@ -24,6 +25,7 @@ import { Onboarding } from './components/Onboarding';
 import { Sidebar } from './components/Sidebar';
 import { BackgroundParticles } from './components/BackgroundParticles';
 import { SuspendedScreen } from './components/SuspendedScreen';
+import { NewsView } from './components/NewsView'; // Novo Import
 
 const App: React.FC = () => {
     // Roteamento simples para o painel de administração
@@ -127,6 +129,7 @@ const App: React.FC = () => {
             case 'agora': return <AgoraView />;
             case 'inbox': return <Inbox />;
             case 'profile': return <ProfileView />;
+            case 'news': return <NewsView />; // Nova View
             case 'map': return null; // Mapa é tratado separadamente
             default: return <HomeView />;
         }
@@ -291,12 +294,13 @@ const App: React.FC = () => {
                     {/* Modern Floating Navigation Bar - Hidden when Suggest Venue Modal is Open */}
                     {!isSuggestVenueModalOpen && (
                         <div className="fixed bottom-4 left-4 right-4 z-20 flex justify-center pointer-events-none">
-                            <nav className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 pointer-events-auto max-w-md w-full">
-                                <div className="grid grid-cols-6 p-1.5">
+                            <nav className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 pointer-events-auto max-w-md w-full overflow-x-auto no-scrollbar">
+                                <div className="flex justify-between items-center p-1.5 min-w-max sm:min-w-0 sm:grid sm:grid-cols-7 gap-1">
                                     <NavButton icon="home" label="Início" isActive={activeView === 'home'} onClick={() => setActiveView('home')} />
                                     <NavButton icon="grid_view" label="Grade" isActive={activeView === 'grid'} onClick={() => setActiveView('grid')} />
                                     <NavButton icon="map" label="Mapa" isActive={activeView === 'map'} onClick={() => setActiveView('map')} />
                                     <NavButton icon="local_fire_department" label="Agora" isActive={activeView === 'agora'} onClick={() => setActiveView('agora')} isFire />
+                                    <NavButton icon="newspaper" label="News" isActive={activeView === 'news'} onClick={() => setActiveView('news')} />
                                     <NavButton icon="chat_bubble" label="Chat" isActive={activeView === 'inbox'} onClick={() => setActiveView('inbox')} notificationCount={totalUnreadCount} />
                                     <NavButton icon="person" label="Perfil" isActive={activeView === 'profile'} onClick={() => setActiveView('profile')} isPlus={user.subscription_tier === 'plus'} />
                                 </div>
@@ -322,7 +326,7 @@ interface NavButtonProps {
 const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, isPlus = false, isFire = false, notificationCount = 0 }) => (
     <button
         onClick={onClick}
-        className="relative flex flex-col items-center justify-center py-2 w-full transition-all duration-300 group focus:outline-none rounded-xl"
+        className="relative flex flex-col items-center justify-center py-2 px-1 min-w-[50px] w-full transition-all duration-300 group focus:outline-none rounded-xl"
         aria-label={label}
     >
         <div className="relative transition-transform duration-300 group-active:scale-90">
@@ -335,7 +339,7 @@ const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, i
                 }
             >
                 <span 
-                    className={`material-symbols-rounded text-[26px] transition-colors duration-300
+                    className={`material-symbols-rounded text-[24px] transition-colors duration-300
                         ${isActive 
                             ? 'text-white filled' 
                             : 'text-slate-400 group-hover:text-slate-200'}`
@@ -351,7 +355,7 @@ const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, i
              )}
         </div>
         {isPlus && (
-            <span className="absolute top-1 right-2 material-symbols-rounded !text-[10px] text-yellow-400 filled shadow-black drop-shadow-md">auto_awesome</span>
+            <span className="absolute top-1 right-1 sm:right-2 material-symbols-rounded !text-[10px] text-yellow-400 filled shadow-black drop-shadow-md">auto_awesome</span>
         )}
     </button>
 );

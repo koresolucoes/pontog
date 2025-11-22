@@ -1,8 +1,9 @@
 
+
 import { create } from 'zustand';
 import { User } from '../types';
 
-export type View = 'home' | 'map' | 'grid' | 'inbox' | 'profile' | 'agora';
+export type View = 'home' | 'map' | 'grid' | 'inbox' | 'profile' | 'agora' | 'news';
 
 interface UiState {
   activeView: View;

@@ -2,9 +2,12 @@
 import React, { useEffect, useState } from 'react';
 import { AdSenseUnit } from './AdSenseUnit';
 import { useMapStore } from '../stores/mapStore';
+import { useNewsStore } from '../stores/newsStore'; // New Import
 import { PublicMap } from './PublicMap';
 import { Coordinates } from '../types';
 import { LegalModal, LegalDocType } from './LegalModals';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale/pt-BR';
 
 interface LandingPageProps {
   onEnter: () => void;
@@ -12,6 +15,7 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
   const { venues, fetchVenues } = useMapStore();
+  const { articles, fetchArticles } = useNewsStore(); // New Hook
   const [locating, setLocating] = useState(true);
   const [locationAllowed, setLocationAllowed] = useState(false);
   const [cityName, setCityName] = useState<string | null>(null);
@@ -35,8 +39,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
       }
   };
 
-  // Inicialização: Tenta pegar localização para personalizar a página
+  // Inicialização
   useEffect(() => {
+      fetchArticles(); // Fetch news
+      
       if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
               (position) => {
@@ -59,7 +65,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
           fetchVenues();
           setLocating(false);
       }
-  }, [fetchVenues]);
+  }, [fetchVenues, fetchArticles]);
 
   return (
     <div className="min-h-screen bg-dark-950 text-white flex flex-col font-inter overflow-x-hidden selection:bg-pink-500 selection:text-white">
@@ -83,8 +89,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
             </div>
 
             <div className="flex items-center gap-4">
+                <a href="#news" className="text-sm font-medium text-slate-400 hover:text-white transition-colors hidden md:block">News</a>
                 <a href="#guide" className="text-sm font-medium text-slate-400 hover:text-white transition-colors hidden md:block">Guia Local</a>
-                <a href="#faq" className="text-sm font-medium text-slate-400 hover:text-white transition-colors hidden md:block">Dúvidas</a>
                 <button 
                     onClick={onEnter}
                     className="px-5 py-2 rounded-full bg-white text-dark-950 hover:bg-slate-200 transition-all font-bold text-sm shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center gap-2"
@@ -148,6 +154,69 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
             </button>
         </div>
       </header>
+
+      {/* NEW SECTION: G News Preview */}
+      <section id="news" className="py-20 px-6 bg-slate-900/50 border-t border-white/5">
+          <div className="max-w-7xl mx-auto">
+              <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
+                  <div>
+                      <h2 className="text-3xl md:text-4xl font-black font-outfit text-white mb-2 flex items-center gap-3">
+                          <span className="material-symbols-rounded text-pink-500 text-4xl">newspaper</span>
+                          G News & Blog
+                      </h2>
+                      <p className="text-slate-400 text-lg">
+                          Fique por dentro do que rola na comunidade, cultura pop e dicas de saúde.
+                      </p>
+                  </div>
+                  <button 
+                    onClick={onEnter} 
+                    className="text-pink-500 font-bold hover:text-pink-400 flex items-center gap-1 transition-colors"
+                  >
+                      Ver todas as notícias
+                      <span className="material-symbols-rounded">arrow_forward</span>
+                  </button>
+              </div>
+
+              {articles.length === 0 ? (
+                  <div className="text-center text-slate-500 py-10 bg-slate-800/30 rounded-2xl border border-white/5">
+                      <p>Carregando novidades...</p>
+                  </div>
+              ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {articles.slice(0, 3).map(article => (
+                          <div 
+                            key={article.id}
+                            onClick={onEnter}
+                            className="group cursor-pointer bg-slate-800 rounded-2xl overflow-hidden border border-white/5 hover:border-pink-500/30 transition-all hover:-translate-y-1"
+                          >
+                              <div className="relative aspect-video overflow-hidden">
+                                  <img 
+                                    src={article.image_url} 
+                                    alt={article.title}
+                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                  />
+                                  <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wide border border-white/10">
+                                      {article.type === 'blog' ? 'Blog' : 'News'}
+                                  </div>
+                              </div>
+                              <div className="p-6">
+                                  <p className="text-[10px] text-slate-500 font-bold uppercase mb-2 flex items-center justify-between">
+                                      <span>{article.source}</span>
+                                      <span>{format(new Date(article.published_at), 'dd MMM', { locale: ptBR })}</span>
+                                  </p>
+                                  <h3 className="text-xl font-bold text-white font-outfit mb-2 group-hover:text-pink-500 transition-colors leading-tight">
+                                      {article.title}
+                                  </h3>
+                                  <p className="text-slate-400 text-sm line-clamp-2 leading-relaxed">
+                                      {article.summary}
+                                  </p>
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              )}
+          </div>
+      </section>
 
       {/* City Guide Section (Location Aware) */}
       <section id="guide" className="py-20 px-6 bg-dark-900 border-t border-white/5 relative">
@@ -326,58 +395,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
           </div>
       </section>
 
-      {/* NEW SECTION: FAQ (Great for SEO and AdSense Approval) */}
-      <section id="faq" className="py-20 px-6 bg-gradient-to-b from-dark-950 to-slate-900 border-t border-white/5">
-          <div className="max-w-4xl mx-auto">
-              <div className="text-center mb-12">
-                  <h2 className="text-3xl font-black font-outfit text-white mb-4">Perguntas Frequentes</h2>
-                  <p className="text-slate-400">Tudo o que você precisa saber para começar.</p>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                  <div className="bg-slate-800/40 p-6 rounded-2xl border border-white/5 hover:bg-slate-800/60 transition-colors">
-                      <h3 className="text-white font-bold mb-2 flex items-center gap-2">
-                          <span className="text-pink-500 material-symbols-rounded text-sm">help</span>
-                          O Ponto G é gratuito?
-                      </h3>
-                      <p className="text-slate-400 text-sm leading-relaxed">
-                          Sim! O cadastro, visualização do mapa e chat básico são totalmente gratuitos. Oferecemos um plano "Plus" para funcionalidades extras como ver quem te visitou e modo invisível.
-                      </p>
-                  </div>
-                  
-                  <div className="bg-slate-800/40 p-6 rounded-2xl border border-white/5 hover:bg-slate-800/60 transition-colors">
-                      <h3 className="text-white font-bold mb-2 flex items-center gap-2">
-                          <span className="text-pink-500 material-symbols-rounded text-sm">help</span>
-                          Minha localização é exata?
-                      </h3>
-                      <p className="text-slate-400 text-sm leading-relaxed">
-                          Para sua segurança, nunca mostramos sua localização exata. Exibimos apenas a distância aproximada em relação a outros usuários.
-                      </p>
-                  </div>
-
-                  <div className="bg-slate-800/40 p-6 rounded-2xl border border-white/5 hover:bg-slate-800/60 transition-colors">
-                      <h3 className="text-white font-bold mb-2 flex items-center gap-2">
-                          <span className="text-pink-500 material-symbols-rounded text-sm">help</span>
-                          Como funcionam os Álbuns Privados?
-                      </h3>
-                      <p className="text-slate-400 text-sm leading-relaxed">
-                          Você pode carregar fotos sensíveis em álbuns bloqueados. Eles só ficam visíveis para usuários específicos aos quais você conceder acesso durante uma conversa.
-                      </p>
-                  </div>
-
-                  <div className="bg-slate-800/40 p-6 rounded-2xl border border-white/5 hover:bg-slate-800/60 transition-colors">
-                      <h3 className="text-white font-bold mb-2 flex items-center gap-2">
-                          <span className="text-pink-500 material-symbols-rounded text-sm">help</span>
-                          Posso usar em qualquer cidade?
-                      </h3>
-                      <p className="text-slate-400 text-sm leading-relaxed">
-                          O Ponto G funciona globalmente via GPS. Além disso, com o modo Viajante (Plus), você pode explorar outras cidades antes mesmo de chegar lá.
-                      </p>
-                  </div>
-              </div>
-          </div>
-      </section>
-
       {/* AdSense Placeholder Area Final */}
       <div className="max-w-5xl mx-auto w-full py-12 px-6">
          <div className="bg-slate-900/50 p-1 rounded-2xl border border-white/5 text-center relative overflow-hidden">
@@ -411,6 +428,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                 <div>
                     <h4 className="font-bold text-white mb-4 uppercase text-xs tracking-widest">Mapa do Site</h4>
                     <ul className="space-y-2">
+                        <li><a href="#news" className="hover:text-pink-500 transition-colors">G News</a></li>
                         <li><a href="#guide" className="hover:text-pink-500 transition-colors">Guia da Cidade</a></li>
                         <li><a href="#faq" className="hover:text-pink-500 transition-colors">Perguntas Frequentes</a></li>
                         <li><button onClick={onEnter} className="hover:text-pink-500 transition-colors">Entrar / Cadastro</button></li>

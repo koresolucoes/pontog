@@ -201,3 +201,19 @@ export interface Venue {
     website?: string;
     submitted_by?: string; // ID do usuário que sugeriu
 }
+
+// Novo tipo para Artigos do Blog/Notícias
+export type ArticleType = 'news' | 'blog';
+
+export interface NewsArticle {
+    id: string;
+    title: string;
+    summary: string;
+    content: string; // HTML content for internal blog, or URL for news
+    image_url: string;
+    source: string;
+    type: ArticleType;
+    published_at: string;
+    tags: string[];
+    author?: string;
+}

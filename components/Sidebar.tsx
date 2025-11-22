@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { useUiStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
@@ -6,7 +7,7 @@ import { MyAlbumsModal } from './MyAlbumsModal';
 import { BlockedUsersModal } from './BlockedUsersModal';
 
 export const Sidebar: React.FC = () => {
-    const { isSidebarOpen, setSidebarOpen, setSubscriptionModalOpen, setDonationModalOpen } = useUiStore();
+    const { isSidebarOpen, setSidebarOpen, setSubscriptionModalOpen, setDonationModalOpen, setActiveView } = useUiStore();
     const { user, toggleCanHost, toggleIncognitoMode, signOut } = useAuthStore();
     
     const [isMyAlbumsOpen, setIsMyAlbumsOpen] = useState(false);
@@ -28,6 +29,11 @@ export const Sidebar: React.FC = () => {
             toggleIncognitoMode(!user.is_incognito);
         }
     };
+
+    const handleNavClick = (view: any) => {
+        setActiveView(view);
+        handleClose();
+    }
 
     return (
         <>
@@ -87,6 +93,15 @@ export const Sidebar: React.FC = () => {
 
                     {/* Menu Items */}
                     <nav className="space-y-1">
+                        <SidebarLink 
+                            icon="newspaper" 
+                            label="G News & Blog" 
+                            onClick={() => handleNavClick('news')}
+                            iconColor="text-blue-400"
+                        />
+                        <div className="py-2">
+                            <div className="h-px bg-white/5 mx-2"></div>
+                        </div>
                         <SidebarLink 
                             icon="photo_library" 
                             label="Álbuns Privados" 

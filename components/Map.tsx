@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
 import { useAgoraStore } from '../stores/agoraStore';
@@ -38,6 +38,34 @@ const createVenueIcon = (type: string, isPartner: boolean) => {
         iconSize: [40, 40],
         iconAnchor: [20, 20],
         popupAnchor: [0, -24]
+    });
+};
+
+// Ícone para Clusters (Grupos de usuários)
+const createClusterIcon = (count: number, hasAgora: boolean) => {
+    const size = count > 100 ? 60 : count > 10 ? 50 : 40;
+    const bgClass = hasAgora 
+        ? 'bg-gradient-to-tr from-red-600 to-orange-600' 
+        : 'bg-gradient-to-tr from-pink-600 to-purple-600';
+    
+    const html = `
+        <div class="relative w-full h-full flex items-center justify-center transition-transform hover:scale-110">
+            <div class="absolute -inset-3 ${bgClass} opacity-40 rounded-full blur-md animate-pulse"></div>
+            <div class="relative w-full h-full rounded-full ${bgClass} border-2 border-white shadow-2xl flex items-center justify-center z-10">
+                <span class="text-white font-black font-outfit" style="font-size: ${size/2.5}px;">${count}</span>
+            </div>
+            ${hasAgora ? `
+            <div class="absolute -top-2 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center border-2 border-white z-20 shadow-sm">
+                <span class="material-symbols-rounded filled text-white text-[14px]">local_fire_department</span>
+            </div>` : ''}
+        </div>
+    `;
+
+    return L.divIcon({
+        html: html,
+        className: 'bg-transparent',
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2]
     });
 };
 
@@ -160,7 +188,8 @@ export const Map: React.FC = () => {
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
+  const userMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map()); // Guarda ID -> Marker
+  const clusterMarkersRef = useRef<L.Marker[]>([]); // Guarda Clusters
   const venueMarkersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
   const myLocationMarkerRef = useRef<L.Marker | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -169,6 +198,126 @@ export const Map: React.FC = () => {
   const [areTilesLoaded, setAreTilesLoaded] = useState(false);
   const [showTravelModal, setShowTravelModal] = useState(false);
   const isInitializingRef = useRef(false);
+
+  // --- CLUSTERING LOGIC ---
+  const updateMarkers = useCallback(() => {
+      const map = mapInstanceRef.current;
+      if (!map || !isMapCreated) return;
+
+      // 1. Filter visible users
+      const visibleUsers = users.filter(user => {
+          if (!Number.isFinite(user.lat) || !Number.isFinite(user.lng)) return false;
+          const isOnline = onlineUsers.includes(user.id);
+          return !filters.onlineOnly || isOnline;
+      });
+
+      // 2. Clear existing markers
+      userMarkersRef.current.forEach(m => m.remove());
+      userMarkersRef.current.clear();
+      clusterMarkersRef.current.forEach(m => m.remove());
+      clusterMarkersRef.current = [];
+
+      const zoom = map.getZoom();
+      
+      // Configuração de Clusterização
+      const CLUSTER_RADIUS_PX = 60; // Distância em pixels para agrupar
+      const shouldCluster = zoom < 17; // Não agrupa se estiver muito perto (zoom de rua)
+
+      if (!shouldCluster) {
+          // Renderização Normal (Sem Cluster)
+          visibleUsers.forEach(user => {
+              const isOnline = onlineUsers.includes(user.id);
+              const isAgora = agoraUserIds.includes(user.id);
+              
+              const marker = L.marker([user.lat!, user.lng!], {
+                  icon: createLiveMarker(user, isOnline, isAgora),
+                  zIndexOffset: isAgora ? 800 : isOnline ? 500 : 100
+              });
+              marker.on('click', () => setSelectedUser(user));
+              marker.addTo(map);
+              userMarkersRef.current.set(user.id, marker);
+          });
+          return;
+      }
+
+      // Algoritmo de Clusterização Simples (Greedy)
+      const clusters: { lat: number, lng: number, users: User[], hasAgora: boolean }[] = [];
+      const processedUsers = new Set<string>();
+
+      // Prioriza usuários "Agora" ou "Online" como sementes de cluster
+      const sortedUsers = [...visibleUsers].sort((a, b) => {
+          const aScore = (agoraUserIds.includes(a.id) ? 2 : 0) + (onlineUsers.includes(a.id) ? 1 : 0);
+          const bScore = (agoraUserIds.includes(b.id) ? 2 : 0) + (onlineUsers.includes(b.id) ? 1 : 0);
+          return bScore - aScore;
+      });
+
+      sortedUsers.forEach(user => {
+          if (processedUsers.has(user.id)) return;
+
+          const userPoint = map.latLngToLayerPoint([user.lat!, user.lng!]);
+          let addedToCluster = false;
+
+          // Tenta adicionar a um cluster existente
+          for (const cluster of clusters) {
+              const clusterPoint = map.latLngToLayerPoint([cluster.lat, cluster.lng]);
+              const distance = userPoint.distanceTo(clusterPoint);
+
+              if (distance < CLUSTER_RADIUS_PX) {
+                  cluster.users.push(user);
+                  if (agoraUserIds.includes(user.id)) cluster.hasAgora = true;
+                  processedUsers.add(user.id);
+                  addedToCluster = true;
+                  break;
+              }
+          }
+
+          // Cria novo cluster se não couber em nenhum
+          if (!addedToCluster) {
+              clusters.push({
+                  lat: user.lat!,
+                  lng: user.lng!,
+                  users: [user],
+                  hasAgora: agoraUserIds.includes(user.id)
+              });
+              processedUsers.add(user.id);
+          }
+      });
+
+      // Renderiza os Clusters e Marcadores Únicos
+      clusters.forEach(cluster => {
+          if (cluster.users.length === 1) {
+              // Cluster de 1 pessoa = Marcador Normal
+              const user = cluster.users[0];
+              const isOnline = onlineUsers.includes(user.id);
+              const isAgora = agoraUserIds.includes(user.id);
+              
+              const marker = L.marker([user.lat!, user.lng!], {
+                  icon: createLiveMarker(user, isOnline, isAgora),
+                  zIndexOffset: isAgora ? 800 : isOnline ? 500 : 100
+              });
+              marker.on('click', () => setSelectedUser(user));
+              marker.addTo(map);
+              userMarkersRef.current.set(user.id, marker);
+          } else {
+              // Marcador de Cluster
+              const clusterMarker = L.marker([cluster.lat, cluster.lng], {
+                  icon: createClusterIcon(cluster.users.length, cluster.hasAgora),
+                  zIndexOffset: 1000
+              });
+
+              clusterMarker.on('click', () => {
+                  // Ao clicar, zoom para caber todos os usuários do cluster
+                  const bounds = L.latLngBounds(cluster.users.map(u => [u.lat!, u.lng!]));
+                  map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18, animate: true });
+              });
+
+              clusterMarker.addTo(map);
+              clusterMarkersRef.current.push(clusterMarker);
+          }
+      });
+
+  }, [users, onlineUsers, agoraUserIds, filters, setSelectedUser, isMapCreated]);
+
 
   useEffect(() => {
     return () => {
@@ -180,6 +329,7 @@ export const Map: React.FC = () => {
             mapInstanceRef.current = null;
             userMarkersRef.current.clear();
             venueMarkersRef.current.clear();
+            clusterMarkersRef.current = [];
             myLocationMarkerRef.current = null;
         }
         isInitializingRef.current = false;
@@ -199,7 +349,8 @@ export const Map: React.FC = () => {
     if (!myLocation || !mapContainerRef.current) return;
     
     if (mapInstanceRef.current) {
-        mapInstanceRef.current.setView(myLocation);
+        // Se o mapa já existe, apenas movemos a view se necessário,
+        // mas não reinventamos a roda. Deixamos o 'updateMarkers' cuidar dos pinos.
         return;
     }
 
@@ -230,7 +381,7 @@ export const Map: React.FC = () => {
                 zoomAnimation: true,
                 fadeAnimation: true,
                 markerZoomAnimation: true,
-                preferCanvas: true
+                preferCanvas: true // Importante para performance!
             }).setView(myLocation, 15);
 
             const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -248,6 +399,10 @@ export const Map: React.FC = () => {
 
             tileLayer.addTo(newMap);
 
+            // Events for Re-Clustering
+            newMap.on('zoomend', () => updateMarkers());
+            newMap.on('moveend', () => updateMarkers());
+
             setTimeout(() => {
                 setAreTilesLoaded(true);
                 if (newMap) newMap.invalidateSize();
@@ -256,16 +411,7 @@ export const Map: React.FC = () => {
             mapInstanceRef.current = newMap;
             setIsMapCreated(true);
 
-            let frames = 0;
-            const aggressiveInvalidate = () => {
-                if (newMap && frames < 30) {
-                    newMap.invalidateSize();
-                    frames++;
-                    requestAnimationFrame(aggressiveInvalidate);
-                }
-            };
-            aggressiveInvalidate();
-
+            // Força resize inicial
             const observer = new ResizeObserver(() => {
                 if (mapInstanceRef.current) {
                     mapInstanceRef.current.invalidateSize();
@@ -283,7 +429,7 @@ export const Map: React.FC = () => {
 
     requestAnimationFrame(waitForDimensionsAndInit);
 
-  }, [myLocation]);
+  }, [myLocation, updateMarkers]);
 
   // Atualiza posição e Ícone do "Você"
   useEffect(() => {
@@ -295,82 +441,40 @@ export const Map: React.FC = () => {
         if (!myLocationMarkerRef.current) {
             myLocationMarkerRef.current = L.marker(myLocation, { 
                 icon: MyLocationMarkerIcon(profile.avatar_url, canHost, isTraveling), 
-                zIndexOffset: 1000 
+                zIndexOffset: 2000 // Acima de tudo
             }).addTo(map);
         } else {
             const oldLatLng = myLocationMarkerRef.current.getLatLng();
             if (oldLatLng.distanceTo(myLocation) > 2) {
                 myLocationMarkerRef.current.setLatLng(myLocation);
-                map.panTo(myLocation); 
+                // Opcional: só pan se estiver longe da visão
+                if (!map.getBounds().contains(myLocation)) {
+                    map.panTo(myLocation);
+                }
             }
             myLocationMarkerRef.current.setIcon(MyLocationMarkerIcon(profile.avatar_url, canHost, isTraveling));
-            myLocationMarkerRef.current.setZIndexOffset(1000);
+            myLocationMarkerRef.current.setZIndexOffset(2000);
         }
     }
   }, [myLocation, profile, isMapCreated]);
 
-  // Gerenciamento dos Marcadores de Usuários
+  // Chama o updateMarkers sempre que os dados mudam
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map || !isMapCreated) return;
-    
-    const markers = userMarkersRef.current;
-    const userIdsInStore = new Set(users.map(u => u.id));
+      updateMarkers();
+  }, [users, onlineUsers, agoraUserIds, filters, updateMarkers]);
 
-    markers.forEach((marker, userId) => {
-        if (!userIdsInStore.has(userId)) {
-            marker.remove();
-            markers.delete(userId);
-        }
-    });
-
-    users.forEach(user => {
-        if (!Number.isFinite(user.lat) || !Number.isFinite(user.lng)) return;
-
-        const isOnline = onlineUsers.includes(user.id);
-        const isAgora = agoraUserIds.includes(user.id);
-        const shouldBeVisible = !filters.onlineOnly || isOnline;
-
-        let marker = markers.get(user.id);
-
-        if (shouldBeVisible) {
-            if (!marker) {
-                marker = L.marker([user.lat!, user.lng!]);
-                marker.on('click', () => setSelectedUser(user));
-                markers.set(user.id, marker);
-                marker.addTo(map);
-            } else {
-                const oldLatLng = marker.getLatLng();
-                if (oldLatLng.lat !== user.lat || oldLatLng.lng !== user.lng) {
-                    marker.setLatLng([user.lat!, user.lng!]);
-                }
-                if (!map.hasLayer(marker)) marker.addTo(map);
-            }
-
-            marker.setIcon(createLiveMarker(user, isOnline, isAgora));
-            marker.setZIndexOffset(isAgora ? 800 : isOnline ? 500 : 100);
-        } else {
-            if (marker && map.hasLayer(marker)) {
-                marker.remove();
-            }
-        }
-    });
-  }, [users, onlineUsers, agoraUserIds, filters, setSelectedUser, isMapCreated]);
-
-  // Gerenciamento dos Marcadores de Locais (Venues)
+  // Gerenciamento dos Marcadores de Locais (Venues) - Separado pois não clusteriza com users
   useEffect(() => {
       const map = mapInstanceRef.current;
       if (!map || !isMapCreated) return;
 
       const markers = venueMarkersRef.current;
-      // Se não tem venues carregados, limpa tudo
       if (venues.length === 0) {
           markers.forEach(m => m.remove());
           markers.clear();
           return;
       }
 
-      // Remove marcadores antigos que não estão mais na lista (se houver filtro)
       const venueIds = new Set(venues.map(v => v.id));
       markers.forEach((marker, id) => {
           if (!venueIds.has(id)) {
@@ -386,7 +490,7 @@ export const Map: React.FC = () => {
           if (!marker) {
               marker = L.marker([venue.lat, venue.lng], {
                   icon: createVenueIcon(venue.type, venue.is_partner),
-                  zIndexOffset: 200 // Fica abaixo de usuários online, mas acima do mapa
+                  zIndexOffset: 200 
               });
               
               // Popup customizado para o local

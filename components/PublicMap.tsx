@@ -74,6 +74,7 @@ export const PublicMap: React.FC<PublicMapProps> = ({ venues, center, cityName, 
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<L.Map | null>(null);
     const markersRef = useRef<L.Marker[]>([]);
+    const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
     useEffect(() => {
         if (!mapContainerRef.current) return;
@@ -84,7 +85,8 @@ export const PublicMap: React.FC<PublicMapProps> = ({ venues, center, cityName, 
                 zoomControl: false,
                 attributionControl: false,
                 scrollWheelZoom: false, // Desabilita scroll para não atrapalhar a landing page
-                dragging: true,
+                dragging: !L.Browser.mobile, // Em mobile, desabilita drag para não atrapalhar o scroll da página
+                tap: false,
             }).setView([center.lat, center.lng], 13);
 
             // Dark theme map tiles
@@ -94,6 +96,11 @@ export const PublicMap: React.FC<PublicMapProps> = ({ venues, center, cityName, 
             }).addTo(map);
 
             mapInstanceRef.current = map;
+
+            // Força um recálculo do tamanho após um breve delay para garantir que a animação CSS terminou
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 500);
         } else {
             // Atualiza o centro se mudar (ex: geolocalização terminou)
             // Animação suave para nova posição
@@ -148,10 +155,28 @@ export const PublicMap: React.FC<PublicMapProps> = ({ venues, center, cityName, 
             markersRef.current.push(marker);
         });
 
+        // Configura o ResizeObserver para corrigir o tamanho do mapa automaticamente
+        if (mapContainerRef.current && !resizeObserverRef.current) {
+            resizeObserverRef.current = new ResizeObserver(() => {
+                if (mapInstanceRef.current) {
+                    mapInstanceRef.current.invalidateSize();
+                }
+            });
+            resizeObserverRef.current.observe(mapContainerRef.current);
+        }
+
+        return () => {
+            // Cleanup
+            if (resizeObserverRef.current) {
+                resizeObserverRef.current.disconnect();
+                resizeObserverRef.current = null;
+            }
+        };
+
     }, [venues, center, onVenueClick]);
 
     return (
-        <div className="relative w-full h-[400px] rounded-3xl overflow-hidden border border-white/10 shadow-2xl group">
+        <div className="relative w-full h-[400px] rounded-3xl overflow-hidden border border-white/10 shadow-2xl group isolate transform-gpu">
             <div ref={mapContainerRef} className="w-full h-full z-0 bg-slate-900" />
             
             {/* Overlay Gradients para misturar com a página */}

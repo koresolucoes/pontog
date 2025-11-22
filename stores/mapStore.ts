@@ -218,8 +218,6 @@ export const useMapStore = create<MapState>((set, get) => ({
   syncVenuesWithOSM: async (coords: Coordinates) => {
       try {
           const session = useAuthStore.getState().session;
-          // Só sincroniza se tiver sessão (por segurança/rate limit)
-          // Ou se quiser permitir na landing page, remova a checagem de session
           
           const response = await fetch('/api/sync-venues', {
               method: 'POST',
@@ -236,30 +234,29 @@ export const useMapStore = create<MapState>((set, get) => ({
           
           // Se encontrou novos locais, atualiza o estado local mesclando
           if (result.success && result.venues && result.venues.length > 0) {
-              set(state => {
-                  const existingIds = new Set(state.venues.map(v => v.id));
-                  // Filtrar o que já temos (embora o ID do Supabase seja diferente do OSM, 
-                  // aqui estamos confiando que a API de sync já fez o upsert e retornou os dados corretos)
-                  // Para simplificar no front, vamos apenas adicionar os novos que a API retornou
-                  // que não estejam na lista atual (pelo ID se a API retornar o ID do Supabase, 
-                  // mas como é insert/upsert, talvez precisemos refetchar ou confiar no retorno).
-                  
-                  // A estratégia mais segura após um sync positivo é chamar o RPC de novo silenciosamente
-                  // ou adicionar a lista retornada se ela contiver os IDs do Supabase.
-                  
-                  // Vamos fazer um refetch silencioso da RPC para garantir consistência
-                  supabase.rpc('get_nearby_venues', {
-                      p_lat: coords.lat,
-                      p_lng: coords.lng
-                  }).then(({ data }) => {
-                      if (data) set({ venues: data as Venue[] });
-                  });
-
-                  return {}; // Retorna nada aqui pois o then acima fará o update
-              });
+              // OTIMIZAÇÃO: Em vez de apenas setar os venues da API, recarregamos a lista oficial do DB
+              // para garantir que tenhamos os IDs corretos (UUID) e ordenação por distância.
+              // Isso evita "pulos" na UI.
               
-              if (result.count > 0) {
-                  toast(`Encontramos ${result.count} novos locais na região!`, { icon: '🗺️', position: 'bottom-center', duration: 3000 });
+              const { data: updatedData } = await supabase.rpc('get_nearby_venues', {
+                  p_lat: coords.lat,
+                  p_lng: coords.lng
+              });
+
+              if (updatedData && updatedData.length > 0) {
+                  set({ venues: updatedData as Venue[] });
+                  if (result.count > 0) {
+                      toast(`Encontramos ${result.count} novos locais na região!`, { 
+                          icon: '🗺️', 
+                          position: 'bottom-center', 
+                          duration: 3000,
+                          style: {
+                              background: '#1e293b',
+                              color: '#fff',
+                              border: '1px solid #334155'
+                          }
+                      });
+                  }
               }
           }
       } catch (e) {

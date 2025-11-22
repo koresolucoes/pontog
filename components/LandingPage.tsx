@@ -1,8 +1,10 @@
 
+
 import React, { useEffect, useState } from 'react';
 import { AdSenseUnit } from './AdSenseUnit';
 import { useMapStore } from '../stores/mapStore';
 import { useNewsStore } from '../stores/newsStore'; // New Import
+import { useUiStore } from '../stores/uiStore';
 import { PublicMap } from './PublicMap';
 import { Coordinates } from '../types';
 import { LegalModal, LegalDocType } from './LegalModals';
@@ -16,6 +18,8 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
   const { venues, fetchVenues } = useMapStore();
   const { articles, fetchArticles } = useNewsStore(); // New Hook
+  const { setActiveView } = useUiStore();
+  
   const [locating, setLocating] = useState(true);
   const [locationAllowed, setLocationAllowed] = useState(false);
   const [cityName, setCityName] = useState<string | null>(null);
@@ -67,6 +71,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
       }
   }, [fetchVenues, fetchArticles]);
 
+  const handleOpenNews = () => {
+      setActiveView('news');
+  };
+
   return (
     <div className="min-h-screen bg-dark-950 text-white flex flex-col font-inter overflow-x-hidden selection:bg-pink-500 selection:text-white">
       
@@ -89,7 +97,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
             </div>
 
             <div className="flex items-center gap-4">
-                <a href="#news" className="text-sm font-medium text-slate-400 hover:text-white transition-colors hidden md:block">News</a>
+                <button onClick={handleOpenNews} className="text-sm font-medium text-slate-400 hover:text-white transition-colors hidden md:block">News</button>
                 <a href="#guide" className="text-sm font-medium text-slate-400 hover:text-white transition-colors hidden md:block">Guia Local</a>
                 <button 
                     onClick={onEnter}
@@ -169,7 +177,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                       </p>
                   </div>
                   <button 
-                    onClick={onEnter} 
+                    onClick={handleOpenNews} 
                     className="text-pink-500 font-bold hover:text-pink-400 flex items-center gap-1 transition-colors"
                   >
                       Ver todas as notícias
@@ -186,7 +194,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                       {articles.slice(0, 3).map(article => (
                           <div 
                             key={article.id}
-                            onClick={onEnter}
+                            onClick={handleOpenNews}
                             className="group cursor-pointer bg-slate-800 rounded-2xl overflow-hidden border border-white/5 hover:border-pink-500/30 transition-all hover:-translate-y-1"
                           >
                               <div className="relative aspect-video overflow-hidden">
@@ -428,7 +436,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                 <div>
                     <h4 className="font-bold text-white mb-4 uppercase text-xs tracking-widest">Mapa do Site</h4>
                     <ul className="space-y-2">
-                        <li><a href="#news" className="hover:text-pink-500 transition-colors">G News</a></li>
+                        <li><button onClick={handleOpenNews} className="hover:text-pink-500 transition-colors">G News</button></li>
                         <li><a href="#guide" className="hover:text-pink-500 transition-colors">Guia da Cidade</a></li>
                         <li><a href="#faq" className="hover:text-pink-500 transition-colors">Perguntas Frequentes</a></li>
                         <li><button onClick={onEnter} className="hover:text-pink-500 transition-colors">Entrar / Cadastro</button></li>

@@ -139,6 +139,26 @@ const App: React.FC = () => {
         if (showAuth) {
             return <Auth />;
         }
+        // Se o usuário não está logado, mas clicou para ver notícias
+        if (activeView === 'news') {
+            return (
+                <div className="h-screen w-screen bg-dark-900 relative overflow-hidden flex flex-col">
+                    {/* Background Animado Público */}
+                    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+                        <div className="absolute inset-0 bg-dark-900"></div>
+                        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-900/30 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob"></div>
+                        <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-pink-900/30 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob" style={{ animationDelay: '2s' }}></div>
+                        <div className="absolute -bottom-32 left-20 w-96 h-96 bg-fuchsia-900/30 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob" style={{ animationDelay: '4s' }}></div>
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03]"></div>
+                    </div>
+                    <BackgroundParticles />
+                    
+                    <div className="relative z-10 flex-1 overflow-hidden">
+                        <NewsView />
+                    </div>
+                </div>
+            );
+        }
         return <LandingPage onEnter={() => setShowAuth(true)} />;
     };
 

@@ -1,6 +1,9 @@
 
+
 import React, { useEffect, useState } from 'react';
 import { useNewsStore } from '../stores/newsStore';
+import { useAuthStore } from '../stores/authStore';
+import { useUiStore } from '../stores/uiStore';
 import { NewsArticle } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
@@ -9,6 +12,8 @@ import { AdSenseUnit } from './AdSenseUnit';
 
 export const NewsView: React.FC = () => {
     const { articles, loading, fetchArticles } = useNewsStore();
+    const { user } = useAuthStore();
+    const { setActiveView } = useUiStore();
     const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
     const [filter, setFilter] = useState<'all' | 'blog' | 'news'>('all');
 
@@ -24,6 +29,10 @@ export const NewsView: React.FC = () => {
             // Blog interno abre no modal
             setSelectedArticle(article);
         }
+    };
+
+    const handleBack = () => {
+        setActiveView('home'); // Vai voltar para a Landing Page pois não tem user
     };
 
     const filteredArticles = articles.filter(a => filter === 'all' || a.type === filter);
@@ -100,17 +109,30 @@ export const NewsView: React.FC = () => {
         </div>
     );
 
+    // Se não estiver logado, não adiciona o padding extra para o menu hambúrguer
+    const headerPadding = user ? 'pl-16' : 'px-5';
+
     return (
         <>
             <div className="h-full flex flex-col bg-dark-900 pb-20">
                 {/* Header */}
-                <div className="px-5 py-4 bg-dark-900/90 backdrop-blur-xl sticky top-0 z-20 border-b border-white/5 pl-16 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-black text-white font-outfit tracking-tight flex items-center gap-2">
-                            <span className="material-symbols-rounded text-3xl text-pink-500">newspaper</span>
-                            G News
-                        </h1>
-                        <p className="text-xs text-slate-400 font-medium tracking-wide">Notícias & Lifestyle</p>
+                <div className={`${headerPadding} py-4 bg-dark-900/90 backdrop-blur-xl sticky top-0 z-20 border-b border-white/5 flex flex-wrap gap-3 justify-between items-center`}>
+                    <div className="flex items-center gap-3">
+                        {!user && (
+                            <button 
+                                onClick={handleBack}
+                                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                            >
+                                <span className="material-symbols-rounded">arrow_back</span>
+                            </button>
+                        )}
+                        <div>
+                            <h1 className="text-2xl font-black text-white font-outfit tracking-tight flex items-center gap-2">
+                                <span className="material-symbols-rounded text-3xl text-pink-500">newspaper</span>
+                                G News
+                            </h1>
+                            <p className="text-xs text-slate-400 font-medium tracking-wide">Notícias & Lifestyle</p>
+                        </div>
                     </div>
                     
                     {/* Filter Tabs */}
@@ -143,7 +165,7 @@ export const NewsView: React.FC = () => {
                             <p className="text-sm text-slate-500 animate-pulse">Carregando novidades...</p>
                         </div>
                     ) : (
-                        <>
+                        <div className="max-w-7xl mx-auto">
                             {/* Featured Article (First one) */}
                             {filter === 'all' && articles.length > 0 && (
                                 <FeaturedCard article={articles[0]} />
@@ -174,7 +196,7 @@ export const NewsView: React.FC = () => {
                                     <p>Nenhum artigo encontrado nesta categoria.</p>
                                 </div>
                             )}
-                        </>
+                        </div>
                     )}
                 </div>
             </div>

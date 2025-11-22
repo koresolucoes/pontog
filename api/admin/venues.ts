@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
+import { add } from 'date-fns';
 
 const verifyAdmin = (req: VercelRequest) => {
     const token = req.headers.authorization?.split(' ')[1];
@@ -60,12 +61,62 @@ export default async function handler(
             if (updates.is_verified === true) {
                 const { data: currentVenue } = await supabaseAdmin
                     .from('venues')
-                    .select('submitted_by, is_verified')
+                    .select('submitted_by, is_verified, name')
                     .eq('id', put_id as string)
                     .single();
                 
+                // Só concede prêmio se tinha um autor e ainda não estava verificado
                 if (currentVenue && currentVenue.submitted_by && !currentVenue.is_verified) {
-                    console.log(`[GAMIFICATION] Venue approved! Granting reward to user ${currentVenue.submitted_by}`);
+                    const userId = currentVenue.submitted_by;
+                    console.log(`[GAMIFICATION] Venue approved! Processing reward for user ${userId}`);
+
+                    try {
+                        // 1. Buscar perfil atual para lógica de acumulação
+                        const { data: userProfile } = await supabaseAdmin
+                            .from('profiles')
+                            .select('subscription_tier, subscription_expires_at')
+                            .eq('id', userId)
+                            .single();
+
+                        if (userProfile) {
+                            const now = new Date();
+                            let currentExpiresAt = userProfile.subscription_expires_at ? new Date(userProfile.subscription_expires_at) : null;
+                            let newExpiresAt: Date;
+
+                            // Lógica Acumulativa:
+                            // Se já é Plus E a data de expiração é futura, adiciona 3 dias ao final da vigência.
+                            // Caso contrário (Free ou Plus vencido), adiciona 3 dias a partir de agora.
+                            if (userProfile.subscription_tier === 'plus' && currentExpiresAt && currentExpiresAt > now) {
+                                newExpiresAt = add(currentExpiresAt, { days: 3 });
+                            } else {
+                                newExpiresAt = add(now, { days: 3 });
+                            }
+
+                            // 2. Atualizar perfil do usuário
+                            await supabaseAdmin
+                                .from('profiles')
+                                .update({
+                                    subscription_tier: 'plus',
+                                    subscription_expires_at: newExpiresAt.toISOString()
+                                })
+                                .eq('id', userId);
+
+                            // 3. Criar registro histórico de "pagamento" (recompensa)
+                            await supabaseAdmin.from('payments').insert({
+                                mercadopago_id: `reward_venue_${put_id}_${Date.now()}`,
+                                user_id: userId,
+                                plan_id: 'reward_venue_3days',
+                                amount: 0.00,
+                                status: 'approved',
+                                created_at: new Date().toISOString()
+                            });
+                            
+                            console.log(`[GAMIFICATION] Reward granted. New expiry: ${newExpiresAt.toISOString()}`);
+                        }
+                    } catch (rewardError) {
+                        console.error("[GAMIFICATION] Error granting reward:", rewardError);
+                        // Não interrompe o fluxo principal de salvar o local, apenas loga o erro
+                    }
                 }
             }
 

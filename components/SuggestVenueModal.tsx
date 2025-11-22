@@ -139,7 +139,7 @@ export const SuggestVenueModal: React.FC<SuggestVenueModalProps> = ({ onClose })
                 <div>
                     <h3 className="font-black text-white text-xs uppercase tracking-wide">Ganhe Recompensas</h3>
                     <p className="text-[10px] text-yellow-100 leading-tight">
-                        Indique um point novo. Se aprovado, ganhe <span className="font-bold text-white">Winks Extras</span>!
+                        Indique um point novo. Se aprovado, ganhe <span className="font-bold text-white">3 Dias de Ponto G Plus</span>!
                     </p>
                 </div>
             </div>

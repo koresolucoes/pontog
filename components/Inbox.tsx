@@ -158,7 +158,8 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     return (
         <>
         <div className="flex flex-col h-full bg-dark-900">
-            <header className="p-4 pb-0 flex-shrink-0 z-10 bg-dark-900/80 backdrop-blur-xl border-b border-white/5">
+            {/* Added pl-16 to header to avoid overlapping with the global hamburger menu */}
+            <header className="p-4 pb-0 flex-shrink-0 z-10 bg-dark-900/80 backdrop-blur-xl border-b border-white/5 pl-16">
                 <h1 className="text-2xl font-black tracking-tight mb-4 font-outfit text-white px-2">Inbox</h1>
                 <div className="flex justify-between gap-2 p-1.5 bg-slate-800/50 rounded-2xl border border-white/5 mb-4">
                     <TabButton label="Chats" tabName="messages" icon="chat_bubble" />

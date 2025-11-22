@@ -204,11 +204,11 @@ const App: React.FC = () => {
 
                         {/* 
                             As outras views são uma "Cortina" sobre o mapa.
-                            Se activeView !== 'map', renderizamos um container opaco (bg-dark-900) por cima.
-                            Se activeView === 'map', não renderizamos nada aqui, revelando o mapa que está por baixo.
+                            Mudança: Usamos 'fixed inset-0' para garantir que cubra 100% da tela, 
+                            cobrindo o mapa totalmente sem vazamentos.
                         */}
                         {activeView !== 'map' && (
-                            <div key={activeView} className="relative z-10 w-full h-full bg-dark-900 animate-fade-in">
+                            <div key={activeView} className="fixed inset-0 z-10 w-full h-full bg-dark-900 animate-fade-in overflow-hidden">
                                 {renderOtherViews()}
                             </div>
                         )}

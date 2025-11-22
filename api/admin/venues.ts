@@ -33,9 +33,12 @@ export default async function handler(
 
         case 'POST':
             // Criação manual pelo admin
+            // Exclude ID to rely on auto-generation
+            const { id, ...newVenueData } = req.body;
+            
             const { data: post_data, error: post_error } = await supabaseAdmin
                 .from('venues')
-                .insert([{ ...req.body, is_verified: true, source_type: 'admin' }])
+                .insert([{ ...newVenueData, is_verified: true, source_type: 'admin' }])
                 .select();
             if (post_error) throw post_error;
             return res.status(201).json(post_data[0]);
@@ -53,13 +56,7 @@ export default async function handler(
                     .single();
                 
                 if (currentVenue && currentVenue.submitted_by && !currentVenue.is_verified) {
-                    // Logic to grant reward would go here.
-                    // Since we can't easily run complex RPCs or create new tables in this environment,
-                    // we'll just log it. In a real app, this would insert into a rewards table or update wink count.
                     console.log(`[GAMIFICATION] Venue approved! Granting reward to user ${currentVenue.submitted_by}`);
-                    
-                    // Example: Send a notification (if we had a notification system endpoint ready here)
-                    // Or we could update a 'badges' array if the user table had one.
                 }
             }
 
@@ -87,6 +84,9 @@ export default async function handler(
 
   } catch (error: any) {
     console.error(`Error in /api/admin/venues: ${error.message}`);
-    res.status(error.message === 'Not authenticated' ? 401 : 500).json({ error: error.message || 'Server error' });
+    res.status(error.message === 'Not authenticated' ? 401 : 500).json({ 
+        error: error.message || 'Server error',
+        details: error.details || error.hint || JSON.stringify(error) 
+    });
   }
 }

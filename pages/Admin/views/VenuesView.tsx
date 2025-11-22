@@ -24,7 +24,8 @@ const VenueModal: React.FC<{
 }> = ({ venue, onClose, onSave }) => {
     const [formData, setFormData] = useState<Partial<Venue>>({
         name: '', type: 'bar', address: '', description: '', 
-        lat: -23.5505, lng: -46.6333, image_url: '', is_partner: false, is_verified: true
+        lat: -23.5505, lng: -46.6333, image_url: '', is_partner: false, is_verified: true,
+        tags: []
     });
     const [loading, setLoading] = useState(false);
     const token = useAdminStore((state) => state.getToken());
@@ -39,7 +40,8 @@ const VenueModal: React.FC<{
             setFormData({ 
                 ...venue, 
                 lat: venue.lat || -23.5505, 
-                lng: venue.lng || -46.6333 
+                lng: venue.lng || -46.6333,
+                tags: venue.tags || []
             });
         }
     }, [venue]);
@@ -123,6 +125,8 @@ const VenueModal: React.FC<{
             // Remove campos que não devem ir pro payload se forem vazios ou inválidos
             const payload = { ...formData };
             if (!payload.osm_id) delete payload.osm_id;
+            // Ensure tags is an array
+            if (!payload.tags) payload.tags = [];
 
             const response = await fetch(url, {
                 method,
@@ -133,7 +137,11 @@ const VenueModal: React.FC<{
                 body: JSON.stringify(payload),
             });
 
-            if (!response.ok) throw new Error('Falha ao salvar local');
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.details || data.error || 'Falha ao salvar local');
+            }
             
             if (formData.is_verified && venue && !venue.is_verified && venue.submitted_by) {
                 toast.success(`Local aprovado! Recompensas enviadas para o usuário.`, { icon: '🎁' });

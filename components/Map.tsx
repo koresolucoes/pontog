@@ -141,10 +141,14 @@ export const Map: React.FC = () => {
   // Garante que o mapa se redesenhe quando a aba muda para 'map'
   useEffect(() => {
       if (activeView === 'map' && mapInstanceRef.current) {
-          // Um pequeno delay para garantir que a transição CSS/DOM ocorreu
+          // Invalidação agressiva ao entrar na aba para garantir que o preto suma
+          mapInstanceRef.current.invalidateSize();
           setTimeout(() => {
               mapInstanceRef.current?.invalidateSize();
-          }, 100);
+          }, 50);
+          setTimeout(() => {
+              mapInstanceRef.current?.invalidateSize();
+          }, 300);
       }
   }, [activeView]);
 
@@ -171,8 +175,6 @@ export const Map: React.FC = () => {
         }
 
         // Se a altura ou largura for 0, o elemento ainda não foi renderizado ou animado corretamente.
-        // Agora que o mapa está sempre montado (z-index), ele deve ter tamanho desde o início.
-        // Mas mantemos a verificação por segurança.
         if (element.clientWidth === 0 || element.clientHeight === 0) {
             requestAnimationFrame(waitForDimensionsAndInit);
             return;
@@ -212,11 +214,12 @@ export const Map: React.FC = () => {
 
             tileLayer.addTo(newMap);
 
-            // Fallback de segurança: Se os tiles vierem do cache ou algo falhar, libera a tela em 3s
+            // Fallback de segurança: Se os tiles vierem do cache ou algo falhar, libera a tela em 2s
+            // Reduzi para 2s para ser mais rápido
             setTimeout(() => {
                 setAreTilesLoaded(true);
-                newMap.invalidateSize();
-            }, 3000);
+                if (newMap) newMap.invalidateSize();
+            }, 2000);
 
             mapInstanceRef.current = newMap;
             setIsMapCreated(true);
@@ -333,12 +336,15 @@ export const Map: React.FC = () => {
 
   return (
       <div className="w-full h-full relative bg-dark-900 isolate overflow-hidden">
-          {/* Container do Mapa (Sempre Renderizado, mas com opacidade controlada) */}
+          {/* Container do Mapa 
+              FIX: Removed opacity toggle logic. Map is always opacity 1.
+              Visibility is handled by the 'Curtain' overlay in App.tsx.
+              This prevents Leaflet from stopping rendering due to invisibility.
+          */}
           <div 
             ref={mapContainerRef} 
             className="w-full h-full absolute inset-0 z-0 outline-none focus:outline-none"
-            // Só mostra o mapa (opacity 1) quando o scan terminar
-            style={{ opacity: isScanning ? 0 : 1, transition: 'opacity 0.8s ease-in' }}
+            style={{ opacity: 1 }} 
           />
 
           {/* Overlay de Carregamento / Scanner (Fade Out quando pronto) */}

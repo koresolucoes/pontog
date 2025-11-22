@@ -173,7 +173,7 @@ const App: React.FC = () => {
             ) : showOnboarding ? (
                 <Onboarding />
             ) : (
-                <div className="h-screen w-screen bg-gradient-to-b from-dark-900 to-slate-900 text-slate-50 flex flex-col antialiased overflow-hidden relative">
+                <div className="h-screen w-screen bg-dark-900 text-slate-50 flex flex-col antialiased overflow-hidden relative">
                     
                     {/* Animated Particle Background (Visível apenas quando não estamos no mapa) */}
                     {activeView !== 'map' && <BackgroundParticles />}
@@ -192,22 +192,23 @@ const App: React.FC = () => {
                     {/* Main Content Area */}
                     <main className="flex-1 overflow-hidden pb-0 z-10 relative">
                         
-                        {/* ESTRATÉGIA MAPA PERSISTENTE:
-                            O Mapa é SEMPRE renderizado em uma camada absoluta.
-                            Quando activeView === 'map', ele ganha z-index alto e opacidade total.
-                            Quando não, ele fica no fundo (z-0) esperando.
+                        {/* 
+                            ESTRATÉGIA MAPA PERSISTENTE:
+                            O Mapa fica FIXED no fundo (z-0).
+                            Ele NUNCA tem display:none ou opacity:0, pois isso causa problemas de renderização no Leaflet.
+                            Ele está sempre lá, visível para o navegador.
                         */}
-                        <div 
-                            className={`absolute inset-0 w-full h-full transition-opacity duration-500 ease-in-out ${
-                                activeView === 'map' ? 'z-10 opacity-100 pointer-events-auto' : '-z-10 opacity-0 pointer-events-none'
-                            }`}
-                        >
+                        <div className="fixed inset-0 w-full h-full z-0">
                             <Map />
                         </div>
 
-                        {/* As outras views são renderizadas SOBRE o mapa quando ativas */}
+                        {/* 
+                            As outras views são uma "Cortina" sobre o mapa.
+                            Se activeView !== 'map', renderizamos um container opaco (bg-dark-900) por cima.
+                            Se activeView === 'map', não renderizamos nada aqui, revelando o mapa que está por baixo.
+                        */}
                         {activeView !== 'map' && (
-                            <div key={activeView} className="w-full h-full animate-fade-in relative z-20 bg-dark-900">
+                            <div key={activeView} className="relative z-10 w-full h-full bg-dark-900 animate-fade-in">
                                 {renderOtherViews()}
                             </div>
                         )}

@@ -33,8 +33,8 @@ export default async function handler(
 
         case 'POST':
             // Criação manual pelo admin
-            // Exclude ID to rely on auto-generation
-            const { id, ...newVenueData } = req.body;
+            // Exclude system fields ID/created_at/submitted_by to prevent DB errors on insert
+            const { id: _id, created_at: _cat, submitted_by: _sub, ...newVenueData } = req.body;
             
             const { data: post_data, error: post_error } = await supabaseAdmin
                 .from('venues')
@@ -45,7 +45,8 @@ export default async function handler(
 
         case 'PUT':
             const { id: put_id } = req.query;
-            const updates = req.body;
+            // Sanitize body for updates too
+            const { id: _pid, created_at: _pcat, submitted_by: _psub, ...updates } = req.body;
 
             // Check if we are approving a venue (verified changing to true)
             if (updates.is_verified === true) {

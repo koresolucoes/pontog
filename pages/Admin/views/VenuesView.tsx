@@ -122,11 +122,22 @@ const VenueModal: React.FC<{
             const url = isEditing ? `/api/admin/venues?id=${venue?.id}` : '/api/admin/venues';
             const method = isEditing ? 'PUT' : 'POST';
 
-            // Remove campos que não devem ir pro payload se forem vazios ou inválidos
-            const payload = { ...formData };
-            if (!payload.osm_id) delete payload.osm_id;
-            // Ensure tags is an array
-            if (!payload.tags) payload.tags = [];
+            // Construct a clean payload containing ONLY the fields we want to update/save.
+            // This avoids sending system fields like 'id', 'created_at', 'submitted_by' back to the server,
+            // which can cause database errors (500) or silent failures.
+            const payload = {
+                name: formData.name,
+                type: formData.type,
+                address: formData.address,
+                description: formData.description,
+                lat: formData.lat,
+                lng: formData.lng,
+                image_url: formData.image_url,
+                is_partner: formData.is_partner,
+                is_verified: formData.is_verified,
+                tags: formData.tags || [],
+                osm_id: formData.osm_id // Include only if exists
+            };
 
             const response = await fetch(url, {
                 method,
@@ -140,6 +151,8 @@ const VenueModal: React.FC<{
             const data = await response.json();
 
             if (!response.ok) {
+                // Log full details to console for debugging
+                console.error("Server Error Details:", data);
                 throw new Error(data.details || data.error || 'Falha ao salvar local');
             }
             

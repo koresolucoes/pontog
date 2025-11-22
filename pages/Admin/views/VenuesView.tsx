@@ -5,6 +5,7 @@ import { useAdminStore } from '../../../stores/adminStore';
 import { Venue, VenueType } from '../../../types';
 import toast from 'react-hot-toast';
 import * as L from 'leaflet';
+import { AddressAutocomplete } from '../../../components/AddressAutocomplete';
 
 const VENUE_TYPES: { value: VenueType; label: string }[] = [
     { value: 'sauna', label: 'Sauna' },
@@ -87,11 +88,15 @@ const VenueModal: React.FC<{
         };
     }, []); // Executa na montagem, mas usa refs para atualizar
 
-    // Atualiza marcador se formData mudar externamente (ex: edição)
+    // Atualiza marcador se formData mudar externamente (ex: edição ou autocomplete)
     useEffect(() => {
-        if (markerRef.current && formData.lat && formData.lng) {
-            markerRef.current.setLatLng([formData.lat, formData.lng]);
-            mapInstance.current?.panTo([formData.lat, formData.lng]);
+        if (markerRef.current && formData.lat && formData.lng && mapInstance.current) {
+            const currentLatLng = markerRef.current.getLatLng();
+            // Só move se a distância for significativa para evitar loops
+            if (Math.abs(currentLatLng.lat - formData.lat) > 0.0001 || Math.abs(currentLatLng.lng - formData.lng) > 0.0001) {
+                markerRef.current.setLatLng([formData.lat, formData.lng]);
+                mapInstance.current.panTo([formData.lat, formData.lng]);
+            }
         }
     }, [formData.lat, formData.lng]);
 
@@ -101,6 +106,11 @@ const VenueModal: React.FC<{
             ...prev,
             [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
         }));
+    };
+
+    const handleAddressSelect = (address: string, lat: number, lng: number) => {
+        setFormData(prev => ({ ...prev, address, lat, lng }));
+        toast.success('Localização atualizada!');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -140,13 +150,16 @@ const VenueModal: React.FC<{
             <div className="bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col md:flex-row overflow-hidden max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 
                 {/* Coluna da Esquerda: Mapa */}
-                <div className="w-full md:w-1/2 h-64 md:h-auto relative bg-slate-800">
-                    <div ref={mapRef} className="absolute inset-0 z-0" />
-                    <div className="absolute top-4 left-4 right-4 z-10 bg-slate-900/90 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-lg">
-                        <p className="text-xs text-slate-300 font-medium text-center">
-                            Clique no mapa ou arraste o pino para definir a localização exata.
-                        </p>
-                        <div className="flex justify-center gap-4 mt-2 text-[10px] font-mono text-pink-400">
+                <div className="w-full md:w-1/2 h-64 md:h-auto relative bg-slate-800 flex flex-col order-2 md:order-1">
+                    <div className="absolute top-4 left-4 right-4 z-20 px-2">
+                         <AddressAutocomplete 
+                            onSelect={handleAddressSelect} 
+                            placeholder="Buscar endereço para mover pino..." 
+                        />
+                    </div>
+                    <div ref={mapRef} className="flex-1 z-0" />
+                    <div className="absolute bottom-4 left-4 right-4 z-10 bg-slate-900/90 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-lg pointer-events-none">
+                        <div className="flex justify-center gap-4 text-[10px] font-mono text-pink-400">
                             <span>Lat: {formData.lat?.toFixed(5)}</span>
                             <span>Lng: {formData.lng?.toFixed(5)}</span>
                         </div>
@@ -154,7 +167,7 @@ const VenueModal: React.FC<{
                 </div>
 
                 {/* Coluna da Direita: Form */}
-                <div className="w-full md:w-1/2 p-6 overflow-y-auto bg-slate-900">
+                <div className="w-full md:w-1/2 p-6 overflow-y-auto bg-slate-900 order-1 md:order-2">
                     <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                         <span className="material-symbols-rounded filled text-pink-500">add_location_alt</span>
                         {isEditing ? 'Editar Local' : 'Novo Local'}
@@ -185,8 +198,15 @@ const VenueModal: React.FC<{
                         </div>
 
                         <div>
-                            <label className="text-xs font-bold text-slate-400 uppercase ml-1">Endereço</label>
-                            <input name="address" value={formData.address} onChange={handleChange} placeholder="Rua, Número - Bairro" className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50" required />
+                            <label className="text-xs font-bold text-slate-400 uppercase ml-1">Endereço (Exibição)</label>
+                            <input 
+                                name="address" 
+                                value={formData.address} 
+                                onChange={handleChange} 
+                                placeholder="Rua, Número - Bairro" 
+                                className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50" 
+                                required 
+                            />
                         </div>
 
                         <div>

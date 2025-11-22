@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import toast from 'react-hot-toast';
 import { VenueType } from '../types';
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 interface SuggestVenueModalProps {
   onClose: () => void;
@@ -33,7 +34,7 @@ export const SuggestVenueModal: React.FC<SuggestVenueModalProps> = ({ onClose })
       lng: myLocation?.lng || 0,
   });
 
-  // Auto-fill address (Mock for now, would use Reverse Geocoding in prod)
+  // Se tiver localização inicial, preenche lat/lng (mas não o endereço texto)
   useEffect(() => {
       if (myLocation) {
           setFormData(prev => ({ ...prev, lat: myLocation.lat, lng: myLocation.lng }));
@@ -52,6 +53,16 @@ export const SuggestVenueModal: React.FC<SuggestVenueModalProps> = ({ onClose })
       }
   };
 
+  const handleAddressSelect = (address: string, lat: number, lng: number) => {
+      setFormData(prev => ({
+          ...prev,
+          address,
+          lat,
+          lng
+      }));
+      toast.success('Localização atualizada pelo endereço!');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!formData.name || !formData.address) {
@@ -66,7 +77,7 @@ export const SuggestVenueModal: React.FC<SuggestVenueModalProps> = ({ onClose })
           description: formData.description,
           lat: formData.lat,
           lng: formData.lng,
-          tags: [], // Could add a tag input later
+          tags: [], 
       }, photoFile);
 
       setLoading(false);
@@ -93,7 +104,7 @@ export const SuggestVenueModal: React.FC<SuggestVenueModalProps> = ({ onClose })
             <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex gap-3 items-start">
                 <span className="material-symbols-rounded text-blue-400 shrink-0">info</span>
                 <p className="text-xs text-blue-200 leading-relaxed">
-                    Ajude a comunidade! Adicione saunas, bares e points que você conhece. Sua sugestão será analisada antes de aparecer no mapa.
+                    Ajude a comunidade! Adicione saunas, bares e points que você conhece.
                 </p>
             </div>
 
@@ -147,23 +158,19 @@ export const SuggestVenueModal: React.FC<SuggestVenueModalProps> = ({ onClose })
                 </div>
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Localização</label>
-                    <div className="w-full bg-slate-800/50 border border-white/5 rounded-xl px-3 py-3 text-slate-400 text-xs flex items-center gap-2 cursor-not-allowed" title="Usa sua localização atual">
-                        <span className="material-symbols-rounded text-base">my_location</span>
-                        {formData.lat.toFixed(4)}, {formData.lng.toFixed(4)}
+                    <div className="w-full bg-slate-800/50 border border-white/5 rounded-xl px-3 py-3 text-slate-400 text-xs flex items-center gap-2" title="Preenchido pelo endereço">
+                        <span className="material-symbols-rounded text-base text-pink-500">pin_drop</span>
+                        {formData.lat !== 0 ? 'Detectada' : 'Pendente'}
                     </div>
                 </div>
             </div>
 
-            <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Endereço</label>
-                <input 
-                    type="text" 
-                    name="address" 
-                    value={formData.address} 
-                    onChange={handleChange} 
-                    placeholder="Rua, Número - Bairro" 
-                    className="w-full bg-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-pink-500/50 border border-white/5 text-sm"
-                    required 
+            <div className="space-y-1.5 relative z-50">
+                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Busca de Endereço</label>
+                <AddressAutocomplete 
+                    onSelect={handleAddressSelect} 
+                    initialValue={formData.address}
+                    placeholder="Digite para buscar (Rua, Cidade...)" 
                 />
             </div>
 

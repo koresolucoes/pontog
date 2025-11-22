@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import { User, Coordinates, Venue } from '../types';
 import { useAuthStore } from './authStore';
 import { transformProfileToUser } from '../lib/utils';
-// import { VENUES_DATA } from '../lib/venuesData'; // Dados estáticos removidos
 import toast from 'react-hot-toast';
 
 interface MapState {
@@ -35,8 +34,7 @@ interface MapState {
   stopLocationWatch: () => void;
   updateMyLocationInDb: (coords: Coordinates) => Promise<void>;
   fetchNearbyUsers: (coords: Coordinates) => Promise<void>;
-  fetchVenues: (coords?: Coordinates) => Promise<void>; // Updated to accept optional coords
-  syncVenuesWithOSM: (coords: Coordinates) => Promise<void>; // Nova ação interna
+  fetchVenues: (coords?: Coordinates) => Promise<void>;
   suggestVenue: (venueData: Partial<Venue>, photoFile: File | null) => Promise<boolean>; 
   setupRealtime: () => void;
   cleanupRealtime: () => void;
@@ -175,11 +173,11 @@ export const useMapStore = create<MapState>((set, get) => ({
     }
   },
 
-  // Lógica principal de busca e sincronização de locais
+  // Lógica atualizada: Busca apenas do banco de dados local
   fetchVenues: async (coords?: Coordinates) => {
       let data, error;
 
-      // 1. Tenta buscar do DB local primeiro (Rápido)
+      // 1. Tenta buscar do DB local usando geolocalização (RPC)
       if (coords) {
           const result = await supabase.rpc('get_nearby_venues', {
               p_lat: coords.lat,
@@ -187,18 +185,17 @@ export const useMapStore = create<MapState>((set, get) => ({
           });
           data = result.data;
           error = result.error;
-          
-          // Dispara a sincronização em background (sem await para não travar a UI)
-          get().syncVenuesWithOSM(coords);
       } 
       
-      // 2. Fallback: se não tem coordenadas ou falhou
+      // 2. Fallback: se não tem coordenadas ou a busca falhou/veio vazia
       if (!coords || error || !data || data.length === 0) {
+          // Busca genérica de locais verificados
           const result = await supabase
             .from('venues')
             .select('*')
             .eq('is_verified', true) 
-            .limit(20); 
+            .order('created_at', { ascending: false })
+            .limit(50); 
           data = result.data;
           error = result.error;
       }
@@ -212,55 +209,6 @@ export const useMapStore = create<MapState>((set, get) => ({
           // Remove duplicatas baseadas no ID antes de setar
           const uniqueVenues = Array.from(new Map(data.map((v: Venue) => [v.id, v])).values());
           set({ venues: uniqueVenues as Venue[] });
-      }
-  },
-
-  syncVenuesWithOSM: async (coords: Coordinates) => {
-      try {
-          const session = useAuthStore.getState().session;
-          
-          const response = await fetch('/api/sync-venues', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}) 
-              },
-              body: JSON.stringify({ lat: coords.lat, lng: coords.lng })
-          });
-
-          if (!response.ok) return;
-
-          const result = await response.json();
-          
-          // Se encontrou novos locais, atualiza o estado local mesclando
-          if (result.success && result.venues && result.venues.length > 0) {
-              // OTIMIZAÇÃO: Em vez de apenas setar os venues da API, recarregamos a lista oficial do DB
-              // para garantir que tenhamos os IDs corretos (UUID) e ordenação por distância.
-              // Isso evita "pulos" na UI.
-              
-              const { data: updatedData } = await supabase.rpc('get_nearby_venues', {
-                  p_lat: coords.lat,
-                  p_lng: coords.lng
-              });
-
-              if (updatedData && updatedData.length > 0) {
-                  set({ venues: updatedData as Venue[] });
-                  if (result.count > 0) {
-                      toast(`Encontramos ${result.count} novos locais na região!`, { 
-                          icon: '🗺️', 
-                          position: 'bottom-center', 
-                          duration: 3000,
-                          style: {
-                              background: '#1e293b',
-                              color: '#fff',
-                              border: '1px solid #334155'
-                          }
-                      });
-                  }
-              }
-          }
-      } catch (e) {
-          console.error("Background sync failed:", e);
       }
   },
 

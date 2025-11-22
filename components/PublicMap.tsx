@@ -86,7 +86,6 @@ export const PublicMap: React.FC<PublicMapProps> = ({ venues, center, cityName, 
                 attributionControl: false,
                 scrollWheelZoom: false, // Desabilita scroll para não atrapalhar a landing page
                 dragging: !L.Browser.mobile, // Em mobile, desabilita drag para não atrapalhar o scroll da página
-                tap: false,
             }).setView([center.lat, center.lng], 13);
 
             // Dark theme map tiles

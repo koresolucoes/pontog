@@ -1,4 +1,5 @@
 
+
 // types.ts
 
 export interface Coordinates {
@@ -193,8 +194,9 @@ export interface Venue {
     image_url: string;
     opening_hours?: string;
     is_partner: boolean; // Se é parceiro pagante (destaque)
+    is_verified: boolean; // Status de verificação
     tags: string[];
     osm_id?: string; // ID do OpenStreetMap
-    source_type?: 'user' | 'osm'; // Origem do dado
+    source_type?: 'user' | 'osm' | 'admin'; // Origem do dado
     website?: string;
 }

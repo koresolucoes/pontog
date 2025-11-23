@@ -217,3 +217,16 @@ export interface NewsArticle {
     tags: string[];
     author?: string;
 }
+
+// Novo tipo para Comentários em Notícias
+export interface NewsComment {
+    id: number;
+    article_id: string;
+    user_id: string;
+    content: string;
+    created_at: string;
+    username: string;
+    avatar_url: string;
+    likes_count: number;
+    user_has_liked: boolean;
+}

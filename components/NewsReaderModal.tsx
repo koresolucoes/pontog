@@ -1,9 +1,11 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NewsArticle } from '../types';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { AnimatedBackground } from './AnimatedBackground';
+import { useNewsStore } from '../stores/newsStore';
+import { useAuthStore } from '../stores/authStore';
 
 interface NewsReaderModalProps {
     article: NewsArticle;
@@ -11,6 +13,24 @@ interface NewsReaderModalProps {
 }
 
 export const NewsReaderModal: React.FC<NewsReaderModalProps> = ({ article, onClose }) => {
+    const { activeComments, loadingComments, fetchComments, addComment, toggleLikeComment } = useNewsStore();
+    const { user } = useAuthStore();
+    const [newComment, setNewComment] = useState('');
+
+    useEffect(() => {
+        if (article.id) {
+            fetchComments(article.id);
+        }
+    }, [article.id, fetchComments]);
+
+    const handlePostComment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newComment.trim()) return;
+        
+        await addComment(article.id, newComment);
+        setNewComment('');
+    };
+
     return (
         <div className="fixed inset-0 z-[70] animate-fade-in flex justify-center overflow-y-auto">
             {/* Fundo Animado Fixo - Não rola com o texto */}
@@ -19,7 +39,7 @@ export const NewsReaderModal: React.FC<NewsReaderModalProps> = ({ article, onClo
             {/* Backdrop escuro semi-transparente para focar no conteúdo */}
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-0" onClick={onClose}></div>
 
-            <div className="w-full max-w-2xl min-h-screen bg-slate-900/85 backdrop-blur-xl shadow-2xl relative z-10 border-x border-white/10">
+            <div className="w-full max-w-2xl min-h-screen bg-slate-900/95 backdrop-blur-xl shadow-2xl relative z-10 border-x border-white/10">
                 
                 {/* Hero Image */}
                 <div className="relative h-72 md:h-96 w-full">
@@ -67,7 +87,18 @@ export const NewsReaderModal: React.FC<NewsReaderModalProps> = ({ article, onClo
                                 </p>
                             </div>
                         </div>
-                        <button className="text-slate-400 hover:text-pink-500 transition-colors">
+                        <button 
+                            onClick={() => {
+                                if (navigator.share) {
+                                    navigator.share({
+                                        title: article.title,
+                                        text: article.summary,
+                                        url: window.location.href
+                                    });
+                                }
+                            }}
+                            className="text-slate-400 hover:text-pink-500 transition-colors"
+                        >
                             <span className="material-symbols-rounded">share</span>
                         </button>
                     </div>
@@ -78,11 +109,78 @@ export const NewsReaderModal: React.FC<NewsReaderModalProps> = ({ article, onClo
                         dangerouslySetInnerHTML={{ __html: article.content }}
                     />
                     
+                    {/* Comments Section */}
+                    <div className="mt-12 pt-8 border-t border-white/10">
+                        <h3 className="text-xl font-bold text-white mb-6 font-outfit flex items-center gap-2">
+                            <span className="material-symbols-rounded text-pink-500">forum</span>
+                            Comentários ({activeComments.length})
+                        </h3>
+
+                        {/* Input */}
+                        {user ? (
+                            <form onSubmit={handlePostComment} className="mb-8 flex gap-3 items-start">
+                                <img src={user.avatar_url} className="w-10 h-10 rounded-full object-cover border border-white/10" alt={user.username} />
+                                <div className="flex-1 relative">
+                                    <textarea
+                                        value={newComment}
+                                        onChange={(e) => setNewComment(e.target.value)}
+                                        placeholder="Escreva seu comentário..."
+                                        className="w-full bg-slate-800/50 border border-white/10 rounded-2xl p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 resize-none text-sm"
+                                        rows={2}
+                                    />
+                                    <button 
+                                        type="submit" 
+                                        disabled={!newComment.trim()}
+                                        className="absolute bottom-2 right-2 p-1.5 bg-pink-600 text-white rounded-full hover:bg-pink-700 disabled:opacity-0 disabled:scale-50 transition-all active:scale-95"
+                                    >
+                                        <span className="material-symbols-rounded text-xl block">send</span>
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
+                            <div className="bg-slate-800/30 p-4 rounded-xl text-center mb-8 border border-white/5">
+                                <p className="text-slate-400 text-sm">Faça login para comentar.</p>
+                            </div>
+                        )}
+
+                        {/* List */}
+                        <div className="space-y-6">
+                            {loadingComments ? (
+                                <div className="flex justify-center py-4"><div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div></div>
+                            ) : activeComments.length === 0 ? (
+                                <p className="text-slate-500 text-sm text-center italic">Seja o primeiro a comentar!</p>
+                            ) : (
+                                activeComments.map(comment => (
+                                    <div key={comment.id} className="flex gap-3 group">
+                                        <img src={comment.avatar_url} className="w-8 h-8 rounded-full object-cover border border-white/5 flex-shrink-0" alt={comment.username} />
+                                        <div className="flex-1">
+                                            <div className="bg-slate-800/40 p-3 rounded-2xl rounded-tl-none border border-white/5">
+                                                <div className="flex justify-between items-baseline mb-1">
+                                                    <span className="font-bold text-white text-sm">{comment.username}</span>
+                                                    <span className="text-[10px] text-slate-500">{formatDistanceToNow(new Date(comment.created_at), { locale: ptBR, addSuffix: true } as any)}</span>
+                                                </div>
+                                                <p className="text-slate-300 text-sm leading-relaxed">{comment.content}</p>
+                                            </div>
+                                            <div className="flex items-center gap-4 mt-1 ml-2">
+                                                <button 
+                                                    onClick={() => toggleLikeComment(comment.id, comment.user_has_liked)}
+                                                    className={`text-xs font-bold flex items-center gap-1 transition-colors ${comment.user_has_liked ? 'text-pink-500' : 'text-slate-500 hover:text-slate-300'}`}
+                                                >
+                                                    {comment.user_has_liked ? 'Curtiu' : 'Curtir'}
+                                                    {comment.likes_count > 0 && <span className="bg-slate-800 px-1.5 rounded-md text-[10px] border border-white/5">{comment.likes_count}</span>}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                    
                     {/* Footer CTA */}
-                    <div className="mt-12 p-6 bg-slate-800/50 rounded-2xl border border-white/5 text-center">
-                        <p className="text-sm text-slate-400 mb-4">Gostou do conteúdo? Compartilhe com seus amigos!</p>
-                        <button onClick={onClose} className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-xl transition-colors">
-                            Voltar para o Feed
+                    <div className="mt-12 text-center">
+                        <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors text-sm font-bold underline decoration-slate-600 hover:decoration-white">
+                            Fechar Artigo
                         </button>
                     </div>
                 </div>

@@ -209,8 +209,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
             </>
         )}
 
-        {/* Media Area: Video or Carousel */}
-        <div className={`relative w-full aspect-[4/5] sm:aspect-square flex-shrink-0 group bg-black`}>
+        {/* Media Area: Video or Carousel - Adjusted Height for Mobile */}
+        <div className={`relative w-full h-[45vh] sm:h-auto sm:aspect-square flex-shrink-0 group bg-black`}>
           {user.video_url && currentPhotoIndex === 0 ? (
               <div className="w-full h-full relative" onClick={toggleVideo}>
                   <video 

@@ -3,6 +3,7 @@ import React from 'react';
 import { NewsArticle } from '../types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
+import { AnimatedBackground } from './AnimatedBackground';
 
 interface NewsReaderModalProps {
     article: NewsArticle;
@@ -11,8 +12,14 @@ interface NewsReaderModalProps {
 
 export const NewsReaderModal: React.FC<NewsReaderModalProps> = ({ article, onClose }) => {
     return (
-        <div className="fixed inset-0 bg-dark-900/95 backdrop-blur-sm z-[70] animate-fade-in flex justify-center overflow-y-auto">
-            <div className="w-full max-w-2xl min-h-screen bg-slate-900 shadow-2xl relative">
+        <div className="fixed inset-0 z-[70] animate-fade-in flex justify-center overflow-y-auto">
+            {/* Fundo Animado Fixo - Não rola com o texto */}
+            <AnimatedBackground className="z-0" />
+            
+            {/* Backdrop escuro semi-transparente para focar no conteúdo */}
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-0" onClick={onClose}></div>
+
+            <div className="w-full max-w-2xl min-h-screen bg-slate-900/85 backdrop-blur-xl shadow-2xl relative z-10 border-x border-white/10">
                 
                 {/* Hero Image */}
                 <div className="relative h-72 md:h-96 w-full">

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
-import { useUiStore, View } from './stores/uiStore';
+import { useUiStore } from './stores/uiStore';
 import { useMapStore } from './stores/mapStore';
 import { useInboxStore } from './stores/inboxStore';
 import { Auth } from './components/Auth';
@@ -22,13 +22,12 @@ import { DonationModal } from './components/DonationModal';
 import { AdminPanel } from './pages/Admin/AdminPanel';
 import { Onboarding } from './components/Onboarding';
 import { Sidebar } from './components/Sidebar';
-import { BackgroundParticles } from './components/BackgroundParticles';
+import { AnimatedBackground } from './components/AnimatedBackground';
 import { SuspendedScreen } from './components/SuspendedScreen';
 import { NewsView } from './components/NewsView';
-import { VenueDetailModal } from './components/VenueDetailModal'; // Novo Import
+import { VenueDetailModal } from './components/VenueDetailModal';
 
 const App: React.FC = () => {
-    // Roteamento simples para o painel de administração
     if (window.location.pathname.startsWith('/admin')) {
         return <AdminPanel />;
     }
@@ -48,7 +47,6 @@ const App: React.FC = () => {
         fetchVenues 
     } = useMapStore();
 
-    // Estado para controlar se o usuário quer ver a tela de login ou a landing page
     const [showAuth, setShowAuth] = useState(false);
 
     useEffect(() => {
@@ -56,13 +54,8 @@ const App: React.FC = () => {
             if ('serviceWorker' in navigator) {
                 try {
                     const registration = await navigator.serviceWorker.register('/service-worker.js');
-                    console.log('Service Worker registrado com sucesso:', registration.scope);
-                    
                     const subscription = await registration.pushManager.getSubscription();
-                    
-                    // Se não houver inscrição, a permissão for concedida e o usuário estiver logado, tenta se inscrever.
                     if (!subscription && Notification.permission === 'granted' && session) {
-                        console.log('Permissão para notificações concedida, mas sem inscrição. Inscrevendo agora.');
                         await subscribeToPushNotifications();
                     }
                 } catch (error) {
@@ -99,31 +92,26 @@ const App: React.FC = () => {
         }
     }, [session, fetchProfile]);
 
-    // Lógica principal de inicialização de dados e localização
     useEffect(() => {
-        // Só iniciamos o mapa e os dados se o usuário estiver logado E o perfil estiver carregado.
         if (session && user && !loading) {
             if (user.status === 'active') {
                 requestLocationPermission();
-                fetchVenues(); // Carregar locais públicos
+                fetchVenues();
                 fetchConversations();
                 fetchWinks();
                 fetchAccessRequests();
             } else {
-                // Cleanup se o usuário for suspenso durante o uso
                 stopLocationWatch();
                 cleanupRealtime();
             }
         }
         
-        // Cleanup apenas quando a sessão morre
         if (!session) {
             stopLocationWatch();
             cleanupRealtime();
         }
     }, [session, user, loading, requestLocationPermission, stopLocationWatch, cleanupRealtime, fetchConversations, fetchWinks, fetchAccessRequests, fetchVenues]);
 
-    // Renderiza as visualizações que NÃO são o mapa
     const renderOtherViews = () => {
         switch (activeView) {
             case 'home': return <HomeView />;
@@ -131,8 +119,8 @@ const App: React.FC = () => {
             case 'agora': return <AgoraView />;
             case 'inbox': return <Inbox />;
             case 'profile': return <ProfileView />;
-            case 'news': return <NewsView />; // Nova View
-            case 'map': return null; // Mapa é tratado separadamente
+            case 'news': return <NewsView />;
+            case 'map': return null;
             default: return <HomeView />;
         }
     };
@@ -141,20 +129,10 @@ const App: React.FC = () => {
         if (showAuth) {
             return <Auth />;
         }
-        // Se o usuário não está logado, mas clicou para ver notícias
         if (activeView === 'news') {
             return (
                 <div className="h-screen w-screen bg-dark-900 relative overflow-hidden flex flex-col">
-                    {/* Background Animado Público */}
-                    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-                        <div className="absolute inset-0 bg-dark-900"></div>
-                        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-900/30 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob"></div>
-                        <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-pink-900/30 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob" style={{ animationDelay: '2s' }}></div>
-                        <div className="absolute -bottom-32 left-20 w-96 h-96 bg-fuchsia-900/30 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob" style={{ animationDelay: '4s' }}></div>
-                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03]"></div>
-                    </div>
-                    <BackgroundParticles />
-                    
+                    <AnimatedBackground />
                     <div className="relative z-10 flex-1 overflow-hidden">
                         <NewsView />
                     </div>
@@ -168,45 +146,22 @@ const App: React.FC = () => {
         <>
             <Toaster
                 position="top-center"
-                containerStyle={{
-                    zIndex: 99999, // Garante que fique acima de tudo
-                }}
+                containerStyle={{ zIndex: 99999 }}
                 toastOptions={{
                     className: '!bg-dark-900/95 !backdrop-blur-xl !text-white !border !border-white/10 !rounded-2xl !shadow-2xl !font-outfit',
                     duration: 4000,
                     success: {
-                        iconTheme: {
-                            primary: '#4ade80', // Green-400
-                            secondary: '#0f172a', // Slate-900
-                        },
-                        style: {
-                            border: '1px solid rgba(74, 222, 128, 0.2)',
-                            background: 'rgba(5, 5, 5, 0.95)',
-                        }
+                        iconTheme: { primary: '#4ade80', secondary: '#0f172a' },
+                        style: { border: '1px solid rgba(74, 222, 128, 0.2)', background: 'rgba(5, 5, 5, 0.95)' }
                     },
                     error: {
-                        iconTheme: {
-                            primary: '#f87171', // Red-400
-                            secondary: '#0f172a',
-                        },
-                        style: {
-                            border: '1px solid rgba(248, 113, 113, 0.2)',
-                            background: 'rgba(5, 5, 5, 0.95)',
-                        }
+                        iconTheme: { primary: '#f87171', secondary: '#0f172a' },
+                        style: { border: '1px solid rgba(248, 113, 113, 0.2)', background: 'rgba(5, 5, 5, 0.95)' }
                     },
                     loading: {
-                        style: {
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            background: 'rgba(5, 5, 5, 0.95)',
-                        }
+                        style: { border: '1px solid rgba(255, 255, 255, 0.1)', background: 'rgba(5, 5, 5, 0.95)' }
                     },
-                    style: {
-                        color: '#f8fafc',
-                        padding: '16px',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        boxShadow: '0 20px 50px -10px rgba(0,0,0,0.7)',
-                    },
+                    style: { color: '#f8fafc', padding: '16px', fontSize: '14px', fontWeight: '600', boxShadow: '0 20px 50px -10px rgba(0,0,0,0.7)' },
                 }}
             />
             
@@ -226,33 +181,11 @@ const App: React.FC = () => {
             ) : (
                 <div className="h-screen w-screen bg-dark-900 text-slate-50 flex flex-col antialiased overflow-hidden relative">
                     
-                    {/* 
-                       ANIMATED BACKGROUND LAYER
-                       Visible only on non-map views.
-                       Creates a deep pink/purple atmosphere.
-                    */}
-                    {activeView !== 'map' && (
-                        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-                            {/* Deep Dark Base */}
-                            <div className="absolute inset-0 bg-dark-900"></div>
-                            
-                            {/* Animated Blobs - Dark Pink & Purple Palette */}
-                            <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-900/30 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob"></div>
-                            <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-pink-900/30 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob" style={{ animationDelay: '2s' }}></div>
-                            <div className="absolute -bottom-32 left-20 w-96 h-96 bg-fuchsia-900/30 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob" style={{ animationDelay: '4s' }}></div>
-                            
-                            {/* Subtle Mesh Gradient Overlay for texture */}
-                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03]"></div>
-                        </div>
-                    )}
+                    {/* Fundo Animado Global (Apenas se não for mapa) */}
+                    {activeView !== 'map' && <AnimatedBackground />}
 
-                    {/* Animated Particle Background (Visível apenas quando não estamos no mapa) */}
-                    {activeView !== 'map' && <BackgroundParticles />}
-
-                    {/* Sidebar Navigation Drawer */}
                     <Sidebar />
 
-                    {/* Global Sidebar Trigger - Hamburger Menu */}
                     <button 
                         onClick={() => setSidebarOpen(true)}
                         className="fixed top-4 left-4 z-30 w-10 h-10 flex items-center justify-center rounded-full bg-dark-900/50 backdrop-blur-md border border-white/10 text-white shadow-lg hover:bg-slate-800 active:scale-95 transition-all"
@@ -260,31 +193,16 @@ const App: React.FC = () => {
                         <span className="material-symbols-rounded">menu</span>
                     </button>
 
-                    {/* Main Content Area */}
                     <main className="flex-1 overflow-hidden pb-0 z-10 relative">
-                        
-                        {/* 
-                            ESTRATÉGIA MAPA PERSISTENTE:
-                            O Mapa fica FIXED no fundo (z-0).
-                            Ele NUNCA tem display:none ou opacity:0, pois isso causa problemas de renderização no Leaflet.
-                            Ele está sempre lá, visível para o navegador.
-                        */}
                         <div className="fixed inset-0 w-full h-full z-0">
                             <Map />
                         </div>
 
-                        {/* 
-                            As outras views são uma "Cortina" sobre o mapa.
-                            Mudança: Usamos 'fixed inset-0' para garantir que cubra 100% da tela, 
-                            cobrindo o mapa totalmente sem vazamentos.
-                            Note: No background is applied here so it uses the global animated one.
-                        */}
                         {activeView !== 'map' && (
                             <div key={activeView} className="fixed inset-0 z-10 w-full h-full animate-fade-in overflow-hidden">
                                 {renderOtherViews()}
                             </div>
                         )}
-
                     </main>
                     
                     {selectedUser && (
@@ -320,7 +238,6 @@ const App: React.FC = () => {
 
                     <PwaInstallButton />
 
-                    {/* Modern Floating Navigation Bar - Hidden when Suggest Venue Modal is Open */}
                     {!isSuggestVenueModalOpen && (
                         <div className="fixed bottom-4 left-4 right-4 z-20 flex justify-center pointer-events-none">
                             <nav className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 pointer-events-auto max-w-md w-full overflow-x-auto no-scrollbar">
@@ -388,6 +305,5 @@ const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, i
         )}
     </button>
 );
-
 
 export default App;

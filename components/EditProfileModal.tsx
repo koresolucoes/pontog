@@ -188,6 +188,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
     e.preventDefault();
     if (!profile) return;
     
+    // Validation: Heuristic #5 (Error Prevention)
+    if (formData.height_cm && (formData.height_cm < 50 || formData.height_cm > 250)) {
+        toast.error('Altura inválida. Por favor, insira um valor entre 50cm e 250cm.');
+        return;
+    }
+    if (formData.weight_kg && (formData.weight_kg < 30 || formData.weight_kg > 300)) {
+        toast.error('Peso inválido. Por favor, insira um valor entre 30kg e 300kg.');
+        return;
+    }
+
     setLoading(true);
     const toastId = toast.loading('Atualizando perfil...');
     
@@ -219,7 +229,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
 
   if (!profile || !formData) return null;
 
-  const InputField = ({ label, name, type = "text", value, onChange, placeholder = "" }: any) => (
+  // Updated InputField to accept generic props like min, max, maxLength etc.
+  const InputField = ({ label, name, type = "text", value, onChange, placeholder = "", ...rest }: any) => (
       <div className="space-y-1.5">
           <label htmlFor={name} className="block text-[10px] font-bold text-slate-400 uppercase ml-1 tracking-wide">{label}</label>
           <input 
@@ -230,6 +241,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
               onChange={onChange} 
               placeholder={placeholder}
               className="w-full bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all shadow-sm text-sm font-medium" 
+              {...rest}
           />
       </div>
   );
@@ -353,8 +365,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
               <div className="grid grid-cols-2 gap-4">
                 <InputField label="Data de Nascimento" name="date_of_birth" type="date" value={formData.date_of_birth?.split('T')[0]} onChange={handleChange} />
                 <SelectField label="Posição" name="position" value={formData.position} onChange={handleChange} options={['Não informado', ...POSITIONS]} />
-                <InputField label="Altura (cm)" name="height_cm" type="number" value={formData.height_cm} onChange={handleChange} />
-                <InputField label="Peso (kg)" name="weight_kg" type="number" value={formData.weight_kg} onChange={handleChange} />
+                <InputField label="Altura (cm)" name="height_cm" type="number" value={formData.height_cm} onChange={handleChange} min="50" max="250" />
+                <InputField label="Peso (kg)" name="weight_kg" type="number" value={formData.weight_kg} onChange={handleChange} min="30" max="300" />
                 <div className="col-span-2">
                     <SelectField label="Status HIV" name="hiv_status" value={formData.hiv_status} onChange={handleChange} options={HIV_STATUSES} />
                 </div>

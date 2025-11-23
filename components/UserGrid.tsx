@@ -27,6 +27,19 @@ export const UserGrid: React.FC = () => {
         setIsFilterModalOpen(true);
     }
 
+    // Actions to remove individual filters directly from the header
+    const removePosition = (pos: string) => {
+        setFilters({ positions: filters.positions.filter(p => p !== pos) });
+    };
+
+    const removeTribe = (tribe: string) => {
+        setFilters({ tribes: filters.tribes.filter(t => t !== tribe) });
+    };
+
+    const resetAge = () => {
+        setFilters({ minAge: 18, maxAge: 99 });
+    };
+
     const itemsWithAds = useMemo(() => {
         let sortedUsers = [...users].sort((a, b) => {
             const aIsAgora = agoraUserIds.includes(a.id);
@@ -79,7 +92,7 @@ export const UserGrid: React.FC = () => {
     const FilterButton = ({ label, isActive }: { label: string, isActive: boolean }) => (
         <button 
             onClick={handleFilterClick} 
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 shadow-lg backdrop-blur-md ${
+            className={`flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 shadow-lg backdrop-blur-md ${
                 isActive 
                     ? 'bg-pink-600/90 text-white shadow-pink-900/30 border border-pink-500/50' 
                     : 'bg-slate-800/60 text-slate-300 border border-white/10 hover:bg-slate-700/80'
@@ -93,11 +106,11 @@ export const UserGrid: React.FC = () => {
     return (
         <>
         <div className="h-full flex flex-col pb-24 bg-dark-900">
-            {/* Header Flutuante com Glassmorphism - Added pl-16 for hamburger menu safe zone */}
-            <div className="px-4 py-3 flex items-center space-x-3 overflow-x-auto sticky top-0 z-20 bg-dark-900/80 backdrop-blur-xl border-b border-white/5 mask-image-b pl-16">
+            {/* Header Flutuante com Glassmorphism */}
+            <div className="px-4 py-3 flex items-center space-x-2 overflow-x-auto sticky top-0 z-20 bg-dark-900/80 backdrop-blur-xl border-b border-white/5 mask-image-b pl-16 no-scrollbar">
                 <button
                     onClick={toggleOnlineOnly}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 shadow-lg backdrop-blur-md ${
+                    className={`flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 shadow-lg backdrop-blur-md ${
                         filters.onlineOnly 
                             ? 'bg-green-500/20 text-green-400 border border-green-500/50 shadow-[0_0_15px_rgba(74,222,128,0.15)]' 
                             : 'bg-slate-800/60 text-slate-300 border border-white/10 hover:bg-slate-700/80'
@@ -106,7 +119,30 @@ export const UserGrid: React.FC = () => {
                     <div className={`w-2 h-2 rounded-full ${filters.onlineOnly ? 'bg-green-400 animate-pulse shadow-[0_0_8px_#4ade80]' : 'bg-slate-400'}`}></div>
                     Online
                 </button>
-                 <FilterButton label="Filtros" isActive={areAnyFiltersActive} />
+                
+                <FilterButton label="Filtros" isActive={areAnyFiltersActive} />
+
+                {/* Active Filter Chips - Recognition rather than Recall */}
+                {isAgeFilterActive && (
+                    <button onClick={resetAge} className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-pink-900/30 border border-pink-500/30 rounded-full text-xs font-bold text-pink-200 whitespace-nowrap hover:bg-pink-900/50 transition-colors animate-fade-in">
+                        <span>{filters.minAge}-{filters.maxAge} anos</span>
+                        <span className="material-symbols-rounded text-[14px]">close</span>
+                    </button>
+                )}
+                
+                {filters.positions.map(pos => (
+                    <button key={pos} onClick={() => removePosition(pos)} className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-purple-900/30 border border-purple-500/30 rounded-full text-xs font-bold text-purple-200 whitespace-nowrap hover:bg-purple-900/50 transition-colors animate-fade-in">
+                        <span>{pos}</span>
+                        <span className="material-symbols-rounded text-[14px]">close</span>
+                    </button>
+                ))}
+
+                {filters.tribes.map(tribe => (
+                    <button key={tribe} onClick={() => removeTribe(tribe)} className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-slate-800 border border-white/10 rounded-full text-xs font-bold text-slate-300 whitespace-nowrap hover:bg-slate-700 transition-colors animate-fade-in">
+                        <span>{tribe}</span>
+                        <span className="material-symbols-rounded text-[14px]">close</span>
+                    </button>
+                ))}
             </div>
             
             {itemsWithAds.length === 0 ? (

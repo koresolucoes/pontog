@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useState } from 'react';
 import { NewsArticle } from '../types';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -166,8 +167,8 @@ export const NewsReaderModal: React.FC<NewsReaderModalProps> = ({ article, onClo
                                                     onClick={() => toggleLikeComment(comment.id, comment.user_has_liked)}
                                                     className={`text-xs font-bold flex items-center gap-1 transition-colors ${comment.user_has_liked ? 'text-pink-500' : 'text-slate-500 hover:text-slate-300'}`}
                                                 >
-                                                    {comment.user_has_liked ? 'Curtiu' : 'Curtir'}
-                                                    {comment.likes_count > 0 && <span className="bg-slate-800 px-1.5 rounded-md text-[10px] border border-white/5">{comment.likes_count}</span>}
+                                                    <span className={`material-symbols-rounded text-sm ${comment.user_has_liked ? 'filled' : ''}`}>favorite</span>
+                                                    {comment.likes_count > 0 && <span className="text-[10px]">{comment.likes_count}</span>}
                                                 </button>
                                             </div>
                                         </div>

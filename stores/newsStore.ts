@@ -1,4 +1,5 @@
 
+
 import { create } from 'zustand';
 import { supabase, getPublicImageUrl } from '../lib/supabase';
 import { NewsArticle, NewsComment } from '../types';
@@ -66,7 +67,6 @@ export const useNewsStore = create<NewsState>((set, get) => ({
             return;
         }
 
-        // Optimistic Update (opcional, mas aqui vamos esperar o servidor para garantir integridade)
         const { error } = await supabase
             .from('news_comments')
             .insert({ article_id: articleId, user_id: user.id, content });
@@ -75,7 +75,7 @@ export const useNewsStore = create<NewsState>((set, get) => ({
             toast.error('Erro ao enviar comentário.');
             console.error(error);
         } else {
-            // Recarrega os comentários
+            // Recarrega os comentários para garantir a ordem correta
             get().fetchComments(articleId);
         }
     },

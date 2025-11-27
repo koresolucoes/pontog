@@ -6,10 +6,13 @@ import { User } from '../types';
 import { FilterModal } from './FilterModal';
 import { AdSenseUnit } from './AdSenseUnit';
 
+const ITEMS_PER_PAGE = 30;
+
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();
     const { agoraUserIds, fetchAgoraPosts } = useAgoraStore();
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+    const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
 
     useEffect(() => {
         fetchAgoraPosts();
@@ -40,7 +43,11 @@ export const UserGrid: React.FC = () => {
         setFilters({ minAge: 18, maxAge: 99 });
     };
 
-    const itemsWithAds = useMemo(() => {
+    const handleLoadMore = () => {
+        setVisibleCount(prev => prev + ITEMS_PER_PAGE);
+    };
+
+    const { itemsWithAds, hasMore } = useMemo(() => {
         let sortedUsers = [...users].sort((a, b) => {
             const aIsAgora = agoraUserIds.includes(a.id);
             const bIsAgora = agoraUserIds.includes(b.id);
@@ -77,12 +84,20 @@ export const UserGrid: React.FC = () => {
             );
         }
         
-        const items: (User | { type: 'ad' })[] = [...finalUsers];
+        const totalCount = finalUsers.length;
+        const slicedUsers = finalUsers.slice(0, visibleCount);
+        
+        const items: (User | { type: 'ad' })[] = [...slicedUsers];
+        // Ad logic: Insert after 8th item if available
         if (items.length > 8) {
             items.splice(8, 0, { type: 'ad' });
         }
-        return items;
-    }, [users, onlineUsers, filters, agoraUserIds]);
+        
+        return { 
+            itemsWithAds: items, 
+            hasMore: totalCount > visibleCount 
+        };
+    }, [users, onlineUsers, filters, agoraUserIds, visibleCount]);
 
     const isAgeFilterActive = filters.minAge !== 18 || filters.maxAge !== 99;
     const arePositionsFiltered = filters.positions.length > 0;
@@ -238,6 +253,16 @@ export const UserGrid: React.FC = () => {
                             );
                         })}
                     </div>
+                    {hasMore && (
+                        <div className="flex justify-center py-6">
+                            <button 
+                                onClick={handleLoadMore}
+                                className="bg-slate-800 text-white font-bold py-3 px-8 rounded-full border border-white/10 hover:bg-slate-700 transition-colors shadow-lg active:scale-95"
+                            >
+                                Ver mais pessoas
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

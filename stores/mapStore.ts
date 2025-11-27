@@ -18,6 +18,7 @@ interface MapState {
   watchId: number | null;
   realtimeChannel: any | null; 
   presenceChannel: any | null;
+  lastLocationUpdate: number; // Timestamp for throttling
   filters: {
     onlineOnly: boolean;
     minAge: number | null;
@@ -54,6 +55,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   watchId: null,
   realtimeChannel: null,
   presenceChannel: null,
+  lastLocationUpdate: 0,
   filters: {
     onlineOnly: false,
     minAge: 18,
@@ -98,17 +100,24 @@ export const useMapStore = create<MapState>((set, get) => ({
             const newLocation = { lat: latitude, lng: longitude };
             
             const oldLocation = get().myLocation;
-            if (!oldLocation || 
+            
+            // Check distance threshold (approx 50 meters) to avoid jitter
+            // 0.0005 degrees is roughly 55 meters
+            const hasMoved = !oldLocation || 
                 Math.abs(oldLocation.lat - newLocation.lat) > 0.0005 || 
-                Math.abs(oldLocation.lng - newLocation.lng) > 0.0005) {
-                
+                Math.abs(oldLocation.lng - newLocation.lng) > 0.0005;
+
+            if (hasMoved) {
               set({ myLocation: newLocation, loading: false, error: null });
+              // Update DB and fetch venues only if moved significantly
               get().updateMyLocationInDb(newLocation);
-              get().fetchNearbyUsers(newLocation);
-              get().fetchVenues(newLocation); 
-            } else if (get().loading) {
-              set({ loading: false });
-            }
+              get().fetchVenues(newLocation);
+            } 
+            
+            // Always fetch users on the interval to get new people/updates
+            // This replaces the expensive realtime listener
+            get().fetchNearbyUsers(newLocation);
+
           },
           (error) => {
             console.error("Geolocation error:", error);
@@ -118,14 +127,20 @@ export const useMapStore = create<MapState>((set, get) => ({
                   error: "Não foi possível obter sua localização. Verifique as permissões do seu navegador e tente novamente." 
                 });
             }
-            get().stopLocationWatch();
+            // Don't stop watch on temporary errors, but handle permission denied
+            if (error.code === error.PERMISSION_DENIED) {
+                get().stopLocationWatch();
+            }
           },
           { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
         );
       };
 
+      // Run immediately
       updateLocation();
-      const intervalId = setInterval(updateLocation, 30000);
+      
+      // Poll every 45 seconds (Balanced for performance vs freshness)
+      const intervalId = setInterval(updateLocation, 45000);
       set({ watchId: intervalId as any });
       get().setupRealtime();
 
@@ -147,15 +162,28 @@ export const useMapStore = create<MapState>((set, get) => ({
     if (!user) return;
     if (user.is_traveling) return;
 
+    // THROTTLING: Ensure we don't write to DB more than once every 60 seconds
+    const now = Date.now();
+    const lastUpdate = get().lastLocationUpdate;
+    if (now - lastUpdate < 60000) {
+        return; 
+    }
+
+    set({ lastLocationUpdate: now });
+
     const { lat, lng } = coords;
-    await supabase.rpc('update_my_location', {
+    // Fire and forget - don't await to block UI
+    supabase.rpc('update_my_location', {
         new_lat: lat,
         new_lng: lng
+    }).then(({ error }) => {
+        if(error) console.error("Error updating location in DB:", error);
     });
   },
 
   fetchNearbyUsers: async (coords: Coordinates) => {
     const { lat, lng } = coords;
+    // Fetch users within range (DB function handles limit/radius)
     const { data, error } = await supabase.rpc('get_nearby_profiles', {
         p_lat: lat,
         p_lng: lng
@@ -163,7 +191,7 @@ export const useMapStore = create<MapState>((set, get) => ({
 
     if (error) {
         console.error("Error fetching nearby users:", error);
-        set({ error: "Erro ao buscar usuários próximos." });
+        // Don't set global error state here to avoid flashing error screens on transient network issues
         return;
     }
 
@@ -173,11 +201,9 @@ export const useMapStore = create<MapState>((set, get) => ({
     }
   },
 
-  // Lógica atualizada: Busca apenas do banco de dados local
   fetchVenues: async (coords?: Coordinates) => {
       let data, error;
 
-      // 1. Tenta buscar do DB local usando geolocalização (RPC)
       if (coords) {
           const result = await supabase.rpc('get_nearby_venues', {
               p_lat: coords.lat,
@@ -187,9 +213,7 @@ export const useMapStore = create<MapState>((set, get) => ({
           error = result.error;
       } 
       
-      // 2. Fallback: se não tem coordenadas ou a busca falhou/veio vazia
       if (!coords || error || !data || data.length === 0) {
-          // Busca genérica de locais verificados
           const result = await supabase
             .from('venues')
             .select('*')
@@ -206,7 +230,6 @@ export const useMapStore = create<MapState>((set, get) => ({
       }
 
       if (data) {
-          // Remove duplicatas baseadas no ID antes de setar
           const uniqueVenues = Array.from(new Map(data.map((v: Venue) => [v.id, v])).values());
           set({ venues: uniqueVenues as Venue[] });
       }
@@ -218,7 +241,6 @@ export const useMapStore = create<MapState>((set, get) => ({
 
       let imageUrl = null;
 
-      // Upload da foto se houver
       if (photoFile) {
           const fileExt = photoFile.name.split('.').pop();
           const fileName = `venue_${Date.now()}.${fileExt}`;
@@ -240,7 +262,7 @@ export const useMapStore = create<MapState>((set, get) => ({
           ...venueData,
           image_url: imageUrl,
           submitted_by: user.id,
-          is_verified: false, // Precisa de aprovação
+          is_verified: false,
           is_partner: false,
           source_type: 'user'
       });
@@ -255,15 +277,18 @@ export const useMapStore = create<MapState>((set, get) => ({
   },
 
   setupRealtime: () => {
+    // Clean up existing to prevent duplicates
     get().cleanupRealtime();
 
     const profile = useAuthStore.getState().profile;
     if (!profile) return;
 
+    // 1. Presence: Lightweight, efficient for online status
     const presenceChannel = supabase.channel('online-users');
     presenceChannel
         .on('presence', { event: 'sync' }, () => {
             const newState = presenceChannel.presenceState();
+            // Transform presence state into a flat list of user IDs
             const userIds = Object.keys(newState).map(key => (newState[key][0] as any).user_id);
             set({ onlineUsers: userIds });
         })
@@ -273,19 +298,12 @@ export const useMapStore = create<MapState>((set, get) => ({
             }
         });
 
-    const realtimeChannel = supabase
-        .channel('public:profiles')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' },
-            (payload) => {
-                const currentLocation = get().myLocation;
-                if (currentLocation) {
-                    get().fetchNearbyUsers(currentLocation);
-                }
-            }
-        )
-        .subscribe();
+    // SCALABILITY FIX: Removed the global 'postgres_changes' listener on 'profiles'.
+    // Listening to ALL profile changes causes an exponential N^2 fetch storm.
+    // Instead, we rely on the periodic polling in `requestLocationPermission` to update the map data.
+    // This is the standard architecture for scalable location-based apps.
 
-    set({ presenceChannel, realtimeChannel });
+    set({ presenceChannel });
   },
 
   cleanupRealtime: () => {

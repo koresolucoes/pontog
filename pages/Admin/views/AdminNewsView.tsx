@@ -1,10 +1,11 @@
 
 // pages/Admin/views/AdminNewsView.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAdminStore } from '../../../stores/adminStore';
 import { NewsArticle, ArticleType } from '../../../types';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { supabase } from '../../../lib/supabase';
 
 const ARTICLE_TYPES: { value: ArticleType; label: string }[] = [
     { value: 'news', label: 'Notícia Externa (Link)' },
@@ -30,7 +31,12 @@ const ArticleModal: React.FC<{
     const [formData, setFormData] = useState<Partial<NewsArticle>>(DEFAULT_ARTICLE_STATE);
     const [tagsInput, setTagsInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    
     const token = useAdminStore((state) => state.getToken());
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const isEditing = !!article?.id;
 
     useEffect(() => {
@@ -40,6 +46,7 @@ const ArticleModal: React.FC<{
                 ...article
             });
             setTagsInput(article.tags ? article.tags.join(', ') : '');
+            setPreviewUrl(article.image_url || null);
         }
     }, [article]);
 
@@ -48,15 +55,51 @@ const ArticleModal: React.FC<{
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error("Imagem muito grande (Max 5MB)");
+                return;
+            }
+            setImageFile(file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        
         try {
+            let finalImageUrl = formData.image_url;
+
+            // 1. Upload Image if selected
+            if (imageFile) {
+                setUploading(true);
+                const fileExt = imageFile.name.split('.').pop();
+                const fileName = `news_images/admin_${Date.now()}.${fileExt}`;
+                
+                const { error: uploadError } = await supabase.storage
+                    .from('user_uploads')
+                    .upload(fileName, imageFile);
+
+                if (uploadError) throw new Error('Falha no upload da imagem: ' + uploadError.message);
+
+                const { data: urlData } = supabase.storage
+                    .from('user_uploads')
+                    .getPublicUrl(fileName);
+                
+                finalImageUrl = urlData.publicUrl;
+                setUploading(false);
+            }
+
             const url = isEditing ? `/api/admin/news?id=${article?.id}` : '/api/admin/news';
             const method = isEditing ? 'PUT' : 'POST';
 
             const payload = {
                 ...formData,
+                image_url: finalImageUrl,
                 tags: tagsInput.split(',').map(t => t.trim()).filter(t => t !== '')
             };
 
@@ -78,6 +121,7 @@ const ArticleModal: React.FC<{
             onSave();
             onClose();
         } catch (err: any) {
+            setUploading(false);
             toast.error(err.message);
         } finally {
             setLoading(false);
@@ -96,6 +140,46 @@ const ArticleModal: React.FC<{
                 
                 <div className="p-6 overflow-y-auto">
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        
+                        {/* Image Uploader */}
+                        <div>
+                            <label className="text-xs font-bold text-slate-400 uppercase ml-1 mb-1 block">Imagem de Capa</label>
+                            <div 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-full aspect-[21/9] bg-slate-800 rounded-xl border-2 border-dashed border-slate-600 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700/50 hover:border-pink-500 transition-all overflow-hidden relative group"
+                            >
+                                {previewUrl ? (
+                                    <>
+                                        <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span className="text-white font-bold text-sm flex items-center gap-2">
+                                                <span className="material-symbols-rounded">edit</span> Alterar Foto
+                                            </span>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-1">
+                                        <span className="material-symbols-rounded text-2xl text-slate-400">add_a_photo</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Carregar Imagem</span>
+                                    </div>
+                                )}
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    className="hidden" 
+                                    accept="image/*" 
+                                    onChange={handleFileChange} 
+                                />
+                            </div>
+                            <input 
+                                name="image_url" 
+                                value={formData.image_url || ''} 
+                                onChange={handleChange} 
+                                placeholder="Ou cole a URL aqui..." 
+                                className="mt-2 w-full bg-slate-800 border border-white/5 rounded-lg px-3 py-2 text-white text-xs placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-pink-500/30" 
+                            />
+                        </div>
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-slate-400 uppercase ml-1">Título</label>
@@ -127,24 +211,24 @@ const ArticleModal: React.FC<{
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">URL Imagem</label>
-                                <input name="image_url" value={formData.image_url || ''} onChange={handleChange} className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50" required />
-                            </div>
-                            <div>
                                 <label className="text-xs font-bold text-slate-400 uppercase ml-1">Fonte / Autor</label>
                                 <input name="source" value={formData.source || ''} onChange={handleChange} className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50" required />
                             </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">Tags (separadas por vírgula)</label>
+                                <input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="Saúde, Eventos, Dicas" className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50" />
+                            </div>
                         </div>
 
-                        <div>
-                            <label className="text-xs font-bold text-slate-400 uppercase ml-1">Tags (separadas por vírgula)</label>
-                            <input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="Saúde, Eventos, Dicas" className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50" />
-                        </div>
-
-                        <div className="flex justify-end gap-3 pt-4">
+                        <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
                             <button type="button" onClick={onClose} className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition-colors">Cancelar</button>
-                            <button type="submit" disabled={loading} className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-pink-600 text-white font-bold hover:bg-pink-700 transition-colors disabled:opacity-50">
-                                {loading ? 'Salvando...' : 'Salvar'}
+                            <button type="submit" disabled={loading} className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-pink-600 text-white font-bold hover:bg-pink-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                                {loading ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        {uploading ? 'Enviando Imagem...' : 'Salvando...'}
+                                    </>
+                                ) : 'Salvar'}
                             </button>
                         </div>
                     </form>

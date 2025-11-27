@@ -1,6 +1,6 @@
 
 // pages/Admin/views/AdminNewsView.tsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useAdminStore } from '../../../stores/adminStore';
 import { NewsArticle, ArticleType } from '../../../types';
 import toast from 'react-hot-toast';
@@ -131,7 +131,7 @@ const ArticleModal: React.FC<{
     return (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 animate-fade-in p-4" onClick={onClose}>
             <div className="bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                <div className="p-6 border-b border-white/10 flex justify-between items-center flex-shrink-0">
                     <h2 className="text-xl font-bold text-white">{isEditing ? 'Editar Artigo' : 'Novo Artigo'}</h2>
                     <button onClick={onClose} className="text-slate-400 hover:text-white">
                         <span className="material-symbols-rounded">close</span>
@@ -244,6 +244,11 @@ export const AdminNewsView: React.FC = () => {
     const [editingArticle, setEditingArticle] = useState<Partial<NewsArticle> | null>(null);
     const token = useAdminStore((state) => state.getToken());
 
+    // Search & Pagination States
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
     const fetchArticles = async () => {
         setLoading(true);
         try {
@@ -279,9 +284,31 @@ export const AdminNewsView: React.FC = () => {
         }
     };
 
+    // Filter Logic
+    const filteredArticles = useMemo(() => {
+        return articles.filter(article => 
+            article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            article.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            article.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+    }, [articles, searchTerm]);
+
+    // Pagination Logic
+    const totalPages = Math.ceil(filteredArticles.length / itemsPerPage);
+    const currentArticles = useMemo(() => {
+        const indexOfLastItem = currentPage * itemsPerPage;
+        const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+        return filteredArticles.slice(indexOfFirstItem, indexOfLastItem);
+    }, [filteredArticles, currentPage]);
+
+    // Reset pagination on search
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
+
     return (
-        <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div className="flex flex-col h-full">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <div>
                     <h1 className="text-3xl font-black text-white font-outfit">G News & Blog</h1>
                     <p className="text-slate-400">Gerencie o conteúdo editorial do app.</p>
@@ -295,41 +322,119 @@ export const AdminNewsView: React.FC = () => {
                 </button>
             </div>
 
+            {/* Search Bar */}
+            <div className="mb-6">
+                <div className="relative max-w-md">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <span className="material-symbols-rounded">search</span>
+                    </span>
+                    <input
+                        type="text"
+                        placeholder="Buscar por título, resumo ou tags..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-slate-800 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50"
+                    />
+                </div>
+            </div>
+
             {loading ? (
                 <div className="text-center py-10 text-slate-500">Carregando...</div>
             ) : (
-                <div className="grid gap-4">
-                    {articles.map(article => (
-                        <div key={article.id} className="bg-slate-800 rounded-2xl p-4 border border-white/5 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                            <img 
-                                src={article.image_url} 
-                                className="w-full sm:w-24 h-40 sm:h-24 rounded-xl object-cover bg-slate-900 flex-shrink-0"
-                                alt="thumbnail"
-                            />
-                            <div className="flex-1 w-full min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${article.type === 'blog' ? 'bg-purple-600 text-white' : 'bg-blue-600 text-white'}`}>
-                                        {article.type}
-                                    </span>
-                                    <span className="text-xs text-slate-500">{format(new Date(article.published_at), 'dd/MM/yyyy')}</span>
-                                </div>
-                                <h3 className="font-bold text-white text-lg truncate mb-1">{article.title}</h3>
-                                <p className="text-sm text-slate-400 truncate mb-2">{article.summary}</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {article.tags.map(t => <span key={t} className="text-[10px] bg-slate-700 px-2 py-0.5 rounded text-slate-300">{t}</span>)}
-                                </div>
-                            </div>
-                            <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                                <button onClick={() => setEditingArticle(article)} className="flex-1 sm:flex-none p-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 flex items-center justify-center">
-                                    <span className="material-symbols-rounded text-lg">edit</span>
-                                </button>
-                                <button onClick={() => handleDelete(article.id)} className="flex-1 sm:flex-none p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 flex items-center justify-center">
-                                    <span className="material-symbols-rounded text-lg">delete</span>
-                                </button>
-                            </div>
+                <>
+                    <div className="bg-gray-800 rounded-lg shadow-md overflow-x-auto border border-white/5">
+                        <table className="min-w-full divide-y divide-gray-700">
+                            <thead className="bg-gray-700">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Capa</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Título / Info</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Tipo</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Publicado em</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                                {currentArticles.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                                            Nenhum artigo encontrado.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    currentArticles.map(article => (
+                                        <tr key={article.id} className="hover:bg-slate-700/30 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <img 
+                                                    src={article.image_url} 
+                                                    className="w-16 h-12 rounded-lg object-cover bg-slate-900 border border-white/10"
+                                                    alt="thumbnail"
+                                                />
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm font-bold text-white mb-1 line-clamp-1">{article.title}</div>
+                                                <div className="text-xs text-gray-400 line-clamp-1">{article.summary}</div>
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {article.tags.map((t, idx) => (
+                                                        <span key={idx} className="text-[10px] bg-slate-900 px-1.5 py-0.5 rounded text-slate-300 border border-white/5">{t}</span>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${article.type === 'blog' ? 'bg-purple-600/20 text-purple-300' : 'bg-blue-600/20 text-blue-300'}`}>
+                                                    {article.type}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                                                {format(new Date(article.published_at), 'dd/MM/yyyy')}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <div className="flex justify-end gap-2">
+                                                    <button 
+                                                        onClick={() => setEditingArticle(article)} 
+                                                        className="p-2 text-slate-400 hover:text-white bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors"
+                                                        title="Editar"
+                                                    >
+                                                        <span className="material-symbols-rounded text-lg block">edit</span>
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDelete(article.id)} 
+                                                        className="p-2 text-red-400 hover:text-red-300 bg-red-500/10 rounded-lg hover:bg-red-500/20 transition-colors"
+                                                        title="Excluir"
+                                                    >
+                                                        <span className="material-symbols-rounded text-lg block">delete</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination Controls */}
+                    <div className="py-4 flex justify-between items-center">
+                        <span className="text-sm text-gray-400">
+                            Página {currentPage} de {totalPages || 1}
+                        </span>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+                                disabled={currentPage === 1} 
+                                className="px-4 py-2 bg-slate-800 rounded-lg text-sm text-white font-medium hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-white/5"
+                            >
+                                Anterior
+                            </button>
+                            <button 
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+                                disabled={currentPage === totalPages || totalPages === 0} 
+                                className="px-4 py-2 bg-slate-800 rounded-lg text-sm text-white font-medium hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-white/5"
+                            >
+                                Próxima
+                            </button>
                         </div>
-                    ))}
-                </div>
+                    </div>
+                </>
             )}
 
             {editingArticle && (

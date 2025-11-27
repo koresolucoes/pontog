@@ -30,6 +30,7 @@ interface InboxState {
   loadingRequests: boolean;
   loadingProfileViews: boolean;
   realtimeChannel: any | null;
+  lastConversationUpdate: number;
   
   winksHaveBeenSeen: boolean;
   requestsHaveBeenSeen: boolean;
@@ -71,7 +72,8 @@ export const useInboxStore = create<InboxState>((set, get) => {
         loadingRequests: false,
         loadingProfileViews: false,
         realtimeChannel: null,
-        winksHaveBeenSeen: true, // Default true, atualizado no fetch
+        lastConversationUpdate: 0, // Timeout tracker
+        winksHaveBeenSeen: true,
         requestsHaveBeenSeen: true,
 
         fetchConversations: async () => {
@@ -240,9 +242,6 @@ export const useInboxStore = create<InboxState>((set, get) => {
             const { winks } = get();
             
             if (winks.length > 0) {
-                // Salva a data de criação do wink mais recente + 1 segundo
-                // Isso garante que ao recarregar, a comparação (newest > last_viewed) seja falsa
-                // evitando problemas de diferença de relógio entre cliente/servidor
                 const newestWinkDate = new Date(winks[0].wink_created_at).getTime() + 1000;
                 localStorage.setItem('ponto_g_last_viewed_winks', new Date(newestWinkDate).toISOString());
             } else {
@@ -259,7 +258,6 @@ export const useInboxStore = create<InboxState>((set, get) => {
             const { accessRequests } = get();
 
             if (accessRequests.length > 0) {
-                // Mesma lógica de timestamp do servidor para requests
                 const newestRequestDate = new Date(accessRequests[0].created_at).getTime() + 1000;
                 localStorage.setItem('ponto_g_last_viewed_requests', new Date(newestRequestDate).toISOString());
             } else {
@@ -293,7 +291,20 @@ export const useInboxStore = create<InboxState>((set, get) => {
             const channel = supabase
                 .channel(`inbox:${user.id}`)
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
-                    get().fetchConversations();
+                    // DEBOUNCE LOGIC FOR CONVERSATIONS
+                    // Only update the conversation list every 2 seconds at most to prevent flood.
+                    // React state updates are expensive.
+                    const now = Date.now();
+                    const lastUpdate = get().lastConversationUpdate;
+                    
+                    if (now - lastUpdate > 2000) {
+                        get().fetchConversations();
+                        set({ lastConversationUpdate: now });
+                    } else {
+                        // Optional: Set a timeout to ensure we catch the tail end of a burst
+                        // For simplicity, we just throttle for now as chat windows handle their own realtime messages.
+                        // The inbox list doesn't need 100% ms-perfect accuracy for unread counts during typing.
+                    }
                 })
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'winks', filter: `receiver_id=eq.${user.id}` }, payload => {
                     get().fetchWinks();

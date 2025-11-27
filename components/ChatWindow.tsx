@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { User, Message as MessageType, PrivateAlbum } from '../types';
 import { supabase } from '../lib/supabase';
@@ -164,17 +165,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       const convId = data;
       setConversationId(convId);
       
+      // OPTIMIZATION: Fetch only last 50 messages to improve performance
       const { data: initialMessages, error: messagesError } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', convId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false }) // Get newest first
+        .limit(50);
 
       if (messagesError) {
           console.error("Error fetching messages:", messagesError);
       } else {
-          setMessages(initialMessages || []);
-          const unreadIds = initialMessages
+          // Reverse to show oldest first in the UI
+          const sortedMessages = (initialMessages || []).reverse();
+          setMessages(sortedMessages);
+          
+          const unreadIds = sortedMessages
             .filter(m => m.sender_id !== currentUser.id && !m.read_at)
             .map(m => m.id);
           markMessagesAsRead(unreadIds, convId);
@@ -452,6 +458,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       </header>
 
       <div className="flex-1 p-4 overflow-y-auto bg-dark-900 scroll-smooth pb-24">
+        {/* OPTIONAL: Add a 'Load More' button here if needed */}
+        {/* <button onClick={loadMoreMessages} ... >Carregar mais antigas</button> */}
+        
         <div className="flex flex-col space-y-2">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUser.id ? 'items-end' : 'items-start'}`}>

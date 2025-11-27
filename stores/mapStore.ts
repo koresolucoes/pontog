@@ -191,13 +191,24 @@ export const useMapStore = create<MapState>((set, get) => ({
 
     if (error) {
         console.error("Error fetching nearby users:", error);
-        // Don't set global error state here to avoid flashing error screens on transient network issues
         return;
     }
 
     if (data) {
         const transformedUsers = data.map(transformProfileToUser);
-        set({ users: transformedUsers });
+        
+        // PERFORMANCE OPTIMIZATION:
+        // Only update state if the user list has actually changed.
+        // We compare the IDs of the new list with the current list.
+        const currentUsers = get().users;
+        const currentIds = currentUsers.map(u => u.id).sort().join(',');
+        const newIds = transformedUsers.map((u: User) => u.id).sort().join(',');
+
+        // If IDs are different OR counts are different, update.
+        // Also update if we have very few users (force refresh) to be safe.
+        if (currentIds !== newIds || currentUsers.length < 5) {
+             set({ users: transformedUsers });
+        }
     }
   },
 
@@ -297,11 +308,6 @@ export const useMapStore = create<MapState>((set, get) => ({
                 await presenceChannel.track({ user_id: profile.id, online_at: new Date().toISOString() });
             }
         });
-
-    // SCALABILITY FIX: Removed the global 'postgres_changes' listener on 'profiles'.
-    // Listening to ALL profile changes causes an exponential N^2 fetch storm.
-    // Instead, we rely on the periodic polling in `requestLocationPermission` to update the map data.
-    // This is the standard architecture for scalable location-based apps.
 
     set({ presenceChannel });
   },

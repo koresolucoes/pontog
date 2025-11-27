@@ -33,8 +33,8 @@ interface MessageContentProps {
   onViewOnceClick: (message: MessageType) => void;
 }
 
-
-const MessageContent: React.FC<MessageContentProps> = ({ message, onViewOnceClick }) => {
+// Memoized MessageContent to prevent unnecessary re-renders
+const MessageContent: React.FC<MessageContentProps> = React.memo(({ message, onViewOnceClick }) => {
     try {
         const parsedContent = JSON.parse(message.content);
         if (parsedContent.type) {
@@ -103,7 +103,27 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, onViewOnceClic
             {message.content && <p className="text-sm break-words leading-relaxed">{message.content}</p>}
         </div>
     );
-};
+});
+
+// Extracted and Memoized MessageStatus to fix re-mounting issue
+const MessageStatus = React.memo(({ msg, currentUserId, isPremium }: { msg: MessageType, currentUserId: string, isPremium: boolean }) => {
+    if (msg.sender_id !== currentUserId) return null;
+    
+    const hasBeenRead = msg.read_at !== null && msg.read_at !== undefined;
+    const showReadReceipt = isPremium && hasBeenRead;
+
+    return (
+      <div className="flex items-center space-x-1 transition-opacity duration-300">
+          {msg.updated_at && <span className="text-[9px] text-slate-400">(editado)</span>}
+          <span className="text-[9px] text-slate-400/80">{format(new Date(msg.created_at), 'HH:mm')}</span>
+          {showReadReceipt ? (
+              <span className="material-symbols-rounded !text-[12px] text-blue-400">done_all</span>
+          ) : (
+              <span className="material-symbols-rounded !text-[12px] text-slate-500">check</span>
+          )}
+      </div>
+    );
+});
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const [messages, setMessages] = useState<MessageType[]>([]);
@@ -387,7 +407,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       onClose();
   };
 
-  const handleViewOnceClick = async (message: MessageType) => {
+  const handleViewOnceClick = useCallback(async (message: MessageType) => {
     if (!message.viewed_at && message.image_url) {
         setViewingOncePhoto(message);
         const { error } = await supabase
@@ -401,32 +421,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
             toast.error("Não foi possível abrir a foto.");
         }
     }
-  };
+  }, []);
 
   if (!currentUser) return null;
   
-  const MessageStatus = ({ msg }: { msg: MessageType }) => {
-    if (msg.sender_id !== currentUser.id) return null;
-    
-    const isPremiumUser = currentUser?.subscription_tier === 'plus';
-    const hasBeenRead = msg.read_at !== null && msg.read_at !== undefined;
-    const showReadReceipt = isPremiumUser && hasBeenRead;
-
-    return (
-      <div className="flex items-center space-x-1 transition-opacity duration-300">
-          {msg.updated_at && <span className="text-[9px] text-slate-400">(editado)</span>}
-          <span className="text-[9px] text-slate-400/80">{format(new Date(msg.created_at), 'HH:mm')}</span>
-          {showReadReceipt ? (
-              <span className="material-symbols-rounded !text-[12px] text-blue-400">done_all</span>
-          ) : (
-              <span className="material-symbols-rounded !text-[12px] text-slate-500">check</span>
-          )}
-      </div>
-    );
-  };
-  
   const statusText = formatLastSeen(user.last_seen);
   const isOnline = onlineUsers.includes(user.id) || statusText === 'Online';
+  const isPremiumUser = currentUser.subscription_tier === 'plus';
 
   return (
     <>
@@ -458,8 +459,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       </header>
 
       <div className="flex-1 p-4 overflow-y-auto bg-dark-900 scroll-smooth pb-24">
-        {/* OPTIONAL: Add a 'Load More' button here if needed */}
-        {/* <button onClick={loadMoreMessages} ... >Carregar mais antigas</button> */}
         
         <div className="flex flex-col space-y-2">
           {messages.map((msg) => (
@@ -516,7 +515,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
 
               </div>
               <div className={`mt-1 px-1 ${msg.sender_id === currentUser.id ? 'self-end' : 'self-start ml-9'}`}>
-                 <MessageStatus msg={msg} />
+                 <MessageStatus msg={msg} currentUserId={currentUser.id} isPremium={isPremiumUser} />
               </div>
             </div>
           ))}

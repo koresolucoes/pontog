@@ -74,10 +74,10 @@ export const GuidedTour: React.FC = () => {
     ];
 
     const handleJoyrideCallback = (data: CallBackProps) => {
-        const { status } = data;
+        const { status, action } = data;
         const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
 
-        if (finishedStatuses.includes(status)) {
+        if (finishedStatuses.includes(status) || action === 'close') {
             setRun(false);
             finishTour(); // Update database and local state
         }

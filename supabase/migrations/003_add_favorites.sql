@@ -39,8 +39,8 @@ BEGIN
         f.favorite_id,
         p.username,
         p.avatar_url,
-        p.age,
-        p.distance_km,
+        (EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.date_of_birth::DATE)))::INT AS age,
+        NULL::FLOAT AS distance_km,
         p.is_verified,
         p.subscription_tier
     FROM favorites f

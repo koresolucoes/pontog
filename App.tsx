@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
 import { useUiStore } from './stores/uiStore';
@@ -280,7 +281,11 @@ const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, i
         className={`relative flex flex-col items-center justify-center py-2 px-1 min-w-[50px] w-full transition-all duration-300 group focus:outline-none rounded-xl ${className}`}
         aria-label={label}
     >
-        <div className="relative transition-transform duration-300 group-active:scale-90">
+        <motion.div 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
+            className="relative"
+        >
             <div 
                 className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300
                     ${isActive 
@@ -298,13 +303,21 @@ const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, i
                 >
                     {icon}
                 </span>
+                {isActive && (
+                    <motion.div
+                        layoutId="activeNavIndicator"
+                        className="absolute inset-0 rounded-full border-2 border-white/20"
+                        initial={false}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    />
+                )}
             </div>
             {notificationCount > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center border-2 border-slate-900 z-10 animate-bounce">
                     {notificationCount > 9 ? '9+' : notificationCount}
                 </span>
              )}
-        </div>
+        </motion.div>
         {isPlus && (
             <span className="absolute top-1 right-1 sm:right-2 material-symbols-rounded !text-[10px] text-yellow-400 filled shadow-black drop-shadow-md">auto_awesome</span>
         )}

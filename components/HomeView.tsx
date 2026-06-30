@@ -1,19 +1,39 @@
 
 import React, { useEffect, useMemo, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useHomeStore } from '../stores/homeStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
 import { User } from '../types';
 import { AdSenseUnit } from './AdSenseUnit';
 
-
 const GridLoader: React.FC = () => (
     <>
-        {Array.from({ length: 3 }).map((_, i) => (
-             <div key={i} className="relative aspect-[3/4] bg-slate-800/50 rounded-3xl animate-pulse border border-white/5"></div>
+        {Array.from({ length: 6 }).map((_, i) => (
+            <motion.div 
+                key={`skeleton-${i}`}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.05 }}
+                className="relative aspect-[3/4] bg-slate-800/50 rounded-3xl animate-pulse border border-white/5"
+            />
         ))}
     </>
 );
+
+const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+        opacity: 1,
+        transition: { staggerChildren: 0.05 }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 export const HomeView: React.FC = () => {
     const { popularUsers, loading, error, hasMore, loadingMore, fetchPopularUsers, fetchMorePopularUsers } = useHomeStore();
@@ -100,40 +120,59 @@ export const HomeView: React.FC = () => {
             
             <div className="flex-1 overflow-y-auto px-3 pt-3">
                 {itemsWithAds.length === 0 && !loading ? (
-                    <div className="flex flex-col items-center justify-center h-64 text-center text-slate-500 p-8">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex flex-col items-center justify-center h-64 text-center text-slate-500 p-8"
+                    >
                         <span className="material-symbols-rounded text-5xl mb-3 text-slate-700">explore_off</span>
                         <h2 className="text-lg font-bold text-slate-300">Nenhum perfil encontrado.</h2>
                         <p className="mt-2 text-sm">Explore o mapa para encontrar mais pessoas.</p>
-                    </div>
+                    </motion.div>
                 ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pb-4">
-                        {itemsWithAds.map((item, index) => {
-                            if ('type' in item && item.type === 'ad') {
+                    <motion.div 
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="show"
+                        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pb-4"
+                    >
+                        <AnimatePresence mode="popLayout">
+                            {itemsWithAds.map((item, index) => {
+                                if ('type' in item && item.type === 'ad') {
+                                    return (
+                                        <motion.div 
+                                            variants={itemVariants}
+                                            layout
+                                            key={`ad-${index}`} 
+                                            className="relative aspect-[3/4] bg-slate-800/50 rounded-3xl overflow-hidden flex items-center justify-center border border-white/5"
+                                        >
+                                            <AdSenseUnit
+                                                client="ca-pub-9015745232467355"
+                                                slot="8953415490"
+                                                format="auto"
+                                                className="w-full h-full"
+                                            />
+                                            <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-md text-[9px] font-bold text-white/50 tracking-widest border border-white/5">ADS</div>
+                                        </motion.div>
+                                    );
+                                }
+                                
+                                const user = item as User;
+                                const isLastUser = index === itemsWithAds.length - 1;
+                                const isAgora = agoraUserIds.includes(user.id);
+                                const isPlus = user.subscription_tier === 'plus';
+                                
                                 return (
-                                    <div key={`ad-${index}`} className="relative aspect-[3/4] bg-slate-800/50 rounded-3xl overflow-hidden flex items-center justify-center border border-white/5">
-                                        <AdSenseUnit
-                                            client="ca-pub-9015745232467355"
-                                            slot="8953415490"
-                                            format="auto"
-                                            className="w-full h-full"
-                                        />
-                                        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-md text-[9px] font-bold text-white/50 tracking-widest border border-white/5">ADS</div>
-                                    </div>
-                                );
-                            }
-                            
-                            const user = item as User;
-                            const isLastUser = index === itemsWithAds.length - 1;
-                            const isAgora = agoraUserIds.includes(user.id);
-                            const isPlus = user.subscription_tier === 'plus';
-                            
-                            return (
-                                <div 
-                                    ref={isLastUser ? lastUserElementRef : null}
-                                    key={user.id} 
-                                    className={`relative aspect-[3/4] cursor-pointer group rounded-3xl overflow-hidden transition-all duration-500 bg-slate-800 ${isAgora ? 'ring-2 ring-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)]' : 'hover:shadow-2xl hover:shadow-black/50'}`}
-                                    onClick={() => handleUserClick(user)}
-                                >
+                                    <motion.div 
+                                        variants={itemVariants}
+                                        layout
+                                        ref={isLastUser ? lastUserElementRef : null}
+                                        key={user.id} 
+                                        className={`relative aspect-[3/4] cursor-pointer group rounded-3xl overflow-hidden transition-shadow duration-500 bg-slate-800 ${isAgora ? 'ring-2 ring-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)]' : 'hover:shadow-2xl hover:shadow-black/50'}`}
+                                        onClick={() => handleUserClick(user)}
+                                        whileHover={{ y: -4, scale: 0.98 }}
+                                        whileTap={{ scale: 0.95 }}
+                                    >
                                     <img 
                                         src={user.avatar_url} 
                                         alt={user.username} 
@@ -183,11 +222,12 @@ export const HomeView: React.FC = () => {
                                             )}
                                         </div>
                                     </div>
-                                </div>
+                                </motion.div>
                             );
                         })}
+                        </AnimatePresence>
                         {loadingMore && <GridLoader />}
-                    </div>
+                    </motion.div>
                 )}
             </div>
         </div>

@@ -1,11 +1,25 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAgoraStore } from '../stores/agoraStore';
 import { useAuthStore } from '../stores/authStore';
 import { AgoraPost } from '../types';
 import { ActivateAgoraModal } from './ActivateAgoraModal';
 import { AgoraPostDetailModal } from './AgoraPostDetailModal';
 import { ConfirmationModal } from './ConfirmationModal';
+
+const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+        opacity: 1,
+        transition: { staggerChildren: 0.1 }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 30, scale: 0.95 },
+    show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 export const AgoraView: React.FC = () => {
     const { posts, isLoading, agoraUserIds, deactivateAgoraMode, toggleLikePost, loadMorePosts, hasMore } = useAgoraStore();
@@ -116,78 +130,95 @@ export const AgoraView: React.FC = () => {
         <>
             <div className="h-full flex flex-col bg-dark-900">
                 {renderHeader()}
-                <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-6">
-                    {posts.map((post, index) => (
-                        <div 
-                            key={post.id} 
-                            ref={index === posts.length - 1 ? lastPostElementRef : null}
-                            className="group relative bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-white/5"
-                        >
-                            
-                            {/* Header do Card */}
-                            <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 bg-gradient-to-b from-black/80 to-transparent">
-                                <div className="flex items-center space-x-3">
-                                    <div className="relative">
-                                        <img loading="lazy" src={post.avatar_url} alt={post.username} className="w-10 h-10 rounded-full object-cover ring-2 ring-red-500/50" />
-                                        <div className="absolute -bottom-1 -right-1 bg-red-600 rounded-full p-0.5 border border-black">
-                                            <span className="material-symbols-rounded filled text-[10px] text-white block">local_fire_department</span>
+                <motion.div 
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="show"
+                    className="flex-1 overflow-y-auto p-4 pb-24 space-y-6"
+                >
+                    <AnimatePresence mode="popLayout">
+                        {posts.map((post, index) => (
+                            <motion.div 
+                                variants={itemVariants}
+                                layout
+                                key={post.id} 
+                                ref={index === posts.length - 1 ? lastPostElementRef : null}
+                                className="group relative bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-white/5"
+                            >
+                                
+                                {/* Header do Card */}
+                                <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 bg-gradient-to-b from-black/80 to-transparent">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="relative">
+                                            <img loading="lazy" src={post.avatar_url} alt={post.username} className="w-10 h-10 rounded-full object-cover ring-2 ring-red-500/50" />
+                                            <div className="absolute -bottom-1 -right-1 bg-red-600 rounded-full p-0.5 border border-black">
+                                                <span className="material-symbols-rounded filled text-[10px] text-white block">local_fire_department</span>
+                                            </div>
+                                        </div>
+                                        <div className="drop-shadow-md">
+                                            <h3 className="font-bold text-white text-sm leading-none">{post.username}, {post.age}</h3>
+                                            <p className="text-[10px] text-red-300 font-bold uppercase tracking-wider mt-0.5">Online Agora</p>
                                         </div>
                                     </div>
-                                    <div className="drop-shadow-md">
-                                        <h3 className="font-bold text-white text-sm leading-none">{post.username}, {post.age}</h3>
-                                        <p className="text-[10px] text-red-300 font-bold uppercase tracking-wider mt-0.5">Online Agora</p>
-                                    </div>
                                 </div>
-                            </div>
-
-                            {/* Imagem Principal Full Bleed */}
-                            <div 
-                                className="relative w-full aspect-[4/5] cursor-pointer"
-                                onClick={() => setSelectedPost(post)}
-                            >
-                                <img 
-                                    src={post.photo_url} 
-                                    alt={`Post de ${post.username}`}
-                                    loading="lazy"
-                                    decoding="async"
-                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                />
-                                
-                                {/* Status Text Overlay */}
-                                {post.status_text && (
-                                    <div className="absolute bottom-0 left-0 right-0 p-5 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
-                                        <p className="text-white text-lg font-medium leading-snug drop-shadow-lg">
-                                            "{post.status_text}"
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Actions Bar */}
-                            <div className="p-3 bg-slate-900/50 backdrop-blur-md border-t border-white/5 flex items-center justify-between">
-                                <div className="flex gap-4">
-                                    <button 
-                                        onClick={() => toggleLikePost(post.id)} 
-                                        className={`flex items-center gap-1.5 transition-colors ${post.user_has_liked ? 'text-pink-500' : 'text-slate-400 hover:text-white'}`}
-                                    >
-                                        <span className={`material-symbols-rounded text-2xl ${post.user_has_liked ? 'filled' : ''}`}>favorite</span>
-                                        <span className="text-xs font-bold">{post.likes_count}</span>
-                                    </button>
-                                    <button 
-                                        onClick={() => setSelectedPost(post)} 
-                                        className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors"
-                                    >
-                                        <span className="material-symbols-rounded text-2xl">chat_bubble</span>
-                                        <span className="text-xs font-bold">{post.comments_count}</span>
-                                    </button>
+    
+                                {/* Imagem Principal Full Bleed */}
+                                <div 
+                                    className="relative w-full aspect-[4/5] cursor-pointer overflow-hidden"
+                                    onClick={() => setSelectedPost(post)}
+                                >
+                                    <motion.img 
+                                        whileHover={{ scale: 1.05 }}
+                                        transition={{ duration: 0.6 }}
+                                        src={post.photo_url} 
+                                        alt={`Post de ${post.username}`}
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="w-full h-full object-cover"
+                                    />
+                                    
+                                    {/* Status Text Overlay */}
+                                    {post.status_text && (
+                                        <div className="absolute bottom-0 left-0 right-0 p-5 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
+                                            <p className="text-white text-lg font-medium leading-snug drop-shadow-lg">
+                                                "{post.status_text}"
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
-                                <button className="bg-white text-black text-xs font-black py-2 px-4 rounded-lg hover:bg-slate-200 transition-colors uppercase tracking-wide flex items-center gap-1">
-                                    Chamar
-                                    <span className="material-symbols-rounded filled text-sm text-pink-600">favorite</span>
-                                </button>
-                            </div>
-                        </div>
-                    ))}
+    
+                                {/* Actions Bar */}
+                                <div className="p-3 bg-slate-900/50 backdrop-blur-md border-t border-white/5 flex items-center justify-between">
+                                    <div className="flex gap-4">
+                                        <motion.button 
+                                            whileTap={{ scale: 0.8 }}
+                                            onClick={() => toggleLikePost(post.id)} 
+                                            className={`flex items-center gap-1.5 transition-colors ${post.user_has_liked ? 'text-pink-500' : 'text-slate-400 hover:text-white'}`}
+                                        >
+                                            <span className={`material-symbols-rounded text-2xl ${post.user_has_liked ? 'filled' : ''}`}>favorite</span>
+                                            <span className="text-xs font-bold">{post.likes_count}</span>
+                                        </motion.button>
+                                        <motion.button 
+                                            whileTap={{ scale: 0.8 }}
+                                            onClick={() => setSelectedPost(post)} 
+                                            className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors"
+                                        >
+                                            <span className="material-symbols-rounded text-2xl">chat_bubble</span>
+                                            <span className="text-xs font-bold">{post.comments_count}</span>
+                                        </motion.button>
+                                    </div>
+                                    <motion.button 
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className="bg-white text-black text-xs font-black py-2 px-4 rounded-lg hover:bg-slate-200 transition-colors uppercase tracking-wide flex items-center gap-1"
+                                    >
+                                        Chamar
+                                        <span className="material-symbols-rounded filled text-sm text-pink-600">favorite</span>
+                                    </motion.button>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
                     
                     {isLoading && posts.length > 0 && (
                         <div className="flex justify-center py-6">
@@ -200,7 +231,7 @@ export const AgoraView: React.FC = () => {
                             Não há mais fogo na fogueira.
                         </div>
                     )}
-                </div>
+                </motion.div>
             </div>
             {isActivateModalOpen && <ActivateAgoraModal onClose={() => setIsActivateModalOpen(false)} />}
             {selectedPost && <AgoraPostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />}

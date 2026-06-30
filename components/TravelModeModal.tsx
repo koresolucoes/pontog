@@ -47,8 +47,16 @@ export const TravelModeModal: React.FC<TravelModeModalProps> = ({ onClose }) => 
 
         mapInstance.current = map;
 
+        // Fix for map tiles not loading completely due to modal animation
+        setTimeout(() => {
+            if (mapInstance.current) {
+                mapInstance.current.invalidateSize();
+            }
+        }, 300);
+
         return () => {
             map.remove();
+            mapInstance.current = null;
         };
     }, []); // Run once
 

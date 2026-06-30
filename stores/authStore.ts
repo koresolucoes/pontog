@@ -79,7 +79,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             status: data.status || 'active',
             suspended_until: data.suspended_until || null,
             is_verified: data.is_verified || false,
-            has_seen_tour: data.has_seen_tour || false,
+            has_seen_tour: data.has_seen_tour || localStorage.getItem(`has_seen_tour_${supabaseUser.id}`) === 'true' || false,
         };
         delete (profileData as any).profile_tribes;
       } else {
@@ -253,6 +253,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { user } = get();
     if (!user) return;
     
+    // Fallback in case DB column doesn't exist yet
+    localStorage.setItem(`has_seen_tour_${user.id}`, 'true');
+
     // Update local state immediately
     set(state => ({
         user: state.user ? { ...state.user, has_seen_tour: true } : null,

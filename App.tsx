@@ -27,6 +27,7 @@ import { AnimatedBackground } from './components/AnimatedBackground';
 import { SuspendedScreen } from './components/SuspendedScreen';
 import { NewsView } from './components/NewsView';
 import { VenueDetailModal } from './components/VenueDetailModal';
+import { GuidedTour } from './components/GuidedTour';
 
 const App: React.FC = () => {
     if (window.location.pathname.startsWith('/admin')) {
@@ -182,7 +183,7 @@ const App: React.FC = () => {
                 <Onboarding />
             ) : (
                 <div className="h-screen w-screen bg-dark-900 text-slate-50 flex flex-col antialiased overflow-hidden relative">
-                    
+                    <GuidedTour />
                     {/* Fundo Animado Global (Apenas se não for mapa) */}
                     {activeView !== 'map' && <AnimatedBackground />}
 
@@ -190,7 +191,7 @@ const App: React.FC = () => {
 
                     <button 
                         onClick={() => setSidebarOpen(true)}
-                        className="fixed top-4 left-4 z-30 w-10 h-10 flex items-center justify-center rounded-full bg-dark-900/50 backdrop-blur-md border border-white/10 text-white shadow-lg hover:bg-slate-800 active:scale-95 transition-all"
+                        className="tour-step-menu fixed top-4 left-4 z-30 w-10 h-10 flex items-center justify-center rounded-full bg-dark-900/50 backdrop-blur-md border border-white/10 text-white shadow-lg hover:bg-slate-800 active:scale-95 transition-all"
                     >
                         <span className="material-symbols-rounded">menu</span>
                     </button>
@@ -247,11 +248,11 @@ const App: React.FC = () => {
                                 <div className="flex justify-between items-center p-1.5 min-w-max sm:min-w-0 sm:grid sm:grid-cols-7 gap-1">
                                     <NavButton icon="home" label="Início" isActive={activeView === 'home'} onClick={() => setActiveView('home')} />
                                     <NavButton icon="grid_view" label="Grade" isActive={activeView === 'grid'} onClick={() => setActiveView('grid')} />
-                                    <NavButton icon="map" label="Mapa" isActive={activeView === 'map'} onClick={() => setActiveView('map')} />
+                                    <NavButton icon="map" label="Mapa" isActive={activeView === 'map'} onClick={() => setActiveView('map')} className="tour-step-map" />
                                     <NavButton icon="local_fire_department" label="Agora" isActive={activeView === 'agora'} onClick={() => setActiveView('agora')} isFire />
                                     <NavButton icon="newspaper" label="News" isActive={activeView === 'news'} onClick={() => setActiveView('news')} />
-                                    <NavButton icon="chat_bubble" label="Chat" isActive={activeView === 'inbox'} onClick={() => setActiveView('inbox')} notificationCount={totalUnreadCount} />
-                                    <NavButton icon="person" label="Perfil" isActive={activeView === 'profile'} onClick={() => setActiveView('profile')} isPlus={user.subscription_tier === 'plus'} />
+                                    <NavButton icon="chat_bubble" label="Chat" isActive={activeView === 'inbox'} onClick={() => setActiveView('inbox')} notificationCount={totalUnreadCount} className="tour-step-inbox" />
+                                    <NavButton icon="person" label="Perfil" isActive={activeView === 'profile'} onClick={() => setActiveView('profile')} isPlus={user.subscription_tier === 'plus'} className="tour-step-profile" />
                                 </div>
                             </nav>
                         </div>
@@ -270,12 +271,13 @@ interface NavButtonProps {
     isPlus?: boolean;
     isFire?: boolean;
     notificationCount?: number;
+    className?: string;
 }
 
-const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, isPlus = false, isFire = false, notificationCount = 0 }) => (
+const NavButton: React.FC<NavButtonProps> = ({ icon, label, isActive, onClick, isPlus = false, isFire = false, notificationCount = 0, className = "" }) => (
     <button
         onClick={onClick}
-        className="relative flex flex-col items-center justify-center py-2 px-1 min-w-[50px] w-full transition-all duration-300 group focus:outline-none rounded-xl"
+        className={`relative flex flex-col items-center justify-center py-2 px-1 min-w-[50px] w-full transition-all duration-300 group focus:outline-none rounded-xl ${className}`}
         aria-label={label}
     >
         <div className="relative transition-transform duration-300 group-active:scale-90">

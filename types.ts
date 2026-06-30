@@ -45,6 +45,7 @@ export interface Profile {
   kinks: string[] | null; // Adicionado para preferências sexuais
   can_host: boolean; // Adicionado para indicar se tem local
   is_verified: boolean; // Adicionado para selo de verificação
+  has_seen_tour: boolean; // Adicionado para o tour guiado
 }
 
 // O tipo User estende Profile com campos calculados como 'idade'

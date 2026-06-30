@@ -24,6 +24,7 @@ interface AuthState {
   toggleIncognitoMode: (isIncognito: boolean) => Promise<void>;
   toggleCanHost: (canHost: boolean) => Promise<void>; // New action
   completeOnboarding: () => Promise<void>; // Function to mark onboarding as done
+  finishTour: () => Promise<void>; // Mark guided tour as done
   setupProfileSubscription: (userId: string) => void;
   cleanupProfileSubscription: () => void;
 }
@@ -78,6 +79,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             status: data.status || 'active',
             suspended_until: data.suspended_until || null,
             is_verified: data.is_verified || false,
+            has_seen_tour: data.has_seen_tour || false,
         };
         delete (profileData as any).profile_tribes;
       } else {
@@ -95,6 +97,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           can_host: false,
           status: 'active',
           is_verified: false,
+          has_seen_tour: false,
         };
 
         const { data: insertedProfile, error: insertError } = await supabase
@@ -120,6 +123,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             can_host: false,
             is_traveling: false,
             is_verified: false,
+            has_seen_tour: false,
           };
         }
       }
@@ -242,6 +246,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           user: state.user ? { ...state.user, is_incognito: isIncognito } : null,
           profile: state.profile ? { ...state.profile, is_incognito: isIncognito } : null,
       }));
+    }
+  },
+
+  finishTour: async () => {
+    const { user } = get();
+    if (!user) return;
+    
+    // Update local state immediately
+    set(state => ({
+        user: state.user ? { ...state.user, has_seen_tour: true } : null,
+        profile: state.profile ? { ...state.profile, has_seen_tour: true } : null,
+    }));
+
+    // Update DB
+    const { error } = await supabase
+      .from('profiles')
+      .update({ has_seen_tour: true })
+      .eq('id', user.id);
+    
+    if (error) {
+      console.error('Error updating tour status:', error);
     }
   },
 

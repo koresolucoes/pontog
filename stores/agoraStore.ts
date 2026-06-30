@@ -21,7 +21,10 @@ interface AgoraState {
   agoraUserIds: string[];
   isLoading: boolean;
   isActivating: boolean;
-  fetchAgoraPosts: () => Promise<void>;
+  page: number;
+  hasMore: boolean;
+  fetchAgoraPosts: (reset?: boolean) => Promise<void>;
+  loadMorePosts: () => Promise<void>;
   activateAgoraMode: (photoFile: File, statusText: string) => Promise<void>;
   deactivateAgoraMode: () => Promise<void>;
   toggleLikePost: (postId: number) => Promise<void>;
@@ -35,10 +38,26 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
   agoraUserIds: [],
   isLoading: false,
   isActivating: false,
+  page: 1,
+  hasMore: true,
 
-  fetchAgoraPosts: async () => {
-    set({ isLoading: true });
-    const { data, error } = await supabase.rpc('get_active_agora_posts_with_details');
+  fetchAgoraPosts: async (reset = false) => {
+    const currentPage = reset ? 1 : get().page;
+    if (reset) {
+        set({ isLoading: true, page: 1, hasMore: true, posts: [] });
+    } else {
+        set({ isLoading: true });
+    }
+
+    // Try using paginated RPC first, fallback to original if it doesn't exist yet
+    let response = await supabase.rpc('get_active_agora_posts_paginated', { p_page: currentPage, p_limit: 10 });
+    
+    // Fallback if RPC doesn't exist yet
+    if (response.error && response.error.message.includes('Could not find')) {
+        response = await supabase.rpc('get_active_agora_posts_with_details');
+    }
+
+    const { data, error } = response;
     
     if (error) {
       console.error('Error fetching Agora posts:', error);
@@ -53,11 +72,27 @@ export const useAgoraStore = create<AgoraState>((set, get) => ({
         age: calculateAge(p.date_of_birth),
     }));
 
-    set({ 
-        posts: formattedPosts, 
-        agoraUserIds: formattedPosts.map((p: AgoraPost) => p.user_id),
-        isLoading: false 
+    set(state => {
+        const newPosts = reset ? formattedPosts : [...state.posts, ...formattedPosts];
+        
+        // Remove duplicates just in case
+        const uniquePosts = Array.from(new Map(newPosts.map((p: AgoraPost) => [p.id, p])).values());
+
+        return { 
+            posts: uniquePosts as AgoraPost[], 
+            agoraUserIds: uniquePosts.map((p: AgoraPost) => p.user_id),
+            hasMore: formattedPosts.length === 10,
+            isLoading: false 
+        };
     });
+  },
+
+  loadMorePosts: async () => {
+    const { hasMore, isLoading, page } = get();
+    if (!hasMore || isLoading) return;
+    
+    set({ page: page + 1 });
+    await get().fetchAgoraPosts(false);
   },
 
   activateAgoraMode: async (photoFile: File, statusText: string) => {

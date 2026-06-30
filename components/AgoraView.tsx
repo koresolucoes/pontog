@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAgoraStore } from '../stores/agoraStore';
 import { useAuthStore } from '../stores/authStore';
 import { AgoraPost } from '../types';
@@ -8,11 +8,23 @@ import { AgoraPostDetailModal } from './AgoraPostDetailModal';
 import { ConfirmationModal } from './ConfirmationModal';
 
 export const AgoraView: React.FC = () => {
-    const { posts, isLoading, agoraUserIds, deactivateAgoraMode, toggleLikePost } = useAgoraStore();
+    const { posts, isLoading, agoraUserIds, deactivateAgoraMode, toggleLikePost, loadMorePosts, hasMore } = useAgoraStore();
     const { user } = useAuthStore();
     const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
     const [selectedPost, setSelectedPost] = useState<AgoraPost | null>(null);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const observer = useRef<IntersectionObserver | null>(null);
+
+    const lastPostElementRef = useCallback((node: HTMLDivElement) => {
+        if (isLoading) return;
+        if (observer.current) observer.current.disconnect();
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMore) {
+                loadMorePosts();
+            }
+        });
+        if (node) observer.current.observe(node);
+    }, [isLoading, hasMore, loadMorePosts]);
 
     const userIsAgora = user ? agoraUserIds.includes(user.id) : false;
 
@@ -105,8 +117,12 @@ export const AgoraView: React.FC = () => {
             <div className="h-full flex flex-col bg-dark-900">
                 {renderHeader()}
                 <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-6">
-                    {posts.map(post => (
-                        <div key={post.id} className="group relative bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-white/5">
+                    {posts.map((post, index) => (
+                        <div 
+                            key={post.id} 
+                            ref={index === posts.length - 1 ? lastPostElementRef : null}
+                            className="group relative bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-white/5"
+                        >
                             
                             {/* Header do Card */}
                             <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 bg-gradient-to-b from-black/80 to-transparent">
@@ -172,6 +188,18 @@ export const AgoraView: React.FC = () => {
                             </div>
                         </div>
                     ))}
+                    
+                    {isLoading && posts.length > 0 && (
+                        <div className="flex justify-center py-6">
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500"></div>
+                        </div>
+                    )}
+                    
+                    {!hasMore && posts.length > 0 && (
+                        <div className="text-center py-6 text-slate-500 text-sm font-medium">
+                            Não há mais fogo na fogueira.
+                        </div>
+                    )}
                 </div>
             </div>
             {isActivateModalOpen && <ActivateAgoraModal onClose={() => setIsActivateModalOpen(false)} />}

@@ -253,6 +253,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { user } = get();
     if (!user) return;
     
+    console.log('Finishing tour for user:', user.id);
     // Fallback in case DB column doesn't exist yet
     localStorage.setItem(`has_seen_tour_${user.id}`, 'true');
 
@@ -262,14 +263,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         profile: state.profile ? { ...state.profile, has_seen_tour: true } : null,
     }));
 
-    // Update DB
-    const { error } = await supabase
-      .from('profiles')
-      .update({ has_seen_tour: true })
-      .eq('id', user.id);
-    
-    if (error) {
-      console.error('Error updating tour status:', error);
+    try {
+        // Update DB
+        const { error } = await supabase
+          .from('profiles')
+          .update({ has_seen_tour: true })
+          .eq('id', user.id);
+        
+        if (error) {
+          console.error('Error updating tour status in DB:', error);
+        } else {
+          console.log('Successfully updated tour status in DB.');
+        }
+    } catch (e) {
+        console.error('Exception updating tour status:', e);
     }
   },
 

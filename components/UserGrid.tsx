@@ -322,14 +322,6 @@ const VirtualizedGrid = ({ items, agoraUserIds, onlineUsers, onUserClick, onLoad
                     return (
                         <div
                             key={virtualRow.index}
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: `${virtualRow.size - 12}px`,
-                                transform: `translateY(${virtualRow.start}px)`,
-                            }}
                             className={`grid gap-3 grid-cols-${columns}`}
                             style={{
                                 display: 'grid',

@@ -73,7 +73,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     } = useInboxStore();
     const { setChatUser, setSubscriptionModalOpen, setActiveView } = useUiStore();
     const { setSelectedUser } = useMapStore();
-    const { user: currentUser } = useAuthStore();
+    const currentUser = useAuthStore(state => state.user);
     const { grantTemporaryPerk } = useAdStore();
     const { favoriteUsers, isFetchingFavorites, fetchFavorites, unfavoriteUser } = useUserActionsStore();
     
@@ -295,7 +295,7 @@ const FavoriteList: React.FC<FavoriteListProps> = ({ favorites, loading, onUserC
                         className="relative p-4 flex items-center gap-4 rounded-3xl bg-slate-800/40 border border-white/5 hover:bg-slate-800/60 transition-all group shadow-sm backdrop-blur-sm" 
                     >
                         <div className="relative flex-shrink-0 cursor-pointer" onClick={() => onUserClick(profileObj)}>
-                            <img src={user.avatar_url} alt={user.username} className="w-14 h-14 rounded-full object-cover ring-2 ring-slate-700/50 group-hover:ring-pink-500/30 transition-all" />
+                            <img loading="lazy" src={user.avatar_url} alt={user.username} className="w-14 h-14 rounded-full object-cover ring-2 ring-slate-700/50 group-hover:ring-pink-500/30 transition-all" />
                             {isOnline && <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-slate-800 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>}
                         </div>
                         
@@ -388,7 +388,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
                         onClick={() => onConversationClick(convo)}
                     >
                         <div className="relative flex-shrink-0">
-                            <img src={convo.other_participant_avatar_url} alt={convo.other_participant_username} className="w-14 h-14 rounded-full object-cover ring-2 ring-slate-700/50 group-hover:ring-pink-500/30 transition-all" />
+                            <img loading="lazy" src={convo.other_participant_avatar_url} alt={convo.other_participant_username} className="w-14 h-14 rounded-full object-cover ring-2 ring-slate-700/50 group-hover:ring-pink-500/30 transition-all" />
                             {convo.unread_count > 0 && (
                                 <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-red-500 px-1.5 text-[10px] font-bold text-white ring-2 ring-dark-900 animate-bounce">
                                     {convo.unread_count > 9 ? '9+' : convo.unread_count}
@@ -554,7 +554,7 @@ const RequestList: React.FC<RequestListProps> = ({ requests, loading, onRespond 
         <div className="space-y-3">
             {requests.map(req => (
                 <div key={req.id} className="p-4 flex items-center gap-4 bg-slate-800/60 rounded-2xl border border-white/5 shadow-sm">
-                    <img src={req.avatar_url} alt={req.username} className="w-12 h-12 rounded-full object-cover border-2 border-slate-700" />
+                    <img loading="lazy" src={req.avatar_url} alt={req.username} className="w-12 h-12 rounded-full object-cover border-2 border-slate-700" />
                     <div className="flex-1 overflow-hidden">
                         <p className="text-sm text-slate-200 leading-snug">
                             <span className="font-bold text-white">{req.username}</span> pediu para ver seus álbuns privados.

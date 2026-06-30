@@ -9,7 +9,7 @@ import { ConfirmationModal } from './ConfirmationModal';
 
 export const AgoraView: React.FC = () => {
     const { posts, isLoading, agoraUserIds, deactivateAgoraMode, toggleLikePost, loadMorePosts, hasMore } = useAgoraStore();
-    const { user } = useAuthStore();
+    const user = useAuthStore(state => state.user);
     const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
     const [selectedPost, setSelectedPost] = useState<AgoraPost | null>(null);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);

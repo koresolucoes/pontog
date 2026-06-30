@@ -5,6 +5,7 @@ import { useUiStore } from '../stores/uiStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
 import { useAdStore } from '../stores/adStore';
+import { useUserActionsStore } from '../stores/userActionsStore';
 import { ConversationPreview, User, WinkWithProfile, AlbumAccessRequest, ProfileViewWithProfile } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
@@ -14,7 +15,7 @@ import { UnlockFeatureModal } from './UnlockFeatureModal';
 import { RewardAdModal } from './RewardAdModal';
 
 
-type ActiveTab = 'messages' | 'winks' | 'views' | 'requests';
+type ActiveTab = 'messages' | 'winks' | 'views' | 'requests' | 'favorites';
 
 interface InboxProps {
     initialTab?: ActiveTab;
@@ -74,6 +75,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
     const { setSelectedUser } = useMapStore();
     const { user: currentUser } = useAuthStore();
     const { grantTemporaryPerk } = useAdStore();
+    const { favoriteUsers, isFetchingFavorites, fetchFavorites, unfavoriteUser } = useUserActionsStore();
     
     const [confirmDelete, setConfirmDelete] = useState<ConversationPreview | null>(null);
     const [unlockModal, setUnlockModal] = useState<'winks' | 'views' | null>(null);
@@ -83,7 +85,8 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         if (activeTab === 'winks') fetchWinks();
         if (activeTab === 'requests') fetchAccessRequests();
         if (activeTab === 'views') fetchProfileViews();
-    }, [activeTab, fetchWinks, fetchAccessRequests, fetchProfileViews]);
+        if (activeTab === 'favorites') fetchFavorites();
+    }, [activeTab, fetchWinks, fetchAccessRequests, fetchProfileViews, fetchFavorites]);
     
     useEffect(() => {
         if (activeTab === 'winks' && winks.length > 0) clearWinks();
@@ -160,8 +163,9 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             {/* Header fixed with safe area for hamburger menu (pl-16) */}
             <header className="p-4 pb-0 flex-shrink-0 z-10 bg-dark-900/80 backdrop-blur-xl border-b border-white/5 pl-16">
                 <h1 className="text-2xl font-black tracking-tight mb-4 font-outfit text-white px-2">Inbox</h1>
-                <div className="flex justify-between gap-2 p-1.5 bg-slate-800/50 rounded-2xl border border-white/5 mb-4">
+                <div className="flex justify-between gap-1 overflow-x-auto p-1.5 bg-slate-800/50 rounded-2xl border border-white/5 mb-4 no-scrollbar">
                     <TabButton label="Chats" tabName="messages" icon="chat_bubble" />
+                    <TabButton label="Favoritos" tabName="favorites" icon="star" />
                     <TabButton label="Winks" tabName="winks" isPremium icon="favorite" />
                     <TabButton label="Visitas" tabName="views" isPremium icon="visibility" />
                     <TabButton label="Pedidos" tabName="requests" icon="lock_open" />
@@ -177,6 +181,14 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
                         onDeleteClick={(convo) => setConfirmDelete(convo)}
                         currentUserId={currentUser?.id}
                         onEmptyAction={goToGrid}
+                    />
+                )}
+                {activeTab === 'favorites' && (
+                    <FavoriteList 
+                        favorites={favoriteUsers}
+                        loading={isFetchingFavorites}
+                        onUserClick={(user) => setSelectedUser(user as any)}
+                        onUnfavorite={unfavoriteUser}
                     />
                 )}
                 {activeTab === 'winks' && (
@@ -239,6 +251,89 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
 };
 
 // ... Sub-componentes ...
+
+interface FavoriteListProps {
+    favorites: any[];
+    loading: boolean;
+    onUserClick: (user: any) => void;
+    onUnfavorite: (id: string) => void;
+}
+const FavoriteList: React.FC<FavoriteListProps> = ({ favorites, loading, onUserClick, onUnfavorite }) => {
+    const onlineUsers = useMapStore((state) => state.onlineUsers);
+
+    if (loading) return <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div></div>;
+    if (favorites.length === 0) return (
+        <EmptyState 
+            icon="star"
+            title="Nenhum Favorito"
+            message="Você ainda não adicionou ninguém aos favoritos. Explore os perfis e salve seus preferidos!"
+        />
+    );
+    
+    return (
+        <div className="space-y-3 pb-4">
+            {favorites.map((user) => {
+                const isOnline = onlineUsers.includes(user.favorite_id);
+                // Mapear para o formato que setSelectedUser espera
+                const profileObj = {
+                    id: user.favorite_id,
+                    username: user.username,
+                    avatar_url: user.avatar_url,
+                    age: user.age,
+                    distance_km: user.distance_km,
+                    is_verified: user.is_verified,
+                    subscription_tier: user.subscription_tier,
+                    // Fake the rest for modal loading
+                    status: 'active',
+                    is_incognito: false,
+                    has_completed_onboarding: true
+                };
+
+                return (
+                    <div 
+                        key={user.favorite_id} 
+                        className="relative p-4 flex items-center gap-4 rounded-3xl bg-slate-800/40 border border-white/5 hover:bg-slate-800/60 transition-all group shadow-sm backdrop-blur-sm" 
+                    >
+                        <div className="relative flex-shrink-0 cursor-pointer" onClick={() => onUserClick(profileObj)}>
+                            <img src={user.avatar_url} alt={user.username} className="w-14 h-14 rounded-full object-cover ring-2 ring-slate-700/50 group-hover:ring-pink-500/30 transition-all" />
+                            {isOnline && <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-slate-800 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>}
+                        </div>
+                        
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onUserClick(profileObj)}>
+                            <div className="flex justify-between items-start mb-0.5">
+                                <div className="flex items-center gap-1.5">
+                                    <h3 className="font-bold text-white leading-none font-outfit text-lg">{user.username}, {user.age}</h3>
+                                    {user.is_verified && (
+                                        <span className="material-symbols-rounded filled text-pink-500 text-sm" title="Verificado">verified</span>
+                                    )}
+                                    {user.subscription_tier === 'plus' && (
+                                        <span className="material-symbols-rounded filled text-[12px] text-yellow-400">auto_awesome</span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                                {user.distance_km != null && (
+                                    <span className="text-xs text-slate-400 bg-black/30 px-2 py-0.5 rounded flex items-center gap-1">
+                                        <span className="material-symbols-rounded !text-[12px]">location_on</span>
+                                        {user.distance_km < 1 ? 'A menos de 1km' : `${user.distance_km.toFixed(1)} km`}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); onUnfavorite(user.favorite_id); }}
+                            className="w-10 h-10 flex items-center justify-center rounded-full bg-black/20 text-pink-500 hover:bg-white/10 transition-colors border border-white/5"
+                            title="Remover dos favoritos"
+                        >
+                            <span className="material-symbols-rounded filled text-xl">star</span>
+                        </button>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
 
 interface ConversationListProps {
     conversations: ConversationPreview[]; 

@@ -33,7 +33,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
     requestAccess,
     clearViewedUserData
   } = useAlbumStore();
-  const { blockUser } = useUserActionsStore();
+  const { blockUser, favoriteUser, unfavoriteUser, favoriteIds } = useUserActionsStore();
+  const isFavorite = favoriteIds.includes(user.id);
 
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [viewingAlbum, setViewingAlbum] = useState<PrivateAlbum | null>(null);
@@ -178,6 +179,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
 
         {/* Options Button (Moved up for z-index safety) */}
         <div className="absolute top-4 right-4 z-30 flex gap-2">
+            <button onClick={() => isFavorite ? unfavoriteUser(user.id) : favoriteUser(user.id)} className={`bg-black/20 backdrop-blur-md p-2.5 rounded-full transition-colors border border-white/10 ${isFavorite ? 'text-pink-500 hover:bg-black/40' : 'text-white hover:bg-black/40'}`}>
+                <span className={`material-symbols-rounded ${isFavorite ? 'filled' : ''}`}>favorite</span>
+            </button>
              <button onClick={() => setOptionsMenuOpen(true)} className="text-white bg-black/20 backdrop-blur-md p-2.5 rounded-full hover:bg-black/40 transition-colors border border-white/10">
                 <span className="material-symbols-rounded">more_vert</span>
             </button>

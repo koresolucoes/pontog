@@ -5,6 +5,7 @@ import { useAuthStore } from './stores/authStore';
 import { useUiStore } from './stores/uiStore';
 import { useMapStore } from './stores/mapStore';
 import { useInboxStore } from './stores/inboxStore';
+import { useUserActionsStore } from './stores/userActionsStore';
 import { Auth } from './components/Auth';
 import { LandingPage } from './components/LandingPage';
 import { HomeView } from './components/HomeView';
@@ -100,6 +101,7 @@ const App: React.FC = () => {
                 fetchConversations();
                 fetchWinks();
                 fetchAccessRequests();
+                useUserActionsStore.getState().fetchFavorites();
             } else {
                 stopLocationWatch();
                 cleanupRealtime();

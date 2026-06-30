@@ -25,18 +25,37 @@ export interface BlockedUser {
     avatar_url: string;
 }
 
+export interface FavoriteUser {
+    favorite_id: string;
+    username: string;
+    avatar_url: string;
+    age: number;
+    distance_km: number | null;
+    is_verified: boolean;
+    subscription_tier: string;
+}
+
 interface UserActionsState {
     blockedUsers: BlockedUser[];
     isFetchingBlocked: boolean;
+    favoriteUsers: FavoriteUser[];
+    favoriteIds: string[];
+    isFetchingFavorites: boolean;
     blockUser: (userToBlock: { id: string, username: string }) => Promise<void>;
     reportUser: (reportedId: string, reason: string, comments: string) => Promise<boolean>;
     fetchBlockedUsers: () => Promise<void>;
     unblockUser: (userId: string) => Promise<void>;
+    favoriteUser: (userId: string) => Promise<void>;
+    unfavoriteUser: (userId: string) => Promise<void>;
+    fetchFavorites: () => Promise<void>;
 }
 
 export const useUserActionsStore = create<UserActionsState>((set, get) => ({
     blockedUsers: [],
     isFetchingBlocked: false,
+    favoriteUsers: [],
+    favoriteIds: [],
+    isFetchingFavorites: false,
     
     blockUser: async (userToBlock) => {
         const { id: blocked_id, username } = userToBlock;
@@ -150,5 +169,73 @@ export const useUserActionsStore = create<UserActionsState>((set, get) => ({
         }
         useHomeStore.getState().fetchPopularUsers();
         useInboxStore.getState().fetchConversations();
+    },
+
+    favoriteUser: async (userId: string) => {
+        const currentUser = useAuthStore.getState().user;
+        if (!currentUser) return;
+        
+        // Optimistic UI update
+        const previousIds = get().favoriteIds;
+        set({ favoriteIds: [...previousIds, userId] });
+
+        const { error } = await supabase.from('favorites').insert({
+            user_id: currentUser.id,
+            favorite_id: userId
+        });
+
+        if (error) {
+            // Revert optimistic update
+            set({ favoriteIds: previousIds });
+            toast.error('Erro ao adicionar aos favoritos.');
+            console.error('Error favoriting user:', error);
+            return;
+        }
+        
+        toast.success('Adicionado aos favoritos.', { icon: '⭐️' });
+        // Refresh favorite users list in background
+        get().fetchFavorites();
+    },
+
+    unfavoriteUser: async (userId: string) => {
+        const currentUser = useAuthStore.getState().user;
+        if (!currentUser) return;
+        
+        // Optimistic UI update
+        const previousIds = get().favoriteIds;
+        set({ favoriteIds: previousIds.filter(id => id !== userId) });
+
+        const { error } = await supabase.from('favorites').delete().match({
+            user_id: currentUser.id,
+            favorite_id: userId
+        });
+
+        if (error) {
+            // Revert optimistic update
+            set({ favoriteIds: previousIds });
+            toast.error('Erro ao remover dos favoritos.');
+            console.error('Error unfavoriting user:', error);
+            return;
+        }
+
+        toast.success('Removido dos favoritos.');
+        // Refresh favorite users list
+        set(state => ({
+            favoriteUsers: state.favoriteUsers.filter(u => u.favorite_id !== userId)
+        }));
+    },
+
+    fetchFavorites: async () => {
+        set({ isFetchingFavorites: true });
+        const { data, error } = await supabase.rpc('get_my_favorite_users');
+        if (error) {
+            console.error('Error fetching favorites:', error);
+        } else {
+            set({ 
+                favoriteUsers: data || [],
+                favoriteIds: (data || []).map((u: any) => u.favorite_id)
+            });
+        }
+        set({ isFetchingFavorites: false });
     },
 }));

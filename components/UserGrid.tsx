@@ -1,10 +1,11 @@
 
-import React, { useMemo, useEffect, useState, memo, useCallback } from 'react';
+import React, { useMemo, useEffect, useState, memo, useCallback, useRef } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
 import { User } from '../types';
 import { FilterModal } from './FilterModal';
 import { AdSenseUnit } from './AdSenseUnit';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 const ITEMS_PER_PAGE = 30;
 
@@ -263,38 +264,114 @@ export const UserGrid: React.FC = () => {
                     <p className="mt-3 text-slate-400 max-w-xs mx-auto leading-relaxed">Tente ajustar seus filtros ou expanda a busca para encontrar alguém.</p>
                 </div>
             ) : (
-                <div className="flex-1 overflow-y-auto px-3 pt-3">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pb-4">
-                        {itemsWithAds.map((item, index) => {
-                            if ('type' in item && item.type === 'ad') {
-                                return <AdCard key={`ad-${index}`} />;
-                            }
-                            const user = item as User;
-                            return (
-                                <UserCard 
-                                    key={user.id} 
-                                    user={user} 
-                                    isAgora={agoraUserIds.includes(user.id)} 
-                                    isOnline={onlineUsers.includes(user.id)} 
-                                    onClick={handleUserClick} 
-                                />
-                            );
-                        })}
-                    </div>
-                    {hasMore && (
-                        <div className="flex justify-center py-6">
-                            <button 
-                                onClick={handleLoadMore}
-                                className="bg-slate-800 text-white font-bold py-3 px-8 rounded-full border border-white/10 hover:bg-slate-700 transition-colors shadow-lg active:scale-95"
-                            >
-                                Ver mais pessoas
-                            </button>
-                        </div>
-                    )}
-                </div>
+                <VirtualizedGrid 
+                    items={itemsWithAds} 
+                    agoraUserIds={agoraUserIds}
+                    onlineUsers={onlineUsers}
+                    onUserClick={handleUserClick}
+                    onLoadMore={handleLoadMore}
+                    hasMore={hasMore}
+                />
             )}
         </div>
         {isFilterModalOpen && <FilterModal onClose={() => setIsFilterModalOpen(false)} />}
         </>
     );
 };
+
+const VirtualizedGrid = ({ items, agoraUserIds, onlineUsers, onUserClick, onLoadMore, hasMore }: any) => {
+    const parentRef = useRef<HTMLDivElement>(null);
+    const [columns, setColumns] = useState(2);
+    
+    useEffect(() => {
+        if (!parentRef.current) return;
+        const observer = new ResizeObserver((entries) => {
+            const width = entries[0].contentRect.width;
+            if (width >= 1024) setColumns(5); // lg
+            else if (width >= 768) setColumns(4); // md
+            else if (width >= 640) setColumns(3); // sm
+            else setColumns(2); // default
+        });
+        observer.observe(parentRef.current);
+        return () => observer.disconnect();
+    }, []);
+
+    const rowVirtualizer = useVirtualizer({
+        count: Math.ceil(items.length / columns),
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => {
+            if (!parentRef.current) return 250;
+            const width = parentRef.current.clientWidth;
+            const columnWidth = (width - (12 * (columns + 1))) / columns;
+            return (columnWidth * (4/3)) + 12; // Aspect ratio 3/4 + gap
+        },
+        overscan: 2,
+    });
+
+    return (
+        <div ref={parentRef} className="flex-1 overflow-y-auto px-3 pt-3">
+            <div 
+                style={{ 
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    width: '100%',
+                    position: 'relative'
+                }}
+            >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const rowItems = items.slice(virtualRow.index * columns, (virtualRow.index + 1) * columns);
+                    return (
+                        <div
+                            key={virtualRow.index}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: `${virtualRow.size - 12}px`,
+                                transform: `translateY(${virtualRow.start}px)`,
+                            }}
+                            className={`grid gap-3 grid-cols-${columns}`}
+                            style={{
+                                display: 'grid',
+                                gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                                gap: '12px',
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: `${virtualRow.size - 12}px`,
+                                transform: `translateY(${virtualRow.start}px)`
+                            }}
+                        >
+                            {rowItems.map((item: any, idx: number) => {
+                                if ('type' in item && item.type === 'ad') {
+                                    return <AdCard key={`ad-${virtualRow.index}-${idx}`} />;
+                                }
+                                const user = item as User;
+                                return (
+                                    <UserCard 
+                                        key={user.id} 
+                                        user={user} 
+                                        isAgora={agoraUserIds.includes(user.id)} 
+                                        isOnline={onlineUsers.includes(user.id)} 
+                                        onClick={onUserClick} 
+                                    />
+                                );
+                            })}
+                        </div>
+                    );
+                })}
+            </div>
+            {hasMore && (
+                <div className="flex justify-center py-6 mt-4">
+                    <button 
+                        onClick={onLoadMore}
+                        className="bg-slate-800 text-white font-bold py-3 px-8 rounded-full border border-white/10 hover:bg-slate-700 transition-colors shadow-lg active:scale-95"
+                    >
+                        Ver mais pessoas
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useInboxStore } from '../stores/inboxStore';
 import { useUiStore } from '../stores/uiStore';
 import { useMapStore } from '../stores/mapStore';
@@ -13,6 +13,7 @@ import { ConfirmationModal } from './ConfirmationModal';
 import { AdSenseUnit } from './AdSenseUnit';
 import { UnlockFeatureModal } from './UnlockFeatureModal';
 import { RewardAdModal } from './RewardAdModal';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 
 type ActiveTab = 'messages' | 'winks' | 'views' | 'requests' | 'favorites';
@@ -396,6 +397,7 @@ interface ConversationListProps {
 }
 const ConversationList: React.FC<ConversationListProps> = ({ conversations, loading, onConversationClick, onDeleteClick, currentUserId, onEmptyAction }) => {
     const onlineUsers = useMapStore((state) => state.onlineUsers);
+    const parentRef = useRef<HTMLDivElement>(null);
 
     const itemsWithAd = useMemo(() => {
         const items: (ConversationPreview | { type: 'ad' })[] = [...conversations];
@@ -404,6 +406,13 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
         }
         return items;
     }, [conversations]);
+
+    const rowVirtualizer = useVirtualizer({
+        count: itemsWithAd.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 82, // approximate height of conversation item
+        overscan: 5,
+    });
 
     if (loading) return <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div></div>;
     if (conversations.length === 0) return (
@@ -417,32 +426,50 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
     );
     
     return (
-        <div className="space-y-3 pb-4">
-            {itemsWithAd.map((item, idx) => {
-                 if ('type' in item && item.type === 'ad') {
+        <div ref={parentRef} className="h-[calc(100vh-200px)] overflow-y-auto">
+            <div
+                style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    width: '100%',
+                    position: 'relative',
+                }}
+            >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const item = itemsWithAd[virtualRow.index];
                     return (
-                        <div key="ad-inbox" className="my-2 rounded-2xl overflow-hidden border border-white/5 shadow-lg">
-                            <AdSenseUnit
-                                client="ca-pub-9015745232467355"
-                                slot="3561488011"
-                                format="auto"
-                            />
+                        <div
+                            key={virtualRow.index}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: `${virtualRow.size}px`,
+                                transform: `translateY(${virtualRow.start}px)`,
+                                paddingBottom: '12px',
+                            }}
+                        >
+                            {'type' in item && item.type === 'ad' ? (
+                                <div className="rounded-2xl overflow-hidden border border-white/5 shadow-lg h-full">
+                                    <AdSenseUnit
+                                        client="ca-pub-9015745232467355"
+                                        slot="3561488011"
+                                        format="auto"
+                                    />
+                                </div>
+                            ) : (
+                                <ConversationItem 
+                                    convo={item as ConversationPreview}
+                                    currentUserId={currentUserId}
+                                    isOnline={onlineUsers.includes((item as ConversationPreview).other_participant_id)}
+                                    onClick={onConversationClick}
+                                    onDelete={onDeleteClick}
+                                />
+                            )}
                         </div>
                     );
-                }
-                const convo = item as ConversationPreview;
-                const isOnline = onlineUsers.includes(convo.other_participant_id);
-                return (
-                    <ConversationItem 
-                        key={convo.conversation_id}
-                        convo={convo}
-                        currentUserId={currentUserId}
-                        isOnline={isOnline}
-                        onClick={onConversationClick}
-                        onDelete={onDeleteClick}
-                    />
-                );
-            })}
+                })}
+            </div>
         </div>
     );
 }

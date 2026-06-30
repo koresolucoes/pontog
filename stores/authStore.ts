@@ -77,6 +77,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             can_host: data.can_host || false,
             status: data.status || 'active',
             suspended_until: data.suspended_until || null,
+            is_verified: data.is_verified || false,
         };
         delete (profileData as any).profile_tribes;
       } else {
@@ -92,7 +93,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           has_completed_onboarding: false,
           kinks: [],
           can_host: false,
-          status: 'active'
+          status: 'active',
+          is_verified: false,
         };
 
         const { data: insertedProfile, error: insertError } = await supabase
@@ -117,6 +119,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             kinks: [],
             can_host: false,
             is_traveling: false,
+            is_verified: false,
           };
         }
       }

@@ -44,6 +44,7 @@ export interface Profile {
   suspended_until: string | null; // Adicionado para moderação
   kinks: string[] | null; // Adicionado para preferências sexuais
   can_host: boolean; // Adicionado para indicar se tem local
+  is_verified: boolean; // Adicionado para selo de verificação
 }
 
 // O tipo User estende Profile com campos calculados como 'idade'

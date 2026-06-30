@@ -228,6 +228,7 @@ const App: React.FC = () => {
                                 imageUrl: chatUser.avatar_url,
                                 last_seen: chatUser.last_seen,
                                 subscription_tier: chatUser.subscription_tier,
+                                is_verified: chatUser.is_verified,
                             }} 
                             onClose={() => setChatUser(null)}
                         />

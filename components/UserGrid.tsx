@@ -238,7 +238,12 @@ export const UserGrid: React.FC = () => {
 
                                     {/* User Info - Bottom */}
                                     <div className="absolute bottom-0 left-0 right-0 p-4 text-white transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
-                                        <h3 className="font-extrabold text-lg truncate leading-none drop-shadow-lg tracking-tight font-outfit">{user.username}</h3>
+                                        <div className="flex items-center gap-1">
+                                            <h3 className="font-extrabold text-lg truncate leading-none drop-shadow-lg tracking-tight font-outfit">{user.username}</h3>
+                                            {user.is_verified && (
+                                                <span className="material-symbols-rounded filled text-pink-500 text-sm" title="Verificado">verified</span>
+                                            )}
+                                        </div>
                                         <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium mt-1.5 opacity-90">
                                             <span className="bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/5">{user.age}</span>
                                             {user.distance_km != null && (

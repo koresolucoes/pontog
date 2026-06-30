@@ -11,6 +11,7 @@ import { NotificationType } from '../types';
 import { format } from 'date-fns';
 import { BlockedUsersModal } from './BlockedUsersModal';
 import { AdSenseUnit } from './AdSenseUnit';
+import { VerificationModal } from './VerificationModal';
 
 const ToggleSwitch: React.FC<{
     label: string;
@@ -121,6 +122,7 @@ export const ProfileView: React.FC = () => {
     const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
     const [isMyAlbumsOpen, setIsMyAlbumsOpen] = useState(false);
     const [isBlockedUsersModalOpen, setIsBlockedUsersModalOpen] = useState(false);
+    const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
 
     useEffect(() => {
         checkPushSupport();
@@ -246,7 +248,14 @@ export const ProfileView: React.FC = () => {
                                 <span className="material-symbols-rounded text-xl block">edit</span>
                             </button>
                         </div>
-                        <h1 className="text-3xl font-black text-white tracking-tight font-outfit drop-shadow-lg">{user.username}</h1>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-3xl font-black text-white tracking-tight font-outfit drop-shadow-lg">{user.username}</h1>
+                            {user.is_verified && (
+                                <div className="bg-pink-600/20 text-pink-500 rounded-full p-1 flex items-center justify-center" title="Perfil Verificado">
+                                    <span className="material-symbols-rounded filled text-lg">verified</span>
+                                </div>
+                            )}
+                        </div>
                         <p className="text-slate-300 text-sm font-medium mt-1 max-w-xs truncate opacity-80 px-6 text-center">
                             {user.status_text || 'Adicione um status...'}
                         </p>
@@ -279,6 +288,14 @@ export const ProfileView: React.FC = () => {
                     <section className="space-y-3">
                          <h3 className="text-[10px] font-bold uppercase text-slate-500 ml-2 tracking-widest">Minha Conta</h3>
                          <div className="space-y-2">
+                            {!user.is_verified && (
+                                <ActionButton 
+                                    icon="verified" 
+                                    label="Verificar Perfil" 
+                                    onClick={() => setIsVerificationModalOpen(true)} 
+                                    subtitle="Ganhe o selo de verificado"
+                                />
+                            )}
                             <ActionButton icon="photo_library" label="Álbuns Privados" onClick={() => setIsMyAlbumsOpen(true)} subtitle="Gerencie suas fotos ocultas" />
                             <ToggleSwitch
                                 label="Modo Invisível"
@@ -323,6 +340,7 @@ export const ProfileView: React.FC = () => {
             {isEditProfileOpen && <EditProfileModal onClose={() => setIsEditProfileOpen(false)} />}
             {isMyAlbumsOpen && <MyAlbumsModal onClose={() => setIsMyAlbumsOpen(false)} />}
             {isBlockedUsersModalOpen && <BlockedUsersModal onClose={() => setIsBlockedUsersModalOpen(false)} />}
+            <VerificationModal isOpen={isVerificationModalOpen} onClose={() => setIsVerificationModalOpen(false)} />
         </>
     );
 };

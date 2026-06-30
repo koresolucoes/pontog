@@ -268,6 +268,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
                 <div>
                     <h2 className="text-3xl font-bold flex items-center gap-2 flex-wrap leading-none mb-2 drop-shadow-lg">
                     <span>{user.username}, {user.age}</span>
+                    {user.is_verified && (
+                        <div className="bg-pink-600/20 text-pink-500 rounded-full p-1 shadow-lg flex items-center justify-center">
+                            <span className="material-symbols-rounded filled !text-[14px]">verified</span>
+                        </div>
+                    )}
                     {user.subscription_tier === 'plus' && (
                         <span className="bg-yellow-500/90 text-black p-1 rounded-full shadow-lg flex items-center justify-center">
                             <span className="material-symbols-rounded filled !text-[14px]">auto_awesome</span>

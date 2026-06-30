@@ -21,6 +21,7 @@ interface ChatUser {
   imageUrl: string;
   last_seen?: string | null;
   subscription_tier: 'free' | 'plus';
+  is_verified?: boolean;
 }
 
 interface ChatWindowProps {
@@ -441,6 +442,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
           <div>
             <div className="flex items-center gap-1.5">
               <h3 className="font-bold text-white leading-none font-outfit text-lg">{user.name}</h3>
+              {user.is_verified && (
+                  <span className="material-symbols-rounded filled text-pink-500 !text-[14px]" title="Verificado">verified</span>
+              )}
               {user.subscription_tier === 'plus' && (
                   <span className="material-symbols-rounded filled !text-[14px] text-yellow-400 drop-shadow-sm">auto_awesome</span>
               )}

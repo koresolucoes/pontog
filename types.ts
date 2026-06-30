@@ -183,7 +183,7 @@ export interface TemporaryPerk {
 }
 
 // Novo tipo para Locais/Venues (Mapa e Landing Page)
-export type VenueType = 'sauna' | 'bar' | 'club' | 'cruising' | 'cinema' | 'shop';
+export type VenueType = 'sauna' | 'bar' | 'club' | 'cruising' | 'cinema' | 'shop' | 'event';
 
 export interface Venue {
     id: string;
@@ -202,6 +202,14 @@ export interface Venue {
     source_type?: 'user' | 'osm' | 'admin'; // Origem do dado
     website?: string;
     submitted_by?: string; // ID do usuário que sugeriu
+}
+
+// Novo tipo para Check-ins em Locais/Eventos
+export interface VenueCheckin {
+    user_id: string;
+    username: string;
+    avatar_url: string;
+    checked_in_at: string;
 }
 
 // Novo tipo para Artigos do Blog/Notícias

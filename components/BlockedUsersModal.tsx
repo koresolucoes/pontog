@@ -51,7 +51,7 @@ export const BlockedUsersModal: React.FC<BlockedUsersModalProps> = ({ onClose })
                                 {blockedUsers.map(user => (
                                     <div key={user.blocked_id} className="p-3 flex items-center justify-between bg-slate-800/50 rounded-xl border border-white/5">
                                         <div className="flex items-center gap-3">
-                                            <img src={getPublicImageUrl(user.avatar_url)} alt={user.username} className="w-10 h-10 rounded-full object-cover border border-slate-600"/>
+                                            <img loading="lazy" src={getPublicImageUrl(user.avatar_url)} alt={user.username} className="w-10 h-10 rounded-full object-cover border border-slate-600"/>
                                             <span className="font-bold text-slate-200">{user.username}</span>
                                         </div>
                                         <button 

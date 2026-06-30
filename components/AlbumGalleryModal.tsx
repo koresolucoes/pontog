@@ -30,7 +30,7 @@ export const AlbumGalleryModal: React.FC<AlbumGalleryModalProps> = ({ album, onC
       
       <div className="w-full h-full flex items-center justify-center p-4 sm:p-10" onClick={(e) => e.stopPropagation()}>
         <div className="relative w-full max-w-5xl aspect-[4/5] sm:aspect-video flex items-center justify-center">
-            <img src={photos[currentIndex].photo_path} alt={`Foto ${currentIndex + 1} do álbum ${album.name}`} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
+            <img loading="lazy" src={photos[currentIndex].photo_path} alt={`Foto ${currentIndex + 1} do álbum ${album.name}`} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
         </div>
       </div>
 

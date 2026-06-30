@@ -41,13 +41,14 @@ interface UserActionsState {
     favoriteUsers: FavoriteUser[];
     favoriteIds: string[];
     isFetchingFavorites: boolean;
+    lastFavoritesFetch: number;
     blockUser: (userToBlock: { id: string, username: string }) => Promise<void>;
     reportUser: (reportedId: string, reason: string, comments: string) => Promise<boolean>;
     fetchBlockedUsers: () => Promise<void>;
     unblockUser: (userId: string) => Promise<void>;
     favoriteUser: (userId: string) => Promise<void>;
     unfavoriteUser: (userId: string) => Promise<void>;
-    fetchFavorites: () => Promise<void>;
+    fetchFavorites: (force?: boolean) => Promise<void>;
 }
 
 export const useUserActionsStore = create<UserActionsState>((set, get) => ({
@@ -225,7 +226,11 @@ export const useUserActionsStore = create<UserActionsState>((set, get) => ({
         }));
     },
 
-    fetchFavorites: async () => {
+    lastFavoritesFetch: 0,
+    fetchFavorites: async (force = false) => {
+        const now = Date.now();
+        if (!force && now - get().lastFavoritesFetch < 60000 && get().favoriteUsers.length > 0) return;
+
         set({ isFetchingFavorites: true });
         const { data, error } = await supabase.rpc('get_my_favorite_users');
         if (error) {
@@ -233,7 +238,8 @@ export const useUserActionsStore = create<UserActionsState>((set, get) => ({
         } else {
             set({ 
                 favoriteUsers: data || [],
-                favoriteIds: (data || []).map((u: any) => u.favorite_id)
+                favoriteIds: (data || []).map((u: any) => u.favorite_id),
+                lastFavoritesFetch: now
             });
         }
         set({ isFetchingFavorites: false });

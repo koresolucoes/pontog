@@ -96,7 +96,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         if (activeTab === 'requests' && accessRequests.length > 0) clearAccessRequests();
     }, [activeTab, accessRequests, clearAccessRequests]);
 
-    const handleConversationClick = (convo: ConversationPreview) => {
+    const handleConversationClick = React.useCallback((convo: ConversationPreview) => {
         const chatPartner: User = {
             id: convo.other_participant_id, username: convo.other_participant_username,
             avatar_url: convo.other_participant_avatar_url, last_seen: convo.other_participant_last_seen,
@@ -117,7 +117,7 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
             is_traveling: false
         };
         setChatUser(chatPartner);
-    };
+    }, [setChatUser]);
     
     const handleDeleteConfirm = () => {
         if (confirmDelete) {
@@ -131,9 +131,9 @@ export const Inbox: React.FC<InboxProps> = ({ initialTab = 'messages' }) => {
         setActiveTab(feature);
     };
 
-    const handlePremiumUserClick = (user: WinkWithProfile | ProfileViewWithProfile) => {
+    const handlePremiumUserClick = React.useCallback((user: WinkWithProfile | ProfileViewWithProfile) => {
         setSelectedUser(user);
-    }
+    }, [setSelectedUser]);
 
     const TabButton = ({ label, tabName, isPremium = false, icon }: { label: string, tabName: ActiveTab, isPremium?: boolean, icon: string }) => {
         const isActive = activeTab === tabName;
@@ -335,6 +335,57 @@ const FavoriteList: React.FC<FavoriteListProps> = ({ favorites, loading, onUserC
     );
 };
 
+const ConversationItem = React.memo(({ 
+    convo, 
+    currentUserId, 
+    isOnline, 
+    onClick, 
+    onDelete 
+}: { 
+    convo: ConversationPreview, 
+    currentUserId?: string, 
+    isOnline: boolean, 
+    onClick: (convo: ConversationPreview) => void, 
+    onDelete: (convo: ConversationPreview) => void 
+}) => {
+    return (
+        <div 
+            className="relative p-4 flex items-center gap-4 rounded-3xl bg-slate-800/40 border border-white/5 hover:bg-slate-800/60 active:scale-[0.98] transition-all cursor-pointer group shadow-sm backdrop-blur-sm" 
+            onClick={() => onClick(convo)}
+        >
+            <div className="relative flex-shrink-0">
+                <img loading="lazy" src={convo.other_participant_avatar_url} alt={convo.other_participant_username} className="w-14 h-14 rounded-full object-cover ring-2 ring-slate-700/50 group-hover:ring-pink-500/30 transition-all" />
+                {convo.unread_count > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-red-500 px-1.5 text-[10px] font-bold text-white ring-2 ring-dark-900 animate-bounce">
+                        {convo.unread_count > 9 ? '9+' : convo.unread_count}
+                    </span>
+                )}
+            </div>
+            <div className="flex-1 overflow-hidden min-w-0">
+                <div className="flex justify-between items-center mb-1">
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-bold truncate text-base text-slate-100 font-outfit">{convo.other_participant_username}</h3>
+                        {isOnline && <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]"></div>}
+                    </div>
+                    <span className="text-[10px] font-medium text-slate-500 flex-shrink-0 ml-2 uppercase tracking-wide">{formatDistanceToNow(new Date(convo.last_message_created_at), { addSuffix: false, locale: ptBR } as any)}</span>
+                </div>
+                <p className={`text-sm truncate leading-relaxed ${convo.unread_count > 0 ? 'text-slate-200 font-medium' : 'text-slate-400'}`}>
+                    {convo.last_message_sender_id === currentUserId && <span className="text-slate-500">Você: </span>}
+                    {formatLastMessageContent(convo.last_message_content)}
+                </p>
+            </div>
+            
+            {/* Delete Swipe/Action (Visible on hover for desktop) */}
+            <button 
+                onClick={(e) => { e.stopPropagation(); onDelete(convo); }} 
+                className="absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity p-2 text-slate-400 hover:text-red-400 bg-slate-800 rounded-full shadow-lg border border-white/5"
+            >
+                <span className="material-symbols-rounded text-xl">delete</span>
+            </button>
+        </div>
+    );
+});
+
 interface ConversationListProps {
     conversations: ConversationPreview[]; 
     loading: boolean;
@@ -382,41 +433,14 @@ const ConversationList: React.FC<ConversationListProps> = ({ conversations, load
                 const convo = item as ConversationPreview;
                 const isOnline = onlineUsers.includes(convo.other_participant_id);
                 return (
-                    <div 
-                        key={convo.conversation_id} 
-                        className="relative p-4 flex items-center gap-4 rounded-3xl bg-slate-800/40 border border-white/5 hover:bg-slate-800/60 active:scale-[0.98] transition-all cursor-pointer group shadow-sm backdrop-blur-sm" 
-                        onClick={() => onConversationClick(convo)}
-                    >
-                        <div className="relative flex-shrink-0">
-                            <img loading="lazy" src={convo.other_participant_avatar_url} alt={convo.other_participant_username} className="w-14 h-14 rounded-full object-cover ring-2 ring-slate-700/50 group-hover:ring-pink-500/30 transition-all" />
-                            {convo.unread_count > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-red-500 px-1.5 text-[10px] font-bold text-white ring-2 ring-dark-900 animate-bounce">
-                                    {convo.unread_count > 9 ? '9+' : convo.unread_count}
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex-1 overflow-hidden min-w-0">
-                            <div className="flex justify-between items-center mb-1">
-                                <div className="flex items-center gap-2">
-                                    <h3 className="font-bold truncate text-base text-slate-100 font-outfit">{convo.other_participant_username}</h3>
-                                    {isOnline && <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]"></div>}
-                                </div>
-                                <span className="text-[10px] font-medium text-slate-500 flex-shrink-0 ml-2 uppercase tracking-wide">{formatDistanceToNow(new Date(convo.last_message_created_at), { addSuffix: false, locale: ptBR } as any)}</span>
-                            </div>
-                            <p className={`text-sm truncate leading-relaxed ${convo.unread_count > 0 ? 'text-slate-200 font-medium' : 'text-slate-400'}`}>
-                                {convo.last_message_sender_id === currentUserId && <span className="text-slate-500">Você: </span>}
-                                {formatLastMessageContent(convo.last_message_content)}
-                            </p>
-                        </div>
-                        
-                        {/* Delete Swipe/Action (Visible on hover for desktop) */}
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); onDeleteClick(convo); }} 
-                            className="absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity p-2 text-slate-400 hover:text-red-400 bg-slate-800 rounded-full shadow-lg border border-white/5"
-                        >
-                            <span className="material-symbols-rounded text-xl">delete</span>
-                        </button>
-                    </div>
+                    <ConversationItem 
+                        key={convo.conversation_id}
+                        convo={convo}
+                        currentUserId={currentUserId}
+                        isOnline={isOnline}
+                        onClick={onConversationClick}
+                        onDelete={onDeleteClick}
+                    />
                 );
             })}
         </div>

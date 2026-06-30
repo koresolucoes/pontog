@@ -237,7 +237,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
                   </div>
               </div>
           ) : (
-              <img src={allPhotos[currentPhotoIndex]} alt={user.username} className="w-full h-full object-cover" />
+              <img loading="lazy" src={allPhotos[currentPhotoIndex]} alt={user.username} className="w-full h-full object-cover" />
           )}
           
           {!user.video_url || currentPhotoIndex > 0 ? (
@@ -318,7 +318,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
                     <span className="tracking-widest text-sm">MODO AGORA</span>
                   </div>
                   <div className="flex gap-4 items-start">
-                      <img src={agoraPost.photo_url} className="w-20 h-20 rounded-lg object-cover bg-slate-800" />
+                      <img loading="lazy" src={agoraPost.photo_url} className="w-20 h-20 rounded-lg object-cover bg-slate-800" />
                       <div className="flex-1">
                           <p className="text-white italic text-lg leading-relaxed">"{agoraPost.status_text}"</p>
                       </div>
@@ -383,7 +383,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
                                         <span className="font-bold text-white text-xs">{album.name}</span>
                                     </div>
                                     {album.private_album_photos.length > 0 && (
-                                        <img src={album.private_album_photos[0].photo_path} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" alt={`Capa do álbum ${album.name}`} />
+                                        <img loading="lazy" src={album.private_album_photos[0].photo_path} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" alt={`Capa do álbum ${album.name}`} />
                                     )}
                                 </div>
                             ))}

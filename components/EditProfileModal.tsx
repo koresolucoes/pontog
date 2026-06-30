@@ -284,7 +284,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
               <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 bg-slate-800/30 p-4 rounded-2xl border border-white/5">
                 <div className="relative group cursor-pointer flex-shrink-0" onClick={() => avatarInputRef.current?.click()}>
                   <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-pink-500 to-purple-600">
-                      <img src={profile.avatar_url} alt="Seu perfil" className="w-full h-full rounded-full object-cover border-4 border-slate-800" />
+                      <img loading="lazy" src={profile.avatar_url} alt="Seu perfil" className="w-full h-full rounded-full object-cover border-4 border-slate-800" />
                   </div>
                   <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <span className="material-symbols-rounded text-white text-3xl">photo_camera</span>
@@ -379,7 +379,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                     {formData.public_photos?.map(photoUrl => (
                         <div key={photoUrl} className="relative group aspect-[3/4] rounded-xl overflow-hidden shadow-md border border-white/10">
-                            <img src={photoUrl} alt="Foto pública" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                            <img loading="lazy" src={photoUrl} alt="Foto pública" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                             <button type="button" onClick={() => handleRemovePublicPhoto(photoUrl)} className="absolute top-1 right-1 bg-black/60 text-white p-1.5 rounded-full hover:bg-red-600 transition-colors backdrop-blur-sm opacity-0 group-hover:opacity-100">
                                 <span className="material-symbols-rounded text-base block">close</span>
                             </button>

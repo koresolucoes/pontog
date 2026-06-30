@@ -128,7 +128,7 @@ export const AgoraView: React.FC = () => {
                             <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 bg-gradient-to-b from-black/80 to-transparent">
                                 <div className="flex items-center space-x-3">
                                     <div className="relative">
-                                        <img src={post.avatar_url} alt={post.username} className="w-10 h-10 rounded-full object-cover ring-2 ring-red-500/50" />
+                                        <img loading="lazy" src={post.avatar_url} alt={post.username} className="w-10 h-10 rounded-full object-cover ring-2 ring-red-500/50" />
                                         <div className="absolute -bottom-1 -right-1 bg-red-600 rounded-full p-0.5 border border-black">
                                             <span className="material-symbols-rounded filled text-[10px] text-white block">local_fire_department</span>
                                         </div>

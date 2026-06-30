@@ -75,7 +75,7 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
       <div className="bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md mx-auto animate-slide-in-up flex flex-col h-[90vh] border border-white/10" onClick={(e) => e.stopPropagation()}>
         <header className="p-4 border-b border-white/5 flex justify-between items-center flex-shrink-0 bg-slate-800/50 rounded-t-3xl">
           <div className="flex items-center space-x-3">
-            <img src={currentPost.avatar_url} alt={currentPost.username} className="w-10 h-10 rounded-full object-cover ring-2 ring-red-500" />
+            <img loading="lazy" src={currentPost.avatar_url} alt={currentPost.username} className="w-10 h-10 rounded-full object-cover ring-2 ring-red-500" />
             <div>
               <h2 className="font-bold text-white leading-none">{currentPost.username}</h2>
               <p className="text-xs text-red-400 font-bold uppercase tracking-wider mt-1">Modo Agora 🔥</p>
@@ -88,7 +88,7 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
 
         <div className="flex-1 overflow-y-auto">
             <div className="relative">
-                <img src={currentPost.photo_url} alt={`Post de ${currentPost.username}`} className="w-full h-auto object-contain bg-black" />
+                <img loading="lazy" src={currentPost.photo_url} alt={`Post de ${currentPost.username}`} className="w-full h-auto object-contain bg-black" />
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-12">
                      {currentPost.status_text && <p className="text-white text-lg font-medium italic">"{currentPost.status_text}"</p>}
                 </div>
@@ -120,7 +120,7 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
                 ) : (
                     comments.map(comment => (
                         <div key={comment.id} className="flex items-start space-x-3 group">
-                            <img src={comment.profiles.avatar_url} alt={comment.profiles.username} className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-1 border border-white/10"/>
+                            <img loading="lazy" src={comment.profiles.avatar_url} alt={comment.profiles.username} className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-1 border border-white/10"/>
                             <div className="flex-1">
                                 <div className="bg-slate-800/50 rounded-2xl rounded-tl-none px-4 py-2 border border-white/5">
                                     <div className="flex items-baseline justify-between">

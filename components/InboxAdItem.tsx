@@ -13,7 +13,7 @@ export const InboxAdItem: React.FC<InboxAdItemProps> = ({ ad }) => {
     return (
         <div onClick={handleClick} className="p-4 flex items-center space-x-3 cursor-pointer hover:bg-slate-800">
             <div className="relative flex-shrink-0">
-                <img src={ad.image_url} alt={ad.title} className="w-12 h-12 rounded-full object-cover" />
+                <img loading="lazy" src={ad.image_url} alt={ad.title} className="w-12 h-12 rounded-full object-cover" />
             </div>
             <div className="flex-1 overflow-hidden">
                 <div className="flex justify-between items-center">

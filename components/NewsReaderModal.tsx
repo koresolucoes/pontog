@@ -120,7 +120,7 @@ export const NewsReaderModal: React.FC<NewsReaderModalProps> = ({ article, onClo
                         {/* Input */}
                         {user ? (
                             <form onSubmit={handlePostComment} className="mb-8 flex gap-3 items-start">
-                                <img src={user.avatar_url} className="w-10 h-10 rounded-full object-cover border border-white/10" alt={user.username} />
+                                <img loading="lazy" src={user.avatar_url} className="w-10 h-10 rounded-full object-cover border border-white/10" alt={user.username} />
                                 <div className="flex-1 relative">
                                     <textarea
                                         value={newComment}
@@ -153,7 +153,7 @@ export const NewsReaderModal: React.FC<NewsReaderModalProps> = ({ article, onClo
                             ) : (
                                 activeComments.map(comment => (
                                     <div key={comment.id} className="flex gap-3 group">
-                                        <img src={comment.avatar_url} className="w-8 h-8 rounded-full object-cover border border-white/5 flex-shrink-0" alt={comment.username} />
+                                        <img loading="lazy" src={comment.avatar_url} className="w-8 h-8 rounded-full object-cover border border-white/5 flex-shrink-0" alt={comment.username} />
                                         <div className="flex-1">
                                             <div className="bg-slate-800/40 p-3 rounded-2xl rounded-tl-none border border-white/5">
                                                 <div className="flex justify-between items-baseline mb-1">

@@ -54,7 +54,7 @@ export const ActivateAgoraModal: React.FC<ActivateAgoraModalProps> = ({ onClose 
           
           {photoPreview ? (
             <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden group shadow-lg border border-white/10">
-              <img src={photoPreview} alt="Pré-visualização" className="w-full h-full object-cover" />
+              <img loading="lazy" src={photoPreview} alt="Pré-visualização" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
                     onClick={() => fileInputRef.current?.click()}

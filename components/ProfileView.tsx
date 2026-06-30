@@ -232,14 +232,14 @@ export const ProfileView: React.FC = () => {
                 <div className="relative w-full h-72 overflow-hidden">
                     {/* Blurred Background Image */}
                     <div className="absolute inset-0">
-                        <img src={user.avatar_url} className="w-full h-full object-cover blur-3xl opacity-40 scale-125" />
+                        <img loading="lazy" src={user.avatar_url} className="w-full h-full object-cover blur-3xl opacity-40 scale-125" />
                         <div className="absolute inset-0 bg-gradient-to-b from-dark-900/20 via-dark-900/60 to-dark-900"></div>
                     </div>
 
                     <div className="absolute inset-0 flex flex-col items-center justify-center pt-8 z-10">
                         <div className="relative mb-4 group">
                             <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-pink-500 to-purple-600 shadow-2xl shadow-pink-900/50">
-                                <img src={user.avatar_url} alt={user.username} className="w-full h-full rounded-full object-cover border-4 border-dark-900" />
+                                <img loading="lazy" src={user.avatar_url} alt={user.username} className="w-full h-full rounded-full object-cover border-4 border-dark-900" />
                             </div>
                             <button 
                                 onClick={() => setIsEditProfileOpen(true)}

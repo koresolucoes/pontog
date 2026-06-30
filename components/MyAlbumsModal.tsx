@@ -79,7 +79,7 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
             {myAlbums.map(album => (
               <div key={album.id} className="relative aspect-square group cursor-pointer rounded-2xl overflow-hidden bg-slate-800 shadow-md hover:shadow-xl transition-all border border-white/5" onClick={() => setSelectedAlbum(album)}>
                 {album.private_album_photos && album.private_album_photos.length > 0 ? (
-                   <img src={album.private_album_photos[0].photo_path} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"/>
+                   <img loading="lazy" src={album.private_album_photos[0].photo_path} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"/>
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-600 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
                         <span className="material-symbols-rounded text-4xl opacity-50">image_not_supported</span>
@@ -133,7 +133,7 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
                 </button>
                 {selectedAlbum.private_album_photos?.map(photo => (
                     <div key={photo.id} className="relative group aspect-square rounded-xl overflow-hidden shadow-sm border border-white/5">
-                        <img src={photo.photo_path} alt="foto do álbum" className="w-full h-full object-cover" />
+                        <img loading="lazy" src={photo.photo_path} alt="foto do álbum" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
                             <button type="button" onClick={() => deletePhotoFromAlbum(photo.id)} className="text-white p-2 rounded-full hover:bg-red-600/80 transition-colors">
                                 <span className="material-symbols-rounded text-xl block">delete</span>

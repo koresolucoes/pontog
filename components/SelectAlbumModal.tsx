@@ -40,7 +40,7 @@ export const SelectAlbumModal: React.FC<SelectAlbumModalProps> = ({ onClose, onS
                                 <span className="font-bold text-white">{album.name}</span>
                             </div>
                             {album.private_album_photos && album.private_album_photos.length > 0 && (
-                                <img src={album.private_album_photos[0].photo_path} className="w-full h-full object-cover rounded-lg" alt={`Capa do álbum ${album.name}`} />
+                                <img loading="lazy" src={album.private_album_photos[0].photo_path} className="w-full h-full object-cover rounded-lg" alt={`Capa do álbum ${album.name}`} />
                             )}
                             <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 <span className="text-white font-bold">Enviar</span>

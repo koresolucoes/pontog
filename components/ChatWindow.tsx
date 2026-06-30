@@ -99,7 +99,7 @@ const MessageContent: React.FC<MessageContentProps> = React.memo(({ message, onV
     return (
         <div className="space-y-2">
             {message.image_url && (
-                <img src={getPublicImageUrl(message.image_url)} alt="Imagem enviada" className="max-w-[240px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(getPublicImageUrl(message.image_url))}/>
+                <img loading="lazy" src={getPublicImageUrl(message.image_url)} alt="Imagem enviada" className="max-w-[240px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(getPublicImageUrl(message.image_url))}/>
             )}
             {message.content && <p className="text-sm break-words leading-relaxed">{message.content}</p>}
         </div>
@@ -128,6 +128,8 @@ const MessageStatus = React.memo(({ msg, currentUserId, isPremium }: { msg: Mess
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
   const [messages, setMessages] = useState<MessageType[]>([]);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [conversationId, setConversationId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -200,6 +202,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
           // Reverse to show oldest first in the UI
           const sortedMessages = (initialMessages || []).reverse();
           setMessages(sortedMessages);
+          setHasMoreMessages(initialMessages?.length === 50);
           
           const unreadIds = sortedMessages
             .filter(m => m.sender_id !== currentUser.id && !m.read_at)
@@ -245,6 +248,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       supabase.removeChannel(channel);
     };
   }, [conversationId, currentUser, markMessagesAsRead]);
+
+  const handleLoadMoreMessages = async () => {
+      if (!hasMoreMessages || loadingMoreMessages || !conversationId || messages.length === 0) return;
+      setLoadingMoreMessages(true);
+      
+      const oldestMessage = messages[0];
+      
+      const { data: olderMessages, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .lt('created_at', oldestMessage.created_at)
+          .order('created_at', { ascending: false })
+          .limit(50);
+          
+      if (!error && olderMessages) {
+          const reversedOlder = [...olderMessages].reverse();
+          setMessages(prev => [...reversedOlder, ...prev]);
+          setHasMoreMessages(olderMessages.length === 50);
+      } else if (error) {
+          console.error("Error loading older messages:", error);
+      }
+      setLoadingMoreMessages(false);
+  };
 
 
   const scrollToBottom = () => {
@@ -436,7 +463,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       <header className="flex items-center justify-between p-4 bg-slate-900/80 backdrop-blur-md border-b border-white/5 flex-shrink-0 z-20">
         <div className="flex items-center space-x-3">
           <div className="relative">
-            <img src={user.imageUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-700" />
+            <img loading="lazy" src={user.imageUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-700" />
             {isOnline && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-slate-900 shadow-[0_0_5px_rgba(74,222,128,0.8)]"></div>}
           </div>
           <div>
@@ -465,12 +492,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
       <div className="flex-1 p-4 overflow-y-auto bg-dark-900 scroll-smooth pb-24">
         
         <div className="flex flex-col space-y-2">
+          {hasMoreMessages && (
+              <div className="flex justify-center py-2">
+                  <button 
+                      onClick={handleLoadMoreMessages} 
+                      disabled={loadingMoreMessages}
+                      className="bg-slate-800 text-slate-300 text-xs px-4 py-1.5 rounded-full border border-white/10 hover:bg-slate-700 transition-colors"
+                  >
+                      {loadingMoreMessages ? 'Carregando...' : 'Carregar mensagens anteriores'}
+                  </button>
+              </div>
+          )}
           {messages.map((msg) => (
             <div key={msg.id} className={`flex flex-col ${msg.sender_id === currentUser.id ? 'items-end' : 'items-start'}`}>
               <div className={`flex items-end gap-2 max-w-[85%] ${msg.sender_id === currentUser.id ? 'flex-row-reverse' : 'flex-row'}`}>
                  {/* Avatar for incoming messages */}
                  {msg.sender_id !== currentUser.id && (
-                    <img src={user.imageUrl} className="w-6 h-6 rounded-full self-end mb-1 ring-1 ring-white/10" />
+                    <img loading="lazy" src={user.imageUrl} className="w-6 h-6 rounded-full self-end mb-1 ring-1 ring-white/10" />
                  )}
                  
                  {editingMessage?.id === msg.id ? (
@@ -556,7 +594,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
             {imageToSend ? (
                 <div className="p-3 space-y-3 bg-slate-800 rounded-3xl border border-white/10 shadow-xl animate-slide-in-up">
                     <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-black/50 border border-white/5">
-                        <img src={imageToSend.preview} alt="Preview" className="w-full h-full object-contain" />
+                        <img loading="lazy" src={imageToSend.preview} alt="Preview" className="w-full h-full object-contain" />
                         <button onClick={cancelImageSend} className="absolute top-2 right-2 bg-black/60 p-2 rounded-full text-white hover:bg-black/80 transition-colors backdrop-blur-sm">
                             <span className="material-symbols-rounded text-xl">close</span>
                         </button>

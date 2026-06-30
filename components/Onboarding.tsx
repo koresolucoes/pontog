@@ -202,7 +202,7 @@ const IdentityStep: React.FC<IdentityStepProps> = ({ formData, avatarUrl, onChan
         <div className="flex justify-center">
             <div className="relative group cursor-pointer" onClick={onAvatarClick}>
                 <div className="w-40 h-40 rounded-full p-1 bg-gradient-to-tr from-pink-500 to-purple-600 shadow-2xl">
-                    <img src={avatarUrl} alt="Seu perfil" className="w-full h-full rounded-full object-cover border-4 border-dark-900 bg-slate-800" />
+                    <img loading="lazy" src={avatarUrl} alt="Seu perfil" className="w-full h-full rounded-full object-cover border-4 border-dark-900 bg-slate-800" />
                 </div>
                 <div className="absolute bottom-2 right-2 bg-white text-pink-600 p-3 rounded-full shadow-lg transform group-hover:scale-110 transition-transform">
                     <span className="material-symbols-rounded text-xl block">photo_camera</span>

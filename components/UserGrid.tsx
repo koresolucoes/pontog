@@ -1,5 +1,5 @@
 
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState, memo, useCallback } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
 import { User } from '../types';
@@ -7,6 +7,100 @@ import { FilterModal } from './FilterModal';
 import { AdSenseUnit } from './AdSenseUnit';
 
 const ITEMS_PER_PAGE = 30;
+
+// Extracted and Memoized Ad Card
+const AdCard = memo(() => (
+    <div className="relative aspect-[3/4] bg-slate-800/50 rounded-3xl overflow-hidden flex items-center justify-center border border-white/5">
+        <AdSenseUnit
+            client="ca-pub-9015745232467355"
+            slot="8953415490"
+            format="auto"
+            className="w-full h-full"
+        />
+        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-md text-[9px] font-bold text-white/50 tracking-widest border border-white/5">ADS</div>
+    </div>
+));
+
+// Extracted and Memoized User Card
+const UserCard = memo(({ 
+    user, 
+    isAgora, 
+    isOnline, 
+    onClick 
+}: { 
+    user: User; 
+    isAgora: boolean; 
+    isOnline: boolean; 
+    onClick: (user: User) => void;
+}) => {
+    const isPlus = user.subscription_tier === 'plus';
+
+    return (
+        <div 
+            className={`relative aspect-[3/4] cursor-pointer group rounded-3xl overflow-hidden transition-all duration-500 bg-slate-800 ${isAgora ? 'ring-2 ring-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)]' : 'hover:shadow-2xl hover:shadow-black/50'}`}
+            onClick={() => onClick(user)}
+        >
+            <img 
+                src={user.avatar_url} 
+                alt={user.username} 
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" 
+            />
+            
+            {/* Cinematic Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
+            
+            {/* Badges Container - Top Right (z-10 to be above gradient) */}
+            <div className="absolute top-3 right-3 flex flex-col gap-2 items-end z-10">
+                {isAgora && (
+                    <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-full p-1.5 shadow-lg shadow-red-900/50 animate-pulse-fire border border-white/20">
+                        <span className="material-symbols-rounded filled block" style={{ fontSize: '16px' }}>local_fire_department</span>
+                    </div>
+                )}
+                {isPlus && !isAgora && (
+                    <div className="bg-yellow-500/90 backdrop-blur-md text-black rounded-full p-1.5 shadow-lg border border-yellow-300/50">
+                        <span className="material-symbols-rounded filled block" style={{ fontSize: '14px' }}>auto_awesome</span>
+                    </div>
+                )}
+                {user.can_host && (
+                    <div className="bg-green-600/90 backdrop-blur-md text-white rounded-full p-1.5 shadow-lg border border-green-400/50" title="Tem Local">
+                        <span className="material-symbols-rounded filled block" style={{ fontSize: '14px' }}>home</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Online Indicator - Top Left */}
+            {isOnline && (
+                <div className="absolute top-4 left-4">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500 shadow-[0_0_8px_rgba(74,222,128,0.8)] border border-white/20"></span>
+                    </span>
+                </div>
+            )}
+
+            {/* User Info - Bottom */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 text-white transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
+                <div className="flex items-center gap-1">
+                    <h3 className="font-extrabold text-lg truncate leading-none drop-shadow-lg tracking-tight font-outfit">{user.username}</h3>
+                    {user.is_verified && (
+                        <span className="material-symbols-rounded filled text-pink-500 text-sm" title="Verificado">verified</span>
+                    )}
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium mt-1.5 opacity-90">
+                    <span className="bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/5">{user.age}</span>
+                    {user.distance_km != null && (
+                        <span className="bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/5 flex items-center gap-1">
+                            <span className="material-symbols-rounded" style={{ fontSize: '10px' }}>location_on</span>
+                            {user.distance_km < 1 ? `${Math.round(user.distance_km * 1000)}m` : `${user.distance_km.toFixed(0)}km`}
+                        </span>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+});
 
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();
@@ -18,9 +112,9 @@ export const UserGrid: React.FC = () => {
         fetchAgoraPosts();
     }, [fetchAgoraPosts]);
 
-    const handleUserClick = (user: User) => {
+    const handleUserClick = useCallback((user: User) => {
         setSelectedUser(user);
-    };
+    }, [setSelectedUser]);
 
     const toggleOnlineOnly = () => {
         setFilters({ ...filters, onlineOnly: !filters.onlineOnly });
@@ -173,88 +267,17 @@ export const UserGrid: React.FC = () => {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pb-4">
                         {itemsWithAds.map((item, index) => {
                             if ('type' in item && item.type === 'ad') {
-                                return (
-                                    <div key={`ad-${index}`} className="relative aspect-[3/4] bg-slate-800/50 rounded-3xl overflow-hidden flex items-center justify-center border border-white/5">
-                                        <AdSenseUnit
-                                            client="ca-pub-9015745232467355"
-                                            slot="8953415490"
-                                            format="auto"
-                                            className="w-full h-full"
-                                        />
-                                        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-md text-[9px] font-bold text-white/50 tracking-widest border border-white/5">ADS</div>
-                                    </div>
-                                );
+                                return <AdCard key={`ad-${index}`} />;
                             }
                             const user = item as User;
-                            const isAgora = agoraUserIds.includes(user.id);
-                            const isPlus = user.subscription_tier === 'plus';
-                            const isOnline = onlineUsers.includes(user.id);
-
                             return (
-                                <div 
+                                <UserCard 
                                     key={user.id} 
-                                    className={`relative aspect-[3/4] cursor-pointer group rounded-3xl overflow-hidden transition-all duration-500 bg-slate-800 ${isAgora ? 'ring-2 ring-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)]' : 'hover:shadow-2xl hover:shadow-black/50'}`}
-                                    onClick={() => handleUserClick(user)}
-                                >
-                                    <img 
-                                        src={user.avatar_url} 
-                                        alt={user.username} 
-                                        loading="lazy"
-                                        decoding="async"
-                                        className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" 
-                                    />
-                                    
-                                    {/* Cinematic Gradient Overlay */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90"></div>
-                                    
-                                    {/* Badges Container - Top Right (z-10 to be above gradient) */}
-                                    <div className="absolute top-3 right-3 flex flex-col gap-2 items-end z-10">
-                                        {isAgora && (
-                                            <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-full p-1.5 shadow-lg shadow-red-900/50 animate-pulse-fire border border-white/20">
-                                                <span className="material-symbols-rounded filled block" style={{ fontSize: '16px' }}>local_fire_department</span>
-                                            </div>
-                                        )}
-                                        {isPlus && !isAgora && (
-                                            <div className="bg-yellow-500/90 backdrop-blur-md text-black rounded-full p-1.5 shadow-lg border border-yellow-300/50">
-                                                <span className="material-symbols-rounded filled block" style={{ fontSize: '14px' }}>auto_awesome</span>
-                                            </div>
-                                        )}
-                                        {user.can_host && (
-                                            <div className="bg-green-600/90 backdrop-blur-md text-white rounded-full p-1.5 shadow-lg border border-green-400/50" title="Tem Local">
-                                                <span className="material-symbols-rounded filled block" style={{ fontSize: '14px' }}>home</span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Online Indicator - Top Left */}
-                                    {isOnline && (
-                                        <div className="absolute top-4 left-4">
-                                            <span className="relative flex h-3 w-3">
-                                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500 shadow-[0_0_8px_rgba(74,222,128,0.8)] border border-white/20"></span>
-                                            </span>
-                                        </div>
-                                    )}
-
-                                    {/* User Info - Bottom */}
-                                    <div className="absolute bottom-0 left-0 right-0 p-4 text-white transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
-                                        <div className="flex items-center gap-1">
-                                            <h3 className="font-extrabold text-lg truncate leading-none drop-shadow-lg tracking-tight font-outfit">{user.username}</h3>
-                                            {user.is_verified && (
-                                                <span className="material-symbols-rounded filled text-pink-500 text-sm" title="Verificado">verified</span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium mt-1.5 opacity-90">
-                                            <span className="bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/5">{user.age}</span>
-                                            {user.distance_km != null && (
-                                                <span className="bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/5 flex items-center gap-1">
-                                                    <span className="material-symbols-rounded" style={{ fontSize: '10px' }}>location_on</span>
-                                                    {user.distance_km < 1 ? `${Math.round(user.distance_km * 1000)}m` : `${user.distance_km.toFixed(0)}km`}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
+                                    user={user} 
+                                    isAgora={agoraUserIds.includes(user.id)} 
+                                    isOnline={onlineUsers.includes(user.id)} 
+                                    onClick={handleUserClick} 
+                                />
                             );
                         })}
                     </div>

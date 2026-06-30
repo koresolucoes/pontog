@@ -35,10 +35,15 @@ interface InboxState {
   winksHaveBeenSeen: boolean;
   requestsHaveBeenSeen: boolean;
   
-  fetchConversations: () => Promise<void>;
-  fetchWinks: () => Promise<void>;
-  fetchAccessRequests: () => Promise<void>;
-  fetchProfileViews: () => Promise<void>;
+  lastConversationsFetch: number;
+  lastWinksFetch: number;
+  lastRequestsFetch: number;
+  lastViewsFetch: number;
+  
+  fetchConversations: (force?: boolean) => Promise<void>;
+  fetchWinks: (force?: boolean) => Promise<void>;
+  fetchAccessRequests: (force?: boolean) => Promise<void>;
+  fetchProfileViews: (force?: boolean) => Promise<void>;
   respondToRequest: (requestId: number, status: 'granted' | 'denied') => Promise<void>;
   deleteConversation: (conversationId: number) => Promise<void>;
   clearWinks: () => void;
@@ -75,8 +80,16 @@ export const useInboxStore = create<InboxState>((set, get) => {
         lastConversationUpdate: 0, // Timeout tracker
         winksHaveBeenSeen: true,
         requestsHaveBeenSeen: true,
+        
+        lastConversationsFetch: 0,
+        lastWinksFetch: 0,
+        lastRequestsFetch: 0,
+        lastViewsFetch: 0,
 
-        fetchConversations: async () => {
+        fetchConversations: async (force = false) => {
+            const now = Date.now();
+            if (!force && now - get().lastConversationsFetch < 60000 && get().conversations.length > 0) return;
+
             set({ loadingConversations: true });
             const { data, error } = await supabase.rpc('get_my_conversations');
             
@@ -91,11 +104,14 @@ export const useInboxStore = create<InboxState>((set, get) => {
                 other_participant_avatar_url: getPublicImageUrl(convo.other_participant_avatar_url)
             }))
 
-            set({ conversations: processedConversations, loadingConversations: false });
+            set({ conversations: processedConversations, loadingConversations: false, lastConversationsFetch: now });
             updateTotalUnreadCount();
         },
 
-        fetchWinks: async () => {
+        fetchWinks: async (force = false) => {
+            const now = Date.now();
+            if (!force && now - get().lastWinksFetch < 60000 && get().winks.length > 0) return;
+
             set({ loadingWinks: true });
             const { data, error } = await supabase.rpc('get_my_winks');
 
@@ -106,7 +122,7 @@ export const useInboxStore = create<InboxState>((set, get) => {
             }
             
             if (!data) {
-                set({ winks: [], loadingWinks: false });
+                set({ winks: [], loadingWinks: false, lastWinksFetch: now });
                 updateTotalUnreadCount();
                 return;
             }
@@ -135,18 +151,28 @@ export const useInboxStore = create<InboxState>((set, get) => {
             set({ 
                 winks: winksWithAgeAndUrls, 
                 loadingWinks: false, 
-                winksHaveBeenSeen: !hasNewItems // Se tem novos itens, não foi visto. Se não tem, foi visto.
+                winksHaveBeenSeen: !hasNewItems, // Se tem novos itens, não foi visto. Se não tem, foi visto.
+                lastWinksFetch: now
             });
             updateTotalUnreadCount();
         },
 
-        fetchAccessRequests: async () => {
+        fetchAccessRequests: async (force = false) => {
+            const now = Date.now();
+            if (!force && now - get().lastRequestsFetch < 60000 && get().accessRequests.length > 0) return;
+
             set({ loadingRequests: true });
             const { data, error } = await supabase.rpc('get_my_album_access_requests');
 
             if (error) {
                 console.error('Error fetching access requests:', error);
                 set({ loadingRequests: false });
+                return;
+            }
+
+            if (!data) {
+                set({ accessRequests: [], loadingRequests: false, lastRequestsFetch: now });
+                updateTotalUnreadCount();
                 return;
             }
 
@@ -170,12 +196,16 @@ export const useInboxStore = create<InboxState>((set, get) => {
             set({ 
                 accessRequests: processedRequests, 
                 loadingRequests: false, 
-                requestsHaveBeenSeen: !hasNewItems 
+                requestsHaveBeenSeen: !hasNewItems,
+                lastRequestsFetch: now
             });
             updateTotalUnreadCount();
         },
 
-        fetchProfileViews: async () => {
+        fetchProfileViews: async (force = false) => {
+            const now = Date.now();
+            if (!force && now - get().lastViewsFetch < 60000 && get().profileViews.length > 0) return;
+
             set({ loadingProfileViews: true });
             const { data, error } = await supabase.rpc('get_my_profile_viewers');
 
@@ -186,7 +216,7 @@ export const useInboxStore = create<InboxState>((set, get) => {
             }
             
             if (!data) {
-                set({ profileViews: [], loadingProfileViews: false });
+                set({ profileViews: [], loadingProfileViews: false, lastViewsFetch: now });
                 return;
             }
 
@@ -198,7 +228,11 @@ export const useInboxStore = create<InboxState>((set, get) => {
                 public_photos: (view.public_photos || []).map(getPublicImageUrl),
             }));
 
-            set({ profileViews: viewsWithAgeAndUrls, loadingProfileViews: false });
+            set({ 
+                profileViews: viewsWithAgeAndUrls, 
+                loadingProfileViews: false,
+                lastViewsFetch: now
+            });
         },
         
         respondToRequest: async (requestId: number, status: 'granted' | 'denied') => {

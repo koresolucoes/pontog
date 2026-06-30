@@ -120,7 +120,7 @@ const createLiveMarker = (user: User, isOnline: boolean, isAgora: boolean) => {
         <div class="relative w-12 h-12 transition-transform duration-300 hover:scale-110 ${containerClass}">
             ${ringHtml}
             <div class="relative w-full h-full rounded-full overflow-hidden ${borderClass} shadow-lg bg-slate-800">
-                <img src="${user.avatar_url}" class="w-full h-full object-cover" alt="${user.username}" />
+                <img loading="lazy" src="${user.avatar_url}" class="w-full h-full object-cover" alt="${user.username}" />
             </div>
             ${badgeHtml}
             ${hosterBadgeHtml}
@@ -160,7 +160,7 @@ const MyLocationMarkerIcon = (avatarUrl: string, canHost: boolean, isTraveling: 
             <div class="absolute -inset-4 bg-blue-500/20 rounded-full animate-pulse"></div>
             <div class="absolute -inset-1 bg-blue-500/40 rounded-full blur-sm"></div>
             <div class="relative w-full h-full rounded-full overflow-hidden border-4 border-blue-500 shadow-2xl bg-slate-900 z-10">
-                <img src="${avatarUrl}" class="w-full h-full object-cover" />
+                <img loading="lazy" src="${avatarUrl}" class="w-full h-full object-cover" />
             </div>
             ${hosterBadgeHtml}
             ${travelingBadgeHtml}
@@ -507,7 +507,7 @@ export const Map: React.FC = () => {
               popupContent.innerHTML = `
                 <div class="w-64 overflow-hidden rounded-2xl bg-slate-900 shadow-2xl border border-white/10 font-outfit">
                     <div class="h-32 w-full relative">
-                        <img src="${venue.image_url || 'https://placehold.co/600x400/1f2937/ffffff?text=Local'}" class="w-full h-full object-cover" />
+                        <img loading="lazy" src="${venue.image_url || 'https://placehold.co/600x400/1f2937/ffffff?text=Local'}" class="w-full h-full object-cover" />
                         <div class="absolute top-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase">${venue.type}</div>
                         ${venue.is_partner ? '<div class="absolute top-2 right-2 bg-yellow-400 text-black text-[10px] font-bold px-2 py-0.5 rounded shadow-md">★ Parceiro</div>' : ''}
                     </div>

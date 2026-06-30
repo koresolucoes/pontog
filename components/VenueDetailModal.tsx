@@ -188,7 +188,7 @@ export const VenueDetailModal: React.FC<VenueDetailModalProps> = ({ venue, onClo
                             {checkins.map((c) => (
                                 <div key={c.user_id} className="flex flex-col items-center flex-shrink-0 w-16">
                                     <div className="w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-700 p-0.5 overflow-hidden shadow-lg mb-1">
-                                        <img src={c.avatar_url || 'https://via.placeholder.com/150'} alt={c.username} className="w-full h-full object-cover rounded-full" />
+                                        <img loading="lazy" src={c.avatar_url || 'https://via.placeholder.com/150'} alt={c.username} className="w-full h-full object-cover rounded-full" />
                                     </div>
                                     <span className="text-[10px] text-slate-400 truncate w-full text-center font-medium">{c.username}</span>
                                 </div>

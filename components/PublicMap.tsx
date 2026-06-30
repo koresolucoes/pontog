@@ -132,7 +132,7 @@ export const PublicMap: React.FC<PublicMapProps> = ({ venues, center, cityName, 
             popupContent.innerHTML = `
                 <div class="text-center font-outfit p-1.5 min-w-[160px]">
                     <div class="w-full h-24 mb-2 rounded-lg overflow-hidden relative">
-                        <img src="${venue.image_url || 'https://placehold.co/300x200/1e293b/64748b?text=PontoG'}" class="w-full h-full object-cover" />
+                        <img loading="lazy" src="${venue.image_url || 'https://placehold.co/300x200/1e293b/64748b?text=PontoG'}" class="w-full h-full object-cover" />
                         <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
                              <span class="text-[10px] font-bold text-white uppercase tracking-wide">${venue.type}</span>
                         </div>

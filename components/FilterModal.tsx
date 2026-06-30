@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useMapStore } from '../stores/mapStore';
 import { useDataStore } from '../stores/dataStore';
 import { POSITIONS } from '../lib/constants';
@@ -81,7 +82,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({ onClose }) => {
         onClose();
     };
 
-    return (
+    return typeof document !== 'undefined' ? (
+        createPortal(
         <div className="fixed inset-0 bg-dark-900/80 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 animate-fade-in" onClick={onClose}>
             <div className="bg-slate-900/95 backdrop-blur-xl rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md mx-auto animate-slide-in-up flex flex-col h-[80vh] sm:h-auto sm:max-h-[85vh] border border-white/10" onClick={(e) => e.stopPropagation()}>
                 <header className="p-5 border-b border-white/10 flex justify-between items-center flex-shrink-0 bg-slate-800/50 rounded-t-3xl">
@@ -160,6 +162,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({ onClose }) => {
                     </button>
                 </footer>
             </div>
-        </div>
-    );
+        </div>, document.body)
+    ) : null;
 };

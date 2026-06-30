@@ -164,7 +164,18 @@ export const Onboarding: React.FC = () => {
 const WelcomeStep: React.FC<{onNext: () => void}> = ({ onNext }) => (
     <div className="text-center space-y-8">
         <div className="relative inline-block">
-            <div className="w-24 h-24 bg-gradient-to-br from-pink-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-pink-500/30 rotate-3 animate-float">
+            <img 
+                src="/logo.png" 
+                alt="Logo" 
+                className="w-24 h-24 object-contain shadow-2xl shadow-pink-500/30 rotate-3 animate-float drop-shadow-lg"
+                onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextElementSibling) {
+                        (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                    }
+                }}
+            />
+            <div className="hidden w-24 h-24 bg-gradient-to-br from-pink-500 to-purple-600 rounded-3xl items-center justify-center shadow-2xl shadow-pink-500/30 rotate-3 animate-float" style={{ display: 'none' }}>
                 <span className="font-black text-5xl text-white">G</span>
             </div>
             <div className="absolute -bottom-4 -right-4 text-3xl animate-bounce">👋</div>

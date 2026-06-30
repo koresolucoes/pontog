@@ -80,10 +80,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-dark-950/80 backdrop-blur-xl border-b border-white/5 transition-all">
         <div className="flex justify-between items-center p-4 max-w-7xl mx-auto">
             <div className="flex items-center gap-3 cursor-pointer" onClick={onEnter}>
-                <div className="w-9 h-9 bg-gradient-to-tr from-pink-600 to-purple-600 rounded-lg flex items-center justify-center font-black text-xl shadow-lg shadow-pink-900/20">
-                    G
+                <img 
+                    src="/logo.png" 
+                    alt="Logo Ponto G" 
+                    className="h-9 w-auto object-contain drop-shadow-md"
+                    onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        if (e.currentTarget.nextElementSibling) {
+                            (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                        }
+                    }}
+                />
+                <div className="hidden items-center gap-3" style={{ display: 'none' }}>
+                    <div className="w-9 h-9 bg-gradient-to-tr from-pink-600 to-purple-600 rounded-lg flex items-center justify-center font-black text-xl shadow-lg shadow-pink-900/20">
+                        G
+                    </div>
+                    <span className="font-outfit font-bold text-lg tracking-tight hidden sm:block">Ponto G</span>
                 </div>
-                <span className="font-outfit font-bold text-lg tracking-tight hidden sm:block">Ponto G</span>
                 
                 {cityName && (
                     <div className="hidden md:flex items-center gap-1.5 px-3 py-1 bg-slate-800/50 border border-white/10 rounded-full animate-fade-in">
@@ -375,8 +388,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
                 <div className="col-span-1 md:col-span-2">
                     <div className="flex items-center gap-2 mb-4">
-                        <div className="w-8 h-8 bg-gradient-to-tr from-pink-600 to-purple-600 rounded-lg flex items-center justify-center font-black text-white text-lg">G</div>
-                        <span className="font-outfit font-black text-2xl text-white">Ponto G</span>
+                        <img 
+                            src="/logo.png" 
+                            alt="Logo Ponto G" 
+                            className="h-10 w-auto object-contain"
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                if (e.currentTarget.nextElementSibling) {
+                                    (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                                }
+                            }}
+                        />
+                        <div className="hidden items-center gap-2" style={{ display: 'none' }}>
+                            <div className="w-8 h-8 bg-gradient-to-tr from-pink-600 to-purple-600 rounded-lg flex items-center justify-center font-black text-white text-lg">G</div>
+                            <span className="font-outfit font-black text-2xl text-white">Ponto G</span>
+                        </div>
                     </div>
                     <p className="text-slate-500 leading-relaxed max-w-xs">
                         A plataforma mais completa para encontros e estilo de vida gay.

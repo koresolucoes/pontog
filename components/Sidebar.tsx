@@ -139,7 +139,13 @@ export const Sidebar: React.FC = () => {
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-white/5 text-center">
+                <div className="p-4 border-t border-white/5 text-center flex flex-col items-center justify-center">
+                    <img 
+                        src="/logo.png" 
+                        alt="Logo" 
+                        className="h-6 w-auto object-contain mb-2 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-300"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
                     <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Ponto G v1.2.0</p>
                     <p className="text-[9px] text-slate-700 font-medium mt-1">Propriedade de Kore Serviços de Tecnologia</p>
                 </div>

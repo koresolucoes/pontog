@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAlbumStore } from '../stores/albumStore';
 import { PrivateAlbum } from '../types';
 
@@ -17,7 +18,7 @@ export const SelectAlbumModal: React.FC<SelectAlbumModalProps> = ({ onClose, onS
     }
   }, [myAlbums, fetchMyAlbums]);
 
-  return (
+  return typeof document !== 'undefined' ? createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end sm:items-center justify-center z-50 animate-fade-in" onClick={onClose}>
       <div 
         className="bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-lg mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-full sm:h-auto sm:max-h-[80vh]" 
@@ -54,6 +55,7 @@ export const SelectAlbumModal: React.FC<SelectAlbumModalProps> = ({ onClose, onS
             )}
         </main>
       </div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 };

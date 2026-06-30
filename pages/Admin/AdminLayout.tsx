@@ -58,7 +58,18 @@ export const AdminLayout: React.FC = () => {
     const SidebarContent = () => (
          <div className="flex flex-col h-full bg-dark-950/95 backdrop-blur-xl border-r border-white/10 shadow-2xl">
             <div className="p-6 border-b border-white/5 flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <img 
+                    src="/logo.png" 
+                    alt="Logo" 
+                    className="h-10 w-auto object-contain drop-shadow-md"
+                    onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        if (e.currentTarget.nextElementSibling) {
+                            (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                        }
+                    }}
+                />
+                <div className="hidden items-center justify-center w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-xl shadow-lg" style={{ display: 'none' }}>
                     <span className="text-white font-black text-xl">G</span>
                 </div>
                 <div>

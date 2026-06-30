@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { AgoraPost, AgoraComment } from '../types';
 import { useAgoraStore } from '../stores/agoraStore';
 import { useAuthStore } from '../stores/authStore';
@@ -70,7 +71,7 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
     await toggleLikeComment(commentId, hasLiked);
   };
 
-  return (
+  return typeof document !== 'undefined' ? createPortal(
     <div className="fixed inset-0 bg-dark-900/95 backdrop-blur-sm flex items-end sm:items-center justify-center z-[70] animate-fade-in p-0 sm:p-4" onClick={onClose}>
       <div className="bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md mx-auto animate-slide-in-up flex flex-col h-[90vh] border border-white/10" onClick={(e) => e.stopPropagation()}>
         <header className="p-4 border-b border-white/5 flex justify-between items-center flex-shrink-0 bg-slate-800/50 rounded-t-3xl">
@@ -162,6 +163,7 @@ export const AgoraPostDetailModal: React.FC<AgoraPostDetailModalProps> = ({ post
           </div>
         </form>
       </div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 };

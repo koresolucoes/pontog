@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useAgoraStore } from '../stores/agoraStore';
 import toast from 'react-hot-toast';
 
@@ -36,7 +37,7 @@ export const ActivateAgoraModal: React.FC<ActivateAgoraModalProps> = ({ onClose 
     onClose();
   };
 
-  return (
+  return typeof document !== 'undefined' ? createPortal(
     <div className="fixed inset-0 bg-dark-900/90 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] animate-fade-in p-0 sm:p-4" onClick={onClose}>
       <div className="bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md mx-auto animate-slide-in-up flex flex-col max-h-[90vh] border border-white/10" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-white/5 flex justify-between items-center flex-shrink-0 bg-gradient-to-r from-red-900/20 to-transparent rounded-t-3xl">
@@ -117,6 +118,7 @@ export const ActivateAgoraModal: React.FC<ActivateAgoraModalProps> = ({ onClose 
           </p>
         </div>
       </div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 };

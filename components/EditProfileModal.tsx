@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useDataStore } from '../stores/dataStore';
 import { useAlbumStore } from '../stores/albumStore';
@@ -264,7 +265,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
       </div>
   );
 
-  return (
+  return typeof document !== 'undefined' ? createPortal(
     <div className="fixed inset-0 bg-dark-900/80 backdrop-blur-md flex items-end sm:items-center justify-center z-50 animate-fade-in" onClick={onClose}>
       <div className="bg-slate-800/95 backdrop-blur-xl rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-2xl mx-auto animate-slide-in-up sm:animate-fade-in-up flex flex-col h-[92vh] sm:h-auto sm:max-h-[90vh] border border-white/10" onClick={(e) => e.stopPropagation()}>
         <header className="p-5 border-b border-white/10 flex justify-between items-center flex-shrink-0 bg-slate-800/50 rounded-t-3xl">
@@ -462,6 +463,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ onClose }) =
           </button>
         </footer>
       </div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 };

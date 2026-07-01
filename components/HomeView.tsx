@@ -7,6 +7,8 @@ import { useAgoraStore } from '../stores/agoraStore';
 import { User } from '../types';
 import { AdSenseUnit } from './AdSenseUnit';
 
+import { useUserActionsStore } from '../stores/userActionsStore';
+
 const GridLoader: React.FC = () => (
     <>
         {Array.from({ length: 6 }).map((_, i) => (
@@ -37,8 +39,9 @@ const itemVariants = {
 
 export const HomeView: React.FC = () => {
     const { popularUsers, loading, error, hasMore, loadingMore, fetchPopularUsers, fetchMorePopularUsers } = useHomeStore();
-    const { onlineUsers, setSelectedUser, myLocation } = useMapStore();
+    const { onlineUsers, setSelectedUser, myLocation, filters } = useMapStore();
     const { agoraUserIds } = useAgoraStore();
+    const { favoriteIds } = useUserActionsStore();
 
     const initialFetchDone = useRef(false);
 
@@ -66,7 +69,17 @@ export const HomeView: React.FC = () => {
     };
     
     const itemsWithAds = useMemo(() => {
-        const sortedUsers = [...popularUsers].sort((a, b) => {
+        let sortedUsers = [...popularUsers];
+        
+        if (filters.favoritesOnly) {
+            sortedUsers = sortedUsers.filter(u => favoriteIds.includes(u.id));
+        }
+
+        if (filters.onlineOnly) {
+            sortedUsers = sortedUsers.filter(u => onlineUsers.includes(u.id));
+        }
+
+        sortedUsers.sort((a, b) => {
             const aIsAgora = agoraUserIds.includes(a.id);
             const bIsAgora = agoraUserIds.includes(b.id);
             if (aIsAgora && !bIsAgora) return -1;
@@ -86,7 +99,7 @@ export const HomeView: React.FC = () => {
             items.splice(8, 0, { type: 'ad' });
         }
         return items;
-    }, [popularUsers, onlineUsers, agoraUserIds]);
+    }, [popularUsers, onlineUsers, agoraUserIds, filters.favoritesOnly, filters.onlineOnly, favoriteIds]);
 
 
     if (loading && popularUsers.length === 0) {

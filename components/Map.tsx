@@ -4,6 +4,7 @@ import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
 import { useAgoraStore } from '../stores/agoraStore';
 import { useUiStore } from '../stores/uiStore';
+import { useUserActionsStore } from '../stores/userActionsStore';
 import * as L from 'leaflet';
 import { User, Venue } from '../types';
 import { TravelModeModal } from './TravelModeModal';
@@ -184,6 +185,7 @@ export const Map: React.FC = () => {
   } = useMapStore();
   const { profile } = useAuthStore();
   const { agoraUserIds } = useAgoraStore();
+  const { favoriteIds } = useUserActionsStore();
   const { activeView, setSubscriptionModalOpen, isSuggestVenueModalOpen, setSuggestVenueModalOpen } = useUiStore();
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -207,8 +209,11 @@ export const Map: React.FC = () => {
       // 1. Filter visible users
       const visibleUsers = users.filter(user => {
           if (!Number.isFinite(user.lat) || !Number.isFinite(user.lng)) return false;
-          const isOnline = onlineUsers.includes(user.id);
-          return !filters.onlineOnly || isOnline;
+          
+          if (filters.favoritesOnly && !favoriteIds.includes(user.id)) return false;
+          if (filters.onlineOnly && !onlineUsers.includes(user.id)) return false;
+          
+          return true;
       });
 
       // 2. Clear existing markers
@@ -316,7 +321,7 @@ export const Map: React.FC = () => {
           }
       });
 
-  }, [users, onlineUsers, agoraUserIds, filters, setSelectedUser, isMapCreated]);
+  }, [users, onlineUsers, agoraUserIds, filters, favoriteIds, setSelectedUser, isMapCreated]);
 
   // FIX: UseRef para manter a referência da função updateMarkers atualizada dentro dos listeners do Leaflet
   // Isso resolve o problema de "Stale Closure" onde o mapa não atualizava ao mover/zoom
@@ -470,7 +475,7 @@ export const Map: React.FC = () => {
   // Chama o updateMarkers sempre que os dados mudam
   useEffect(() => {
       updateMarkers();
-  }, [users, onlineUsers, agoraUserIds, filters, updateMarkers]);
+  }, [users, onlineUsers, agoraUserIds, filters, favoriteIds, updateMarkers]);
 
   // Gerenciamento dos Marcadores de Locais (Venues) - Separado pois não clusteriza com users
   useEffect(() => {

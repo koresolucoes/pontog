@@ -10,8 +10,23 @@ export const FilterBar: React.FC = () => {
         setFilters({ onlineOnly: !filters.onlineOnly });
     };
 
+    const toggleFavoritesOnly = () => {
+        setFilters({ favoritesOnly: !filters.favoritesOnly });
+    };
+
     return (
-        <div className="p-4 bg-gray-800 border-b border-gray-700 flex items-center justify-end">
+        <div className="p-4 bg-gray-800 border-b border-gray-700 flex items-center justify-end gap-2">
+            <button
+                onClick={toggleFavoritesOnly}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+                    filters.favoritesOnly 
+                        ? 'bg-pink-600 text-white' 
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+            >
+                <span className={`material-symbols-rounded text-sm ${filters.favoritesOnly ? 'filled' : ''}`}>favorite</span>
+                <span>Favoritos</span>
+            </button>
             <button
                 onClick={toggleOnlineOnly}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${

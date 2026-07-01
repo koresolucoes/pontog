@@ -165,7 +165,7 @@ const WelcomeStep: React.FC<{onNext: () => void}> = ({ onNext }) => (
     <div className="text-center space-y-8">
         <div className="relative inline-block">
             <img 
-                src="/logo.png" 
+                src="https://wwmiqdovqgysncmqnmvp.supabase.co/storage/v1/object/public/venues/Logo/Logo.png" 
                 alt="Logo" 
                 className="w-24 h-24 object-contain shadow-2xl shadow-pink-500/30 rotate-3 animate-float drop-shadow-lg"
                 onError={(e) => {

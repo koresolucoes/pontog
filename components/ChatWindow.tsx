@@ -565,11 +565,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
         </div>
       </div>
       
-      {/* Floating Input Area */}
+      {/* Input Area */}
       {!editingMessage && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-dark-900 via-dark-900/90 to-transparent z-20">
+        <div className="absolute bottom-0 left-0 right-0 p-3 bg-slate-900 border-t border-white/10 z-20">
              {isAttachmentMenuOpen && (
-                <div className="absolute bottom-20 left-4 w-48 bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl p-1.5 animate-fade-in-up border border-white/10 z-30">
+                <div className="absolute bottom-16 left-3 w-48 bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl p-1.5 animate-fade-in-up border border-white/10 z-30">
                     <button onClick={() => { setAttachmentMenuOpen(false); imageInputRef.current?.click(); }} className="w-full flex items-center gap-3 text-left p-3 rounded-xl hover:bg-white/10 text-white transition-colors">
                         <div className="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center text-pink-400">
                             <span className="material-symbols-rounded text-lg">image</span>
@@ -624,31 +624,32 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose }) => {
                     </form>
                 </div>
               ) : (
-                <form onSubmit={handleSendMessage} className="flex items-end gap-2 bg-slate-800/80 backdrop-blur-xl p-1.5 rounded-[28px] border border-white/10 shadow-2xl">
+                <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                     <input type="file" accept="image/*" className="hidden" ref={imageInputRef} onChange={handleFileSelect}/>
                     <button 
                         type="button" 
                         onClick={() => setAttachmentMenuOpen(prev => !prev)} 
-                        className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full transition-all mb-0.5 ${isAttachmentMenuOpen ? 'bg-slate-700 text-white rotate-45' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
+                        className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full transition-all ${isAttachmentMenuOpen ? 'bg-slate-800 text-white rotate-45' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
                     >
-                        <span className="material-symbols-rounded text-2xl">add_circle</span>
+                        <span className="material-symbols-rounded text-2xl">add</span>
                     </button>
-                    <div className="flex-1 relative">
+                    <div className="flex-1 relative bg-slate-800 rounded-full border border-white/5 overflow-hidden">
                         <input
                             type="text"
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
-                            placeholder="Mensagem..."
-                            className="w-full bg-transparent py-3 px-2 text-white placeholder-slate-500 focus:outline-none text-sm font-medium"
+                            placeholder="Digite uma mensagem..."
+                            className="w-full bg-transparent py-2.5 px-4 text-white placeholder-slate-400 focus:outline-none text-sm"
                         />
                     </div>
-                    <button 
-                        type="submit" 
-                        disabled={!newMessage.trim()}
-                        className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-full hover:shadow-lg hover:shadow-pink-600/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:shadow-none mb-0.5"
-                    >
-                        <span className="material-symbols-rounded text-xl filled">arrow_upward</span>
-                    </button>
+                    {newMessage.trim() && (
+                        <button 
+                            type="submit" 
+                            className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-pink-600 text-white rounded-full hover:bg-pink-700 transition-all hover:scale-105 active:scale-95"
+                        >
+                            <span className="material-symbols-rounded text-lg filled">send</span>
+                        </button>
+                    )}
                 </form>
             )}
         </div>

@@ -81,7 +81,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         <div className="flex justify-between items-center p-4 max-w-7xl mx-auto">
             <div className="flex items-center gap-3 cursor-pointer" onClick={onEnter}>
                 <img 
-                    src="/logo.png" 
+                    src="https://wwmiqdovqgysncmqnmvp.supabase.co/storage/v1/object/public/venues/Logo/Logo.png" 
                     alt="Logo Ponto G" 
                     className="h-9 w-auto object-contain drop-shadow-md"
                     onError={(e) => {
@@ -372,7 +372,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                       </p>
                       <div className="w-full max-w-xs relative group">
                            <img 
-                                src="https://wwmiqdovqgysncmqnmvp.supabase.co/storage/v1/object/public/user_uploads/Captura%20de%20tela%202025-11-22%20104842.png"
+                                src="https://wwmiqdovqgysncmqnmvp.supabase.co/storage/v1/object/public/venues/Logo/Logo.png"
                                 alt="Ponto G App"
                                 className="relative w-full h-auto rounded-xl shadow-2xl border border-white/10 transform transition-transform duration-500 hover:scale-[1.02]"
                            />
@@ -389,7 +389,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                 <div className="col-span-1 md:col-span-2">
                     <div className="flex items-center gap-2 mb-4">
                         <img 
-                            src="/logo.png" 
+                            src="https://wwmiqdovqgysncmqnmvp.supabase.co/storage/v1/object/public/venues/Logo/Logo.png" 
                             alt="Logo Ponto G" 
                             className="h-10 w-auto object-contain"
                             onError={(e) => {

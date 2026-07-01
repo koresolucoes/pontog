@@ -2,6 +2,7 @@
 import React, { useMemo, useEffect, useState, memo, useCallback, useRef } from 'react';
 import { useMapStore } from '../stores/mapStore';
 import { useAgoraStore } from '../stores/agoraStore';
+import { useUserActionsStore } from '../stores/userActionsStore';
 import { User } from '../types';
 import { FilterModal } from './FilterModal';
 import { AdSenseUnit } from './AdSenseUnit';
@@ -106,6 +107,7 @@ const UserCard = memo(({
 export const UserGrid: React.FC = () => {
     const { users, onlineUsers, filters, setFilters, setSelectedUser } = useMapStore();
     const { agoraUserIds, fetchAgoraPosts } = useAgoraStore();
+    const { favoriteIds } = useUserActionsStore();
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
 
@@ -157,10 +159,13 @@ export const UserGrid: React.FC = () => {
             return 0;
         });
 
-        const { onlineOnly, minAge, maxAge, positions, tribes } = filters;
+        const { onlineOnly, favoritesOnly, minAge, maxAge, positions, tribes } = filters;
 
         // Apply filters
         let finalUsers = sortedUsers;
+        if (favoritesOnly) {
+            finalUsers = finalUsers.filter(user => favoriteIds.includes(user.id));
+        }
         if (onlineOnly) {
             finalUsers = finalUsers.filter(user => onlineUsers.includes(user.id));
         }

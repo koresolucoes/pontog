@@ -21,6 +21,7 @@ interface MapState {
   lastLocationUpdate: number; // Timestamp for throttling
   filters: {
     onlineOnly: boolean;
+    favoritesOnly: boolean;
     minAge: number | null;
     maxAge: number | null;
     positions: string[];
@@ -58,6 +59,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   lastLocationUpdate: 0,
   filters: {
     onlineOnly: false,
+    favoritesOnly: false,
     minAge: 18,
     maxAge: 99,
     positions: [],

@@ -177,41 +177,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
             <div className="w-12 h-1.5 bg-slate-600 rounded-full"></div>
         </div>
 
-        {/* Options Button (Moved up for z-index safety) */}
+        {/* Top Bar */}
         <div className="absolute top-4 right-4 z-30 flex gap-2">
-            <button onClick={() => isFavorite ? unfavoriteUser(user.id) : favoriteUser(user.id)} className={`bg-black/20 backdrop-blur-md p-2.5 rounded-full transition-colors border border-white/10 ${isFavorite ? 'text-pink-500 hover:bg-black/40' : 'text-white hover:bg-black/40'}`}>
-                <span className={`material-symbols-rounded ${isFavorite ? 'filled' : ''}`}>favorite</span>
-            </button>
-             <button onClick={() => setOptionsMenuOpen(true)} className="text-white bg-black/20 backdrop-blur-md p-2.5 rounded-full hover:bg-black/40 transition-colors border border-white/10">
-                <span className="material-symbols-rounded">more_vert</span>
-            </button>
-            <button onClick={onClose} className="text-white bg-black/20 backdrop-blur-md p-2.5 rounded-full hover:bg-black/40 transition-colors border border-white/10">
+            <button onClick={onClose} className="text-white bg-black/20 backdrop-blur-md w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/40 transition-colors border border-white/10">
                 <span className="material-symbols-rounded">close</span>
             </button>
         </div>
-
-        {isOptionsMenuOpen && (
-            <>
-            <div className="absolute top-16 right-4 bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 z-40 w-48 overflow-hidden animate-fade-in">
-                <button 
-                    onClick={() => { setBlockConfirmOpen(true); setOptionsMenuOpen(false); }} 
-                    className="w-full flex items-center gap-3 p-3.5 text-sm text-red-400 hover:bg-white/5 transition-colors"
-                >
-                    <span className="material-symbols-rounded text-xl">block</span>
-                    Bloquear
-                </button>
-                <div className="h-px bg-white/5"></div>
-                <button 
-                    onClick={() => { setReportModalOpen(true); setOptionsMenuOpen(false); }} 
-                    className="w-full flex items-center gap-3 p-3.5 text-sm text-yellow-400 hover:bg-white/5 transition-colors"
-                >
-                    <span className="material-symbols-rounded text-xl">flag</span>
-                    Denunciar
-                </button>
-            </div>
-            <div className="fixed inset-0 z-20" onClick={() => setOptionsMenuOpen(false)}></div>
-            </>
-        )}
 
         {/* Media Area: Video or Carousel - Adjusted Height for Mobile */}
         <div className={`relative w-full h-[45vh] sm:h-auto sm:aspect-square flex-shrink-0 group bg-black`}>
@@ -309,6 +280,33 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, onClose, onSta
 
         <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-900">
           
+          {/* Actions (Favorite, Block, Report) */}
+          <div className="flex justify-center items-center gap-5 pb-2 pt-1 border-b border-white/5">
+              <button 
+                  onClick={() => isFavorite ? unfavoriteUser(user.id) : favoriteUser(user.id)}
+                  className={`w-14 h-14 flex items-center justify-center rounded-full border-2 transition-all ${isFavorite ? 'bg-pink-600/20 border-pink-500 text-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.3)]' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white'}`}
+                  title="Favoritar"
+              >
+                  <span className={`material-symbols-rounded text-3xl ${isFavorite ? 'filled' : ''}`}>favorite</span>
+              </button>
+              
+              <button 
+                  onClick={() => setBlockConfirmOpen(true)}
+                  className="w-12 h-12 flex items-center justify-center rounded-full bg-slate-800 border-2 border-slate-700 text-slate-400 hover:border-red-500/50 hover:text-red-400 transition-all"
+                  title="Bloquear"
+              >
+                  <span className="material-symbols-rounded text-2xl">block</span>
+              </button>
+
+              <button 
+                  onClick={() => setReportModalOpen(true)}
+                  className="w-12 h-12 flex items-center justify-center rounded-full bg-slate-800 border-2 border-slate-700 text-slate-400 hover:border-yellow-500/50 hover:text-yellow-400 transition-all"
+                  title="Denunciar"
+              >
+                  <span className="material-symbols-rounded text-2xl">flag</span>
+              </button>
+          </div>
+
           {agoraPost && (
             <div className="relative overflow-hidden rounded-2xl p-1 bg-gradient-to-r from-red-600 to-orange-600 shadow-lg shadow-red-900/30">
               <div className="bg-slate-900 rounded-xl p-4 relative">

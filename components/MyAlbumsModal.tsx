@@ -135,11 +135,13 @@ export const MyAlbumsModal: React.FC<MyAlbumsModalProps> = ({ onClose }) => {
                 {selectedAlbum.private_album_photos?.map(photo => (
                     <div key={photo.id} className="relative group aspect-square rounded-xl overflow-hidden shadow-sm border border-white/5">
                         <img loading="lazy" src={photo.photo_path} alt="foto do álbum" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                            <button type="button" onClick={() => deletePhotoFromAlbum(photo.id)} className="text-white p-2 rounded-full hover:bg-red-600/80 transition-colors">
-                                <span className="material-symbols-rounded text-xl block">delete</span>
-                            </button>
-                        </div>
+                        <button 
+                            type="button" 
+                            onClick={() => deletePhotoFromAlbum(photo.id)} 
+                            className="absolute top-2 right-2 bg-black/60 text-white w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-600 transition-colors backdrop-blur-sm z-10 shadow-lg"
+                        >
+                            <span className="material-symbols-rounded text-[18px]">delete</span>
+                        </button>
                     </div>
                 ))}
             </div>
